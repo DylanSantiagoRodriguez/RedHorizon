@@ -27,7 +27,7 @@ export class EntityViews {
       mesh.visible = !g.collected; mesh.rotation.y = run.time;
       mesh.position.y = run.world.heightAt(g.x, g.z) + 1 + Math.sin(run.time * 3) * 0.2;
     }
-    this.models.animatePlayer(this.player, run.player, run.time);
+    this.models.animatePlayer(this.player, run.player);
     this.avatar?.update(run.player, run.time);
     this.weapons.update(run, this.emitShotParticles);
     for (const [id, mesh] of this.enemies) {

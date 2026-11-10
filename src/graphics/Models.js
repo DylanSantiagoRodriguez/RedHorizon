@@ -44,12 +44,12 @@ export class Models {
     const gun = new THREE.Group(); gun.position.set(0.48, 1.21, 0.3); g.add(gun);
     g.userData = { legs, arms, gun }; return g;
   }
-  animatePlayer(mesh, player, time) {
+  animatePlayer(mesh, player) {
     mesh.position.set(player.x, player.y, player.z); mesh.rotation.y = player.yaw;
     const gait = Math.min(1, Math.hypot(player.vx, player.vz) / 5);
     mesh.userData.legs.forEach((leg, i) => { leg.rotation.x = Math.sin(player.steps * 1.4 + i * Math.PI) * 0.65 * gait; });
     mesh.userData.arms.forEach((arm, i) => { arm.rotation.x = -0.3 + Math.sin(player.steps * 1.4 + i * Math.PI) * 0.2 * gait; });
-    mesh.visible = player.invulnerable <= 0 || Math.floor(time * 18) % 2 === 0;
+    mesh.visible = !player.dead;
   }
   enemy(data) {
     const key = enemyModelKey(data);

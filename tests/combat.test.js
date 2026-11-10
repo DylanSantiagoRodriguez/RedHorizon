@@ -2,7 +2,31 @@ import { it, expect } from 'vitest';
 import { calculateDamage, damageEntity } from '../src/combat/DamageSystem.js';
 import { baseStats } from '../src/entities/Player.js';
 import { Run } from '../src/core/Run.js';
+import { updateEnemy } from '../src/ai/EnemyAI.js';
 const world = { heightAt: () => 0, obstacles: [] };
+it('escala el daño recibido con tiempo y nivel y comunica las pérdidas reales', () => {
+  const events = [], run = new Run(world, 'scaled', (type, data) => { if (type === 'hurt') events.push(data); });
+  run.hurtPlayer(10); expect(run.player.hp).toBe(110);
+  run.time = 600; run.hurtPlayer(10); expect(run.player.hp).toBe(90);
+  run.experience.level = 5; run.player.shield = 8; run.hurtPlayer(10);
+  expect(run.player.hp).toBeCloseTo(77);
+  expect(events.at(-1)).toEqual({ healthDamage: 13, shieldDamage: 8 });
+});
+it('suma ataques cuerpo a cuerpo de dos enemigos en la misma actualización', () => {
+  const run = new Run(world, 'combined-melee');
+  const a = run.spawn('stalker', 0, 1), b = run.spawn('brute', 0, -1);
+  a.attackTimer = 0; b.attackTimer = 0;
+  updateEnemy(a, 1 / 60, run); updateEnemy(b, 1 / 60, run);
+  expect(run.player.hp).toBe(120 - a.damage - b.damage);
+});
+it('suma proyectiles simultáneos y consume cada impacto una sola vez', () => {
+  const run = new Run(world, 'combined-projectiles');
+  for (const damage of [12, 16, 22]) run.combat.spawn({ x: 0, y: 1, z: 0.5, vx: 0, vy: 0, vz: -10, damage, life: 2 });
+  run.combat.update(1 / 60);
+  expect(run.player.hp).toBe(70);
+  run.combat.update(1 / 60); expect(run.player.hp).toBe(70);
+  expect(run.combat.pool.items.filter(p => p.active)).toHaveLength(0);
+});
 it('calcula críticos y daño escalado', () => { const stats = { ...baseStats(), damage: 2, crit: 0.5, critDamage: 2.5 }; expect(calculateDamage(10, stats, 0).amount).toBe(50); expect(calculateDamage(10, stats, 0.8).amount).toBe(20); });
 it('mata una sola vez', () => { const enemy = { hp: 10, dead: false }; expect(damageEntity(enemy, 20)).toBe(true); expect(damageEntity(enemy, 20)).toBe(false); expect(enemy.hp).toBe(0); });
 it('respeta enfriamiento y produce impactos reales', () => {

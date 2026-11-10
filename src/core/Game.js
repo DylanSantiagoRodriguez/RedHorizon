@@ -44,7 +44,7 @@ export class Game {
     this.audio.play(event, data);
     if (event === 'guardianEffect') this.particles.guardian(data);
     if (event === 'hit') this.ui?.hud.hit(data);
-    if (event === 'hurt') this.ui?.hud.hurt();
+    if (event === 'hurt') this.ui?.hud.hurt(data);
     if (['impact', 'death', 'explosion'].includes(event)) this.particles.burst(data, event === 'explosion' ? 35 : event === 'death' ? 16 : 4, data.color, event === 'explosion' ? data.radius * 2 : 5);
     if (event === 'boss') this.ui?.hud.toast('GUARDIÁN INVOCADO · ' + data.name);
     if (event === 'phase') this.ui?.hud.toast('SOBRECARGA · Evita los anillos de impacto');

@@ -5,7 +5,7 @@ export function baseStats() {
 }
 export class Player {
   constructor(height = 0) {
-    Object.assign(this, { x: 0, y: height, z: 0, vx: 0, vy: 0, vz: 0, radius: CONFIG.playerRadius, grounded: true, hp: 120, shield: 0, invulnerable: 0, shieldDelay: 0, dead: false, yaw: Math.PI, steps: 0 });
+    Object.assign(this, { x: 0, y: height, z: 0, vx: 0, vy: 0, vz: 0, radius: CONFIG.playerRadius, grounded: true, hp: 120, shield: 0, shieldDelay: 0, dead: false, yaw: Math.PI, steps: 0 });
     this.stats = baseStats(); this.groundTime = 1; this.hasJumped = false; this.jumpBuffer = 0; this.slideTime = 0; this.slideCooldown = 0; this.hopChain = 0;
   }
   update(dt, input, yaw, world) {
@@ -51,20 +51,19 @@ export class Player {
     moveCircle(this, this.vx * dt, this.vz * dt, world.obstacles);
     if (!this.grounded) { this.vy -= CONFIG.gravity * dt; this.y += this.vy * dt; }
     const ground = world.heightAt(this.x, this.z);
-    if (!this.grounded) { this.vy -= CONFIG.gravity * dt; this.y += this.vy * dt; }
     if (this.y <= ground || this.grounded) { this.y = ground; this.vy = 0; this.grounded = true; }
     // Face the camera heading independently of movement direction.
     this.yaw = Math.PI - yaw;
     this.steps += Math.hypot(this.vx, this.vz) * dt;
-    this.invulnerable = Math.max(0, this.invulnerable - dt); this.shieldDelay -= dt;
+    this.shieldDelay -= dt;
     if (this.shieldDelay <= 0) this.shield = Math.min(this.stats.shield, this.shield + dt * 8);
     this.hp = Math.min(this.stats.maxHp, this.hp + this.stats.regen * dt);
   }
   hurt(amount) {
-    if (this.dead || this.invulnerable > 0) return false;
+    if (this.dead) return false;
     const absorbed = Math.min(this.shield, amount); this.shield -= absorbed;
     this.hp = Math.max(0, this.hp - (amount - absorbed));
-    this.invulnerable = CONFIG.invulnerability; this.shieldDelay = 6;
+    this.shieldDelay = 6;
     this.dead = this.hp <= 0; return true;
   }
 }

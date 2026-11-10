@@ -17,7 +17,7 @@ export class CombatSystem {
     const run = this.run, result = calculateDamage(damage, run.player.stats, run.random.next());
     const actualDamage = Math.min(enemy.hp, result.amount);
     const killed = damageEntity(enemy, result.amount); enemy.flash = 0.12;
-    run.emit('hit', { x: enemy.x, y: enemy.y, z: enemy.z, amount: Math.round(result.amount), critical: result.critical });
+    run.emit('hit', { x: enemy.x, y: enemy.y, z: enemy.z, amount: Math.round(actualDamage), critical: result.critical, killed });
     run.player.hp = Math.min(run.player.stats.maxHp, run.player.hp + actualDamage * run.player.stats.lifesteal);
     if (killed) {
       enemy.state = 'Dead'; run.kills++; run.onKill(enemy);

@@ -136,3 +136,13 @@
   .neo-hud .bottom-coordinates { left:14px; right:14px; font-size:6px; gap:10px; bottom:16px; }
 }
 @media(prefers-reduced-motion:reduce) { .neo-hud .track i { transition:none; } }
+/* Combat confirmation stays separate from the aiming reticle. */
+#hit-marker { pointer-events:none; z-index:4; width:42px; height:42px; display:grid; place-items:center; font:400 46px/1 monospace; color:#d9fff7; text-shadow:0 0 8px #4de6cf,0 2px 4px #000; }
+#hit-marker.critical { color:#ffd789; text-shadow:0 0 12px #d99639,0 2px 4px #000; }
+#hit-marker.kill { color:#ff9279; text-shadow:0 0 12px #ed583a,0 2px 4px #000; }
+#hit-marker::after { content:attr(data-label); position:absolute; top:46px; left:50%; transform:translateX(-50%); font:700 10px/1.2 monospace; letter-spacing:2px; white-space:nowrap; }
+#damage-flash { pointer-events:none; box-shadow:inset 0 0 100px 24px #cf3d28b3; background:linear-gradient(0deg,#bc30251a,transparent 40%); }
+#damage-flash.shield-hit { box-shadow:inset 0 0 100px 24px #52d9e68c; background:none; }
+#hurt-feedback { position:absolute; top:calc(50% + 82px); left:50%; transform:translateX(-50%); opacity:0; transition:opacity .15s; color:#ffc2ad; font:700 13px/1.4 monospace; letter-spacing:1px; text-shadow:0 2px 5px #000; padding:6px 12px; border-top:2px solid #ed7259; background:#211217b3; pointer-events:none; }
+#hurt-feedback.visible { opacity:1; }
+#hurt-feedback.shield-hit { color:#b6fff6; border-color:#81dfd6; background:#10252ab3; }

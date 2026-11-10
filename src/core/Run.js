@@ -4,7 +4,7 @@ import { createEnemy } from '../entities/Enemy.js';
 import { updateEnemy } from '../ai/EnemyAI.js';
 import { CombatSystem } from '../combat/CombatSystem.js';
 import { WeaponSystem } from '../combat/WeaponSystem.js';
-import { DifficultyDirector } from '../world/DifficultyDirector.js';
+import { DifficultyDirector, difficultyAt } from '../world/DifficultyDirector.js';
 import { ExperienceSystem } from '../progression/ExperienceSystem.js';
 import { UpgradeSystem } from '../progression/UpgradeSystem.js';
 import { AbilitySystem } from '../combat/AbilitySystem.js';
@@ -52,7 +52,13 @@ export class Run {
     if (this.status !== 'upgrade' || !this.upgrades.apply(id, this.player)) return false;
     this.experience.pending--; this.status = 'playing'; this.emit('upgrade', {}); this.checkLevel(); return true;
   }
-  hurtPlayer(amount) { if (this.status !== 'playing' || this.mission.phase === 'cinematic') return; if (this.player.hurt(amount)) this.emit('hurt', {}); if (this.player.dead) { if (this.mission.phase !== 'countdown') this.status = 'defeat'; } }
+  hurtPlayer(amount) {
+    if (this.status !== 'playing' || this.mission.phase === 'cinematic') return;
+    const hp = this.player.hp, shield = this.player.shield;
+    const damage = amount * difficultyAt(this.time, this.level).damageMultiplier;
+    if (this.player.hurt(damage)) this.emit('hurt', { healthDamage: hp - this.player.hp, shieldDamage: shield - this.player.shield });
+    if (this.player.dead && this.mission.phase !== 'countdown') this.status = 'defeat';
+  }
   beginExtinction() {
     this.mission.phase = 'cinematic'; this.mission.cinematic = 0; this.interaction = null;
     this.player.hp = 0; this.player.dead = true;

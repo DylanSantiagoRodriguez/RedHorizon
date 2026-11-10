@@ -37,7 +37,7 @@ export class MissionView {
     const { run, view, entities, state } = this.game, mission = run.mission;
     const cinema = mission.phase === 'cinematic', visible = state.value === 'playing' && cinema;
     this.caption.hidden = !visible;
-    this.game.ui.hud.nodes.hud.hidden = cinema || !['playing', 'paused', 'upgrade'].includes(state.value);
+    this.game.ui.hud.nodes.hud.hidden = cinema || !['playing', 'paused'].includes(state.value);
     for (const { altar, crystal } of this.altars) { crystal.visible = !altar.used; crystal.rotation.y = run.time; }
     const launched = ['countdown', 'cinematic'].includes(mission.phase);
     const elapsed = launched ? 60 - mission.countdown : 0;

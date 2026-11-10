@@ -34,11 +34,16 @@
 .neo-menu .menu-footer { border-top-color:#c5965d4d; color:#b8ac98; margin-top:auto; padding-top:20px; gap:20px; }
 .neo-menu .menu-footer b { color:var(--brass); }
 .neo-menu .research button { border-color:#c5965d66; color:#e4c99e; background:#0b141bc4; }
-.modal-overlay:has(.neo-upgrades), .archive-overlay { background:radial-gradient(ellipse at 50% 20%,#24404788,transparent 70%),repeating-linear-gradient(90deg,#bd965a05 0,#bd965a05 1px,transparent 1px,transparent 65px),#080f15f5; backdrop-filter:blur(14px); }
+.archive-overlay { background:radial-gradient(ellipse at 50% 20%,#24404788,transparent 70%),repeating-linear-gradient(90deg,#bd965a05 0,#bd965a05 1px,transparent 1px,transparent 65px),#080f15f5; backdrop-filter:blur(14px); }
+.modal-overlay:has(.neo-upgrades) { background:linear-gradient(180deg,#08121a80,#08121a4d 45%,#08121a80); backdrop-filter:blur(2px); }
+.neo-upgrades header, .neo-upgrades .upgrade-note { text-shadow:0 2px 5px #000,0 0 16px #000b; }
 .neo-upgrades { width:min(1120px,100%); padding:18px 0; }
 .neo-upgrades header>.eyebrow, .augment-archive .eyebrow { color:var(--brass); letter-spacing:3px; }
 .neo-upgrades h2 { color:#eee7d9; font-size:clamp(28px,3.2vw,44px); letter-spacing:-1.5px; margin:14px 0 10px; }
-.neo-upgrades header p { font-size:13px; color:#a8b9b8; }
+.neo-upgrades header p { font-size:13px; color:#d2dedb; }
+#upgrade-selection-hint { margin:12px 0 0; min-height:18px; color:#b6e6dd; font:11px/1.6 monospace; text-shadow:0 2px 5px #000; }
+button.neo-card:disabled { opacity:1; cursor:wait; }
+button.neo-card:disabled:hover { transform:none; outline:none; box-shadow:0 14px 35px #0009,0 0 0 1px #b98b5b80; }
 .neo-upgrades .cards { gap:26px; margin:30px 0 22px; }
 .neo-card { --rarity:#d0b28c; position:relative; display:flex; flex-direction:column; padding:0; min-height:0; overflow:hidden; text-align:left; background:linear-gradient(160deg,#202b2d,#111a20 70%); border:1px solid #b38b5859; border-top:2px solid var(--rarity); border-radius:3px; box-shadow:0 15px 35px #0008,inset 0 0 0 4px #d2a66e07; color:#efe8db; transition:transform .22s,border-color .22s,box-shadow .22s; }
 .neo-card::before,.neo-card::after { content:""; position:absolute; width:4px; height:4px; border:1px solid #f0c58b; border-radius:50%; top:12px; z-index:2; background:#44352b; }

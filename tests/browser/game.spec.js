@@ -172,6 +172,43 @@ test('reasigna controles, guarda, aplica en partida y restaura', async ({ page }
   await page.keyboard.up('KeyR');
 });
 
+test('aumentos: disparo sostenido y clics rápidos no seleccionan tarjetas', async ({ page }) => {
+  await page.goto('/?qa');
+  await page.evaluate(() => { const g = window.__RED_HORIZON__; g.save.data.options.quality = 'low'; g.applyOptions(); });
+  await page.locator('#start').click();
+  await page.mouse.move(700, 450); await page.mouse.down();
+  await page.evaluate(() => {
+    const g = window.__RED_HORIZON__; g.run.director.timer = 999;
+    g.run.experience.pending = 2; g.run.checkLevel(); g.change('upgrade');
+  });
+  const cards = page.locator('button[data-upgrade]');
+  await expect(cards).toHaveCount(3);
+  await page.waitForTimeout(850);
+  await expect(cards.first()).toBeDisabled();
+  // Dispatch the rapid sequence in-page so driver/render latency cannot turn it into slow deliberate clicks.
+  const pending = await page.evaluate(async () => {
+    const card = document.querySelector('button[data-upgrade]');
+    window.dispatchEvent(new PointerEvent('pointerup', { button: 0 }));
+    for (let i = 0; i < 5; i++) {
+      card.dispatchEvent(new PointerEvent('pointerdown', { button: 0, bubbles: true }));
+      card.dispatchEvent(new PointerEvent('pointerup', { button: 0, bubbles: true }));
+      card.click();
+      await new Promise(resolve => setTimeout(resolve, 80));
+    }
+    return window.__RED_HORIZON__.run.experience.pending;
+  });
+  expect(pending).toBe(2);
+  await page.mouse.up();
+  await expect(cards.first()).toBeEnabled();
+  await cards.first().click();
+  await expect(cards.first()).toBeDisabled();
+  expect(await page.evaluate(() => window.__RED_HORIZON__.run.experience.pending)).toBe(1);
+  await expect(cards.first()).toBeEnabled();
+  await cards.first().focus(); await page.keyboard.press('Enter');
+  await expect(page.locator('#overlay')).toBeHidden();
+  await expect(page.locator('#hud')).toBeVisible();
+});
+
 test('menú e ilustraciones neofuturistas: archivo completo y selección de aumento', async ({ page }) => {
   await page.goto('/?qa');
   await page.evaluate(() => { const g = window.__RED_HORIZON__; g.save.data.options.quality = 'low'; g.applyOptions(); });
@@ -196,10 +233,14 @@ test('menú e ilustraciones neofuturistas: archivo completo y selección de aume
     g.change('upgrade');
   });
   await expect(page.locator('button.neo-card')).toHaveCount(3);
+  await expect(page.locator('#hud')).toBeHidden();
+  await expect(page.locator('#numbers')).toBeHidden();
+  await expect(page.locator('#damage-flash')).toBeHidden();
   await page.locator('.neo-upgrades img').evaluateAll(async images => { await Promise.all(images.map(img => img.decode())); });
   await page.screenshot({ path: 'docs/screenshots/upgrade-cards-neoforge.png' });
   await page.locator('[data-upgrade="damage"]').click();
   await expect(page.locator('#overlay')).toBeHidden();
+  await expect(page.locator('#hud')).toBeVisible();
   expect(await page.evaluate(() => window.__RED_HORIZON__.run.player.stats.damage)).toBeCloseTo(1.2);
   await page.keyboard.press('Escape'); await page.locator('#menu').click();
   await page.setViewportSize({ width: 390, height: 844 });
@@ -230,6 +271,31 @@ test('armas de cobre: modelos, fogonazos y cambio de arma', async ({ page }) => 
     await page.screenshot({ path: `docs/screenshots/weapon-${kind}.png` });
     await page.evaluate(() => { const g = window.__RED_HORIZON__; g.run.combat.pool.clear(); g.resume(); });
   }
+});
+
+test('feedback de combate: impactos, críticos, bajas y daño acumulado', async ({ page }) => {
+  await page.goto('/?qa');
+  await page.evaluate(() => { const g = window.__RED_HORIZON__; g.save.data.options.quality = 'low'; g.applyOptions(); });
+  await page.locator('#start').click();
+  const feedback = await page.evaluate(() => {
+    const g = window.__RED_HORIZON__, r = g.run, hud = g.ui.hud;
+    r.director.timer = 999;
+    const enemy = r.spawn('brute', 0, -10); r.player.stats.crit = 0;
+    r.combat.hit(enemy, 10); const hit = hud.nodes['hit-marker'].className;
+    r.player.stats.crit = 1; r.combat.hit(enemy, 10); const critical = hud.nodes['hit-marker'].className;
+    r.combat.hit(enemy, 1000); const kill = hud.nodes['hit-marker'].className;
+    r.time = 0; r.player.shield = 20; r.hurtPlayer(12);
+    const shield = { text: hud.nodes['hurt-feedback'].textContent, flash: hud.nodes['damage-flash'].className };
+    r.hurtPlayer(24); r.hurtPlayer(10);
+    const health = { hp: r.player.hp, text: hud.nodes['hurt-feedback'].textContent, flash: hud.nodes['damage-flash'].className };
+    // Keep the short feedback visible for a reproducible screenshot.
+    hud.hitUntil = performance.now() + 4000; hud.hurtUntil = performance.now() + 4000;
+    return { hit, critical, kill, shield, health };
+  });
+  expect(feedback.hit).toBe('visible'); expect(feedback.critical).toContain('critical'); expect(feedback.kill).toContain('kill');
+  expect(feedback.shield.text).toBe('−12 ESCUDO'); expect(feedback.shield.flash).toContain('shield-hit');
+  expect(feedback.health.hp).toBe(94); expect(feedback.health.text).toBe('−26 VIDA · −20 ESCUDO'); expect(feedback.health.flash).toBe('visible');
+  await page.screenshot({ path: 'docs/screenshots/combat-feedback.png' });
 });
 
 test('HUD de cobre: vida, escudo, radar y selección de armas', async ({ page }) => {

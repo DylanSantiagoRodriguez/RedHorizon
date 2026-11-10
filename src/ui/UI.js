@@ -1,5 +1,6 @@
 import { DEFAULT_BINDINGS, CONTROLS, rebind, keyLabel } from '../core/Controls.js';
 import { HUD } from './HUD.js';
+import { UpgradeSelectionGate } from './UpgradeSelectionGate.js';
 import { archiveScreen, menuScreen, pauseScreen, upgradeScreen, endScreen, optionsScreen, controlsScreen } from './Screens.js';
 export class UI {
   constructor(game, container) {
@@ -8,11 +9,16 @@ export class UI {
   }
   show(state) {
     this.cancelBinding?.();
-    this.hud.nodes.hud.hidden = !['playing', 'paused', 'upgrade'].includes(state);
+    this.upgradeGate = state === 'upgrade' ? new UpgradeSelectionGate(performance.now(), this.game.input.bindings.Mouse0) : null;
+    this.hud.nodes.hud.hidden = !['playing', 'paused'].includes(state);
+    this.hud.nodes.numbers.hidden = state === 'upgrade';
+    this.hud.nodes['damage-flash'].hidden = state === 'upgrade';
+    this.root.querySelector('.vignette').hidden = state === 'upgrade';
     this.overlay.hidden = state === 'playing'; this.overlay.className = state === 'menu' ? 'home-overlay' : 'modal-overlay';
     if (state === 'playing') return;
     this.overlay.innerHTML = state === 'menu' ? menuScreen(this.game.save) : state === 'paused' ? pauseScreen() : state === 'upgrade' ? upgradeScreen(this.game.run) : endScreen(this.game.run, state === 'victory');
     this.bind();
+    if (this.upgradeGate) this.updateUpgradeGate();
   }
   bind() {
     const on = (id, fn) => this.overlay.querySelector('#' + id)?.addEventListener('click', fn);
@@ -22,7 +28,9 @@ export class UI {
     on('controls', () => { this.overlay.innerHTML = controlsScreen(this.game.save.data.options.bindings); this.overlay.className = 'modal-overlay'; this.overlay.querySelector('#back').onclick = () => this.show(this.game.state.value); });
     on('augment-archive', () => { this.overlay.innerHTML = archiveScreen(); this.overlay.className = 'modal-overlay archive-overlay'; this.overlay.querySelector('#back').onclick = () => this.show(this.game.state.value); });
     on('research', () => { if (this.game.save.buyArmor()) this.show('menu'); });
-    this.overlay.querySelectorAll('[data-upgrade]').forEach(button => button.addEventListener('click', () => this.game.chooseUpgrade(button.dataset.upgrade)));
+    this.overlay.querySelectorAll('[data-upgrade]').forEach(button => button.addEventListener('click', () => {
+      if (this.game.state.value === 'upgrade' && this.upgradeGate?.ready) this.game.chooseUpgrade(button.dataset.upgrade);
+    }));
   }
   bindOptions() {
     const o = this.game.save.data.options;
@@ -68,5 +76,14 @@ export class UI {
     };
     this.overlay.querySelector('#back').onclick = () => { this.cancelBinding(); this.game.save.write(); this.show(this.game.state.value); };
   }
-  update(run, dt) { this.hud.update(run, dt); }
+  updateUpgradeGate() {
+    const ready = this.upgradeGate.update(performance.now(), this.game.input.physicalHeld, this.game.input.lastActivationAt);
+    this.overlay.querySelectorAll('[data-upgrade]').forEach(button => { button.disabled = !ready; });
+    const hint = this.overlay.querySelector('#upgrade-selection-hint');
+    if (hint) hint.textContent = ready ? 'Elige un aumento para continuar.' : 'Suelta el disparo y espera un momento para elegir.';
+  }
+  update(run, dt) {
+    this.hud.update(run, dt);
+    if (this.upgradeGate && !this.upgradeGate.ready) this.updateUpgradeGate();
+  }
 }

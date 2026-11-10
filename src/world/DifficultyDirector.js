@@ -1,7 +1,7 @@
 import { CONFIG } from '../config.js';
 export function difficultyAt(time, level = 1) {
   const tier = Math.min(5, Math.floor(time / 65));
-  return { tier, pressure: 1 + time / 160 + (level - 1) * 0.035, interval: Math.max(0.55, 2.5 - time / 200), batch: 1 + Math.floor(time / 100), scale: 1 + time / 500, label: ['SEÑAL DÉBIL', 'CONTACTO', 'HOSTIL', 'ASEDIO', 'CRÍTICA', 'CATACLISMO'][tier] };
+  return { tier, damageMultiplier: 1 + Math.min(2, Math.max(0, time) / 600 + Math.max(0, level - 1) * 0.025), pressure: 1 + time / 160 + (level - 1) * 0.035, interval: Math.max(0.55, 2.5 - time / 200), batch: 1 + Math.floor(time / 100), scale: 1 + time / 500, label: ['SEÑAL DÉBIL', 'CONTACTO', 'HOSTIL', 'ASEDIO', 'CRÍTICA', 'CATACLISMO'][tier] };
 }
 export class DifficultyDirector {
   constructor() { this.timer = 2; this.wave = 0; }

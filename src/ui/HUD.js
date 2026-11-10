@@ -10,7 +10,7 @@ export class HUD {
       <section class="mission"><span class="eyebrow">PROTOCOLO / ÚLTIMA LUZ</span><h3 id="objective">Invoca a los cinco guardianes</h3><p id="relay-progress">0 / 5 JEFES · 0 / 5 GEMAS</p><div class="gem-sockets" aria-label="Gemas recuperadas"><span data-gem="0" title="Rubí pendiente" style="--gem:#ff5060">◇</span><span data-gem="1" title="Zafiro pendiente" style="--gem:#509dff">◇</span><span data-gem="2" title="Esmeralda pendiente" style="--gem:#50e090">◇</span><span data-gem="3" title="Amatista pendiente" style="--gem:#b580ff">◇</span><span data-gem="4" title="Topacio pendiente" style="--gem:#ffd050">◇</span></div><div class="mission-line"></div><small id="boss-arrival">ALTARES ACTIVADOS · 0 / 5</small></section>
       <section class="telemetry"><div class="time-row"><span>TIEMPO EN SUPERFICIE</span><b id="time">00:00</b></div><div class="threat-row"><i></i><span id="difficulty"></span></div><div class="radar-bezel"><canvas id="radar" width="360" height="360" aria-label="Radar de amenazas, altares, gemas y baliza"></canvas><span class="radar-bolt bolt-nw"></span><span class="radar-bolt bolt-ne"></span><span class="radar-bolt bolt-sw"></span><span class="radar-bolt bolt-se"></span></div><span class="radar-label">ESCÁNER AETHER / 86 M</span><div class="radar-legend"><span>▲ Hostil</span><span>□ Altar</span><span>◆ Gema</span><span>＋ Baliza</span></div></section>
       <div id="boss-bar" hidden><div><span>THE TITAN OF DUST</span><small id="boss-phase">FASE I</small></div><div class="track"><i id="boss-fill"></i></div></div>
-      <div class="crosshair"><i></i><b></b><i></i></div><div id="hit-marker">×</div><div id="interaction" hidden></div><div id="toast" role="status"></div>
+      <div class="crosshair"><i></i><b></b><i></i></div><div id="hit-marker" aria-hidden="true">×</div><div id="hurt-feedback" aria-hidden="true"></div><div id="interaction" hidden></div><div id="toast" role="status"></div>
       <section class="vitals"><div class="instrument-label"><span>BIOMETRÍA / 09</span><b id="vital-status">ESTABLE</b></div><div class="pilot-label"><span class="pilot-icon" aria-hidden="true">✚</span><div><b>ÚLTIMO SOLDADO</b><small id="level">NIVEL 01</small></div><strong id="health">120 <small>/ 120</small></strong></div><div class="track hp" id="health-meter" role="progressbar" aria-label="Vida" aria-valuemin="0" aria-valuemax="120" aria-valuenow="120"><i id="hp-fill"></i></div><div class="shield-row"><span>◇ ESCUDO <b id="shield">0</b></span><div class="track"><i id="shield-fill"></i></div></div><div class="xp-row"><span>EVOLUCIÓN</span><div class="track"><i id="xp-fill"></i></div><b id="xp">0 / 32</b></div><div class="run-counters"><span id="kills">0 BAJAS</span><span id="salvage">⌬ 0 FRAGMENTOS</span></div></section>
       <section class="loadout"><div class="instrument-label"><span>ARSENAL / AURORA</span><span id="weapon-status">EN LÍNEA</span></div><div class="weapon-name"><span id="weapon"></span><small id="auto-fire">F · DISPARO CONTINUO: OFF</small></div><div class="slots">${Object.entries(WEAPONS).map(([id, w], i) => `<button data-weapon="${id}" class="weapon-slot" title="${w.name}" aria-label="${w.name}" aria-pressed="false"><kbd>${i + 1}</kbd><svg viewBox="0 0 80 38" aria-hidden="true"><path d="${i === 0 ? 'M8 15h42v-5h16v7h10v5H50l-7 7H32l-5-6H15v10H8z' : i === 1 ? 'M5 13h68v6H46v6H29l-5-5H14v13H5z' : 'M7 9h48v5h18v12H55v5H33l-6-7H19v10H9z'}"/><circle class="weapon-core" cx="${i === 2 ? 38 : 42}" cy="18" r="${i === 2 ? 6 : 4}"/><path class="weapon-trace" d="${i === 1 ? 'M13 10h51M13 23h11' : 'M18 12h14M49 18h17'}"/><circle class="weapon-rivet" cx="19" cy="18" r="1.4"/></svg><span class="slot-name">${['PLASMA','SCATTER','NOVA'][i]}</span></button>`).join('')}<button id="ability-button" class="ability-slot" title="Pulso de resonancia" aria-label="Activar pulso de resonancia"><kbd>Q</kbd><b>◎</b><small id="ability">LISTO</small></button></div><div class="loadout-hint">CLIC DISPARAR &nbsp; / &nbsp; CLIC DER. APUNTAR</div></section>
       <div class="bottom-coordinates">ASTER PLANITIA <span id="coordinates">00.0 / 00.0</span><span id="fps"></span></div></div><div id="numbers"></div><div id="overlay"></div>`;
@@ -21,18 +21,33 @@ export class HUD {
   }
   toast(message) { this.nodes.toast.textContent = message; this.nodes.toast.classList.add('visible'); this.toastUntil = performance.now() + 4500; }
   hit(data) {
-    this.nodes['hit-marker'].classList.add('visible'); this.hitUntil = performance.now() + 100;
+    const marker = this.nodes['hit-marker'];
+    marker.className = 'visible' + (data.killed ? ' kill' : data.critical ? ' critical' : '');
+    marker.dataset.label = data.killed ? 'BAJA' : data.critical ? 'CRÍTICO' : '';
+    this.hitUntil = performance.now() + (data.killed ? 420 : 240);
     if (this.damageNumbers.length >= 24) return;
     const element = document.createElement('span'); element.textContent = data.amount; element.className = data.critical ? 'damage-number critical' : 'damage-number'; this.nodes.numbers.appendChild(element);
     this.damageNumbers.push({ ...data, element, time: 0 });
   }
-  hurt() { this.nodes['damage-flash'].classList.add('visible'); this.hurtUntil = performance.now() + 220; }
-  reset() { for (const n of this.damageNumbers) n.element.remove(); this.damageNumbers = []; }
+  hurt(data = {}) {
+    const now = performance.now();
+    if (!(now < this.hurtUntil)) { this.receivedHealth = 0; this.receivedShield = 0; }
+    this.receivedHealth += data.healthDamage || 0; this.receivedShield += data.shieldDamage || 0;
+    const shieldOnly = this.receivedHealth === 0 && this.receivedShield > 0;
+    this.nodes['damage-flash'].className = 'visible' + (shieldOnly ? ' shield-hit' : '');
+    const feedback = this.nodes['hurt-feedback'];
+    feedback.className = 'visible' + (shieldOnly ? ' shield-hit' : '');
+    feedback.textContent = [this.receivedHealth > 0 ? '−' + Math.ceil(this.receivedHealth) + ' VIDA' : '', this.receivedShield > 0 ? '−' + Math.ceil(this.receivedShield) + ' ESCUDO' : ''].filter(Boolean).join(' · ');
+    this.hurtUntil = now + 500;
+  }
+  reset() { for (const n of this.damageNumbers) n.element.remove(); this.damageNumbers = []; this.hitUntil = 0; this.hurtUntil = 0; this.receivedHealth = 0; this.receivedShield = 0;
+    for (const id of ['hit-marker', 'damage-flash', 'hurt-feedback']) this.nodes[id].className = '';
+  }
   update(run, dt) {
     const now = performance.now();
     if (now > this.toastUntil) this.nodes.toast.classList.remove('visible');
     if (now > this.hitUntil) this.nodes['hit-marker'].classList.remove('visible');
-    if (now > this.hurtUntil) this.nodes['damage-flash'].classList.remove('visible');
+    if (now > this.hurtUntil) { this.nodes['damage-flash'].classList.remove('visible'); this.nodes['hurt-feedback'].classList.remove('visible'); }
     for (let i = this.damageNumbers.length - 1; i >= 0; i--) {
       const n = this.damageNumbers[i]; n.time += dt;
       if (n.time > 0.7) { n.element.remove(); this.damageNumbers.splice(i, 1); continue; }

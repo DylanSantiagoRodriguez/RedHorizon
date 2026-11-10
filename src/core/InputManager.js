@@ -4,6 +4,18 @@ export class InputManager {
     this.bindings = { ...DEFAULT_BINDINGS }; this.rebinding = false;
     this.canvas = canvas; this.keys = new Set(); this.pressed = new Set(); this.buttons = new Set(); this.dx = 0; this.dy = 0; this.active = false;
     this.abort = new AbortController(); const options = { signal: this.abort.signal };
+    // Physical state survives clear() when opening a menu; gameplay state does not.
+    this.physicalHeld = new Set(); this.lastActivationAt = -Infinity;
+    const capture = { ...options, capture: true };
+    window.addEventListener('pointerdown', e => { this.physicalHeld.add('Mouse' + e.button); this.lastActivationAt = performance.now(); }, capture);
+    window.addEventListener('pointerup', e => { this.physicalHeld.delete('Mouse' + e.button); this.lastActivationAt = performance.now(); }, capture);
+    window.addEventListener('pointercancel', () => { for (const code of this.physicalHeld) if (code.startsWith('Mouse')) this.physicalHeld.delete(code); }, capture);
+    window.addEventListener('keydown', e => this.physicalHeld.add(e.code), capture);
+    window.addEventListener('keyup', e => this.physicalHeld.delete(e.code), capture);
+    for (const type of ['keydown', 'keyup']) window.addEventListener(type, e => {
+      if ([this.bindings.Mouse0, 'Enter', 'NumpadEnter', 'Space'].includes(e.code)) this.lastActivationAt = performance.now();
+    }, capture);
+    window.addEventListener('blur', () => this.physicalHeld.clear(), options);
     window.addEventListener('keydown', e => {
       if (this.rebinding) return;
       if (['INPUT', 'SELECT'].includes(e.target.tagName)) return;
