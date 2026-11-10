@@ -1,29 +1,51 @@
 import { CONFIG } from '../config.js';
 export class BossController {
   constructor() { this.spawned = false; this.enemy = null; this.guardians = []; this.zones = []; this.nextZone = 1; }
-  awaken(run) {
-    if (this.spawned) return false;
-    this.spawned = true;
+  prepareAltars(run) {
     const colors = [0xff5060, 0x509dff, 0x50e090, 0xb580ff, 0xffd050];
     const names = ['Guardián rubí', 'Guardián zafiro', 'Guardián esmeralda', 'Guardián amatista', 'Titán del polvo'];
-    for (let i = 0; i < 5; i++) {
-      let x = Math.sin(i * Math.PI * 2 / 5) * 82, z = -Math.cos(i * Math.PI * 2 / 5) * 82;
-      for (let j = 0; j < 100; j++) {
-        if (!run.world.obstacles.some(o => Math.hypot(x - o.x, z - o.z) < o.radius + 4)) break;
-        x = Math.sin(i * Math.PI * 2 / 5 + j * 0.015) * 95;
-        z = -Math.cos(i * Math.PI * 2 / 5 + j * 0.015) * 95;
+    return colors.map((color, i) => {
+      // Search each sector for an arena large enough for the altar and summon.
+      for (let j = 0; j < 400; j++) {
+        const angle = i * Math.PI * 2 / 5 + (j % 40 - 20) * 0.015;
+        const radius = 65 + Math.floor(j / 40) * 3;
+        const x = Math.sin(angle) * radius, z = -Math.cos(angle) * radius;
+        if (run.world.obstacles.some(o => Math.hypot(x - o.x, z - o.z) < o.radius + 10)) continue;
+        return { x, z, color, name: names[i], index: i, type: 'altar', used: false };
       }
-      const boss = run.spawn('titan', x, z, i < 4 ? 0.35 : 1);
-      Object.assign(boss, { name: names[i], gemColor: colors[i], active: false });
-      this.guardians.push(boss);
+      // A clear spawn is required; never summon inside an obstacle.
+      const point = run.director.spawnPoint(run, 45, 95);
+      return { ...(point || { x: 0, z: 0 }), color, name: names[i], index: i, type: 'altar', used: false };
+    });
+  }
+  awaken(run, altar) {
+    if (!altar || altar.used || !run.altars.includes(altar)) return false;
+    if (Math.hypot(run.player.x - altar.x, run.player.z - altar.z) >= 3.5) return false;
+    let point = null;
+    for (let i = 0; i < 32; i++) {
+      const angle = i * Math.PI / 16, x = altar.x + Math.cos(angle) * 7, z = altar.z + Math.sin(angle) * 7;
+      if (Math.hypot(x, z) > CONFIG.mapRadius - 4 || run.world.obstacles.some(o => Math.hypot(x - o.x, z - o.z) < o.radius + 3.5)) continue;
+      point = { x, z }; break;
     }
-    this.enemy = this.guardians[4];
-    run.emit('boss', {}); return true;
+    if (!point) return false;
+    const boss = run.spawn('titan', point.x, point.z, altar.index < 4 ? 0.35 : 1);
+    Object.assign(boss, { name: altar.name, gemColor: altar.color, active: true });
+    altar.used = true; this.spawned = true; this.guardians.push(boss); this.enemy = boss;
+    run.emit('boss', { name: boss.name }); return true;
   }
   update(dt, run) {
-    if (!this.spawned && (run.time >= CONFIG.bossTime || run.relays >= 3)) this.awaken(run);
-    const boss = this.enemy;
-    if (!boss || boss.dead || run.status !== 'playing') return;
+    if (run.status !== 'playing') return;
+    for (const boss of this.guardians) if (!boss.dead) this.updateBoss(dt, run, boss);
+    this.enemy = this.guardians.filter(b => !b.dead).sort((a, b) => Math.hypot(a.x - run.player.x, a.z - run.player.z) - Math.hypot(b.x - run.player.x, b.z - run.player.z))[0] || null;
+    for (const zone of this.zones) {
+      zone.remaining -= dt;
+      if (zone.remaining > 0) continue;
+      if (Math.hypot(run.player.x - zone.x, run.player.z - zone.z) < zone.radius && run.player.y < zone.y + 1.6) run.hurtPlayer(zone.damage);
+      run.emit('explosion', { x: zone.x, y: zone.y, z: zone.z, radius: zone.radius });
+    }
+    this.zones = this.zones.filter(zone => zone.remaining > 0);
+  }
+  updateBoss(dt, run, boss) {
     if (boss.phase === 1 && boss.hp <= boss.maxHp * CONFIG.bossPhase) {
       boss.phase = 2; boss.abilityTimer = 0.5; run.emit('phase', {});
     }
@@ -33,7 +55,7 @@ export class BossController {
       const count = boss.phase === 2 ? 3 : 1;
       for (let i = 0; i < count; i++) {
         const x = run.player.x + (i ? run.random.range(-7, 7) : 0), z = run.player.z + (i ? run.random.range(-7, 7) : 0);
-        this.zones.push({ id: this.nextZone++, x, y: run.world.heightAt(x, z), z, radius: 5, remaining: 1.6, duration: 1.6 });
+        this.zones.push({ id: this.nextZone++, x, y: run.world.heightAt(x, z), z, radius: 5, remaining: 1.6, duration: 1.6, damage: boss.phase === 2 ? 42 : 32 });
       }
       const shots = boss.phase === 2 ? 14 : 9;
       for (let i = 0; i < shots; i++) {
@@ -45,7 +67,7 @@ export class BossController {
     if (boss.summonTimer <= 0) {
       boss.summonTimer = boss.phase === 2 ? 10 : 18;
       for (let i = 0; i < (boss.phase === 2 ? 5 : 3); i++) {
-        if (run.enemies.filter(e => !e.dead).length >= CONFIG.enemyLimit) break;
+        if (run.enemies.filter(e => !e.dead).length >= CONFIG.enemyLimit - (5 - this.guardians.length)) break;
         const p = run.director.spawnPoint(run, 16, 25); if (p) run.spawn(i % 2 ? 'stalker' : 'drone', p.x, p.z);
       }
     }

@@ -1,0 +1,101 @@
+{
+  "tool": "Built-in image_gen",
+  "assets": [
+    {
+      "id": "damage",
+      "source": "C:\\Users\\macab\\.codex\\generated_images\\01a1c3ed-943e-7012-a53c-201a1edc5ba0\\exec-f9c16ba0-ec42-404e-940a-90aa653c3ae7.png",
+      "prompt": "Use case: stylized-concept. Create ONE square game upgrade illustration, not a card layout, for RED HORIZON. Cohesive neofuturist steampunk art: exquisite brass and weathered copper mechanisms, graphite metal, cinematic painterly 3D concept-art finish, luminous energy, deep charcoal laboratory background with faint etched technical circles. Single large centered subject, readable at thumbnail size, fully visible with 15 percent safe margin. Dramatic warm rim light and cool energy glow. No text, no numbers, no labels, no watermark, no borders. Subject: a compact fusion reactor with a brilliant amber miniature sun suspended between copper gyroscopic rings, power cables and machined graphite casing",
+      "file": "public/art/augments/damage.jpg"
+    },
+    {
+      "id": "fireRate",
+      "source": "C:\\Users\\macab\\.codex\\generated_images\\01a1c3ed-943e-7012-a53c-201a1edc5ba0\\exec-a915dd23-8971-441e-8731-a8d7ff1fdc5d.png",
+      "prompt": "Use case: stylized-concept. Create ONE square game upgrade illustration, not a card layout, for RED HORIZON. Cohesive neofuturist steampunk art: exquisite brass and weathered copper mechanisms, graphite metal, cinematic painterly 3D concept-art finish, luminous energy, deep charcoal laboratory background with faint etched technical circles. Single large centered subject, readable at thumbnail size, fully visible with 15 percent safe margin. Dramatic warm rim light and cool energy glow. No text, no numbers, no labels, no watermark, no borders. Subject: a precision rapid-fire clockwork accelerator: a rotating brass flywheel and interlocking gears driving a cyan electromagnetic bolt chamber, visible kinetic arcs",
+      "file": "public/art/augments/fireRate.jpg"
+    },
+    {
+      "id": "maxHp",
+      "source": "C:\\Users\\macab\\.codex\\generated_images\\01a1c3ed-943e-7012-a53c-201a1edc5ba0\\exec-bd9ab819-a687-4b95-8219-6e343ad2722c.png",
+      "prompt": "Use case: stylized-concept. Create ONE square game upgrade illustration, not a card layout, for RED HORIZON. Cohesive neofuturist steampunk art: exquisite brass and weathered copper mechanisms, graphite metal, cinematic painterly 3D concept-art finish, luminous energy, deep charcoal laboratory background with faint etched technical circles. Single large centered subject, readable at thumbnail size, fully visible with 15 percent safe margin. Dramatic warm rim light and cool energy glow. No text, no numbers, no labels, no watermark, no borders. Subject: a futuristic ceramic armored breastplate with ivory hexagonal plates over black titanium, copper rivets and a soft teal chest light",
+      "file": "public/art/augments/maxHp.jpg"
+    },
+    {
+      "id": "regen",
+      "source": "C:\\Users\\macab\\.codex\\generated_images\\01a1c3ed-943e-7012-a53c-201a1edc5ba0\\exec-80c8b014-8ab9-4475-af58-b5537dd8d40b.png",
+      "prompt": "Use case: stylized-concept. Create ONE square game upgrade illustration, not a card layout, for RED HORIZON. Cohesive neofuturist steampunk art: exquisite brass and weathered copper mechanisms, graphite metal, cinematic painterly 3D concept-art finish, luminous energy, deep charcoal laboratory background with faint etched technical circles. Single large centered subject, readable at thumbnail size, fully visible with 15 percent safe margin. Dramatic warm rim light and cool energy glow. No text, no numbers, no labels, no watermark, no borders. Subject: a medical repair capsule releasing a small swarm of intricate brass nanobots that stitch luminous green filaments around a damaged metal plate",
+      "file": "public/art/augments/regen.jpg"
+    },
+    {
+      "id": "speed",
+      "source": "C:\\Users\\macab\\.codex\\generated_images\\01a1c3ed-943e-7012-a53c-201a1edc5ba0\\exec-81b229f1-312b-45e4-b411-dfdf83d3a0c8.png",
+      "prompt": "Use case: stylized-concept. Create ONE square game upgrade illustration, not a card layout, for RED HORIZON. Cohesive neofuturist steampunk art: exquisite brass and weathered copper mechanisms, graphite metal, cinematic painterly 3D concept-art finish, luminous energy, deep charcoal laboratory background with faint etched technical circles. Single large centered subject, readable at thumbnail size, fully visible with 15 percent safe margin. Dramatic warm rim light and cool energy glow. No text, no numbers, no labels, no watermark, no borders. Subject: a pair of compact ionic boot thrusters with brass turbine nozzles and bright turquoise exhaust, engineering details",
+      "file": "public/art/augments/speed.jpg"
+    },
+    {
+      "id": "multishot",
+      "source": "C:\\Users\\macab\\.codex\\generated_images\\01a1c3ed-943e-7012-a53c-201a1edc5ba0\\exec-930d23a9-abd4-4680-a72d-0a41a2eb8dbc.png",
+      "prompt": "Use case: stylized-concept. Create ONE square game upgrade illustration, not a card layout, for RED HORIZON. Cohesive neofuturist steampunk art: exquisite brass and weathered copper mechanisms, graphite metal, cinematic painterly 3D concept-art finish, luminous energy, deep charcoal laboratory background with faint etched technical circles. Single large centered subject, readable at thumbnail size, fully visible with 15 percent safe margin. Dramatic warm rim light and cool energy glow. No text, no numbers, no labels, no watermark, no borders. Subject: a floating triangular faceted violet crystal held by an ornate brass optical cage, splitting one bright cyan beam into three separate beams",
+      "file": "public/art/augments/multishot.jpg"
+    },
+    {
+      "id": "crit",
+      "source": "C:\\Users\\macab\\.codex\\generated_images\\01a1c3ed-943e-7012-a53c-201a1edc5ba0\\exec-8cecdac6-686d-4271-9e8a-ba6c142c45a8.png",
+      "prompt": "Use case: stylized-concept. Create ONE square game upgrade illustration, not a card layout, for RED HORIZON. Cohesive neofuturist steampunk art: exquisite brass and weathered copper mechanisms, graphite metal, cinematic painterly 3D concept-art finish, luminous energy, deep charcoal laboratory background with faint etched technical circles. Single large centered subject, readable at thumbnail size, fully visible with 15 percent safe margin. Dramatic warm rim light and cool energy glow. No text, no numbers, no labels, no watermark, no borders. Subject: a precision telescopic targeting lens, layered emerald optical glass, brass adjustment wheels, small mechanical iris, cool cyan reticle made only of light, not text",
+      "file": "public/art/augments/crit.jpg"
+    },
+    {
+      "id": "critDamage",
+      "source": "C:\\Users\\macab\\.codex\\generated_images\\01a1c3ed-943e-7012-a53c-201a1edc5ba0\\exec-6f44dfee-d57d-492e-9778-54d95fe5829d.png",
+      "prompt": "Use case: stylized-concept. Create ONE square game upgrade illustration, not a card layout, for RED HORIZON. Cohesive neofuturist steampunk art: exquisite brass and weathered copper mechanisms, graphite metal, cinematic painterly 3D concept-art finish, luminous energy, deep charcoal laboratory background with faint etched technical circles. Single large centered subject, readable at thumbnail size, fully visible with 15 percent safe margin. Dramatic warm rim light and cool energy glow. No text, no numbers, no labels, no watermark, no borders. Subject: a heavy copper electromagnetic penetrator striking a cracked black armor plate, focused red-white energy and fragments suspended in dramatic slow motion",
+      "file": "public/art/augments/critDamage.jpg"
+    },
+    {
+      "id": "explosion",
+      "source": "C:\\Users\\macab\\.codex\\generated_images\\01a1c3ed-943e-7012-a53c-201a1edc5ba0\\exec-1c1983ec-2770-4e9f-92a5-375340581f8b.png",
+      "prompt": "Use case: stylized-concept. Create ONE square game upgrade illustration, not a card layout, for RED HORIZON. Cohesive neofuturist steampunk art: exquisite brass and weathered copper mechanisms, graphite metal, cinematic painterly 3D concept-art finish, luminous energy, deep charcoal laboratory background with faint etched technical circles. Single large centered subject, readable at thumbnail size, fully visible with 15 percent safe margin. Dramatic warm rim light and cool energy glow. No text, no numbers, no labels, no watermark, no borders. Subject: three small spherical copper plasma charges connected by branching fiery orange electrical arcs, one core detonating into a controlled ring of sparks",
+      "file": "public/art/augments/explosion.jpg"
+    },
+    {
+      "id": "lifesteal",
+      "source": "C:\\Users\\macab\\.codex\\generated_images\\01a1c3ed-943e-7012-a53c-201a1edc5ba0\\exec-e5519b1d-a342-4fb5-b23c-d08b75ce2028.png",
+      "prompt": "Use case: stylized-concept. Create ONE square game upgrade illustration, not a card layout, for RED HORIZON. Cohesive neofuturist steampunk art: exquisite brass and weathered copper mechanisms, graphite metal, cinematic painterly 3D concept-art finish, luminous energy, deep charcoal laboratory background with faint etched technical circles. Single large centered subject, readable at thumbnail size, fully visible with 15 percent safe margin. Dramatic warm rim light and cool energy glow. No text, no numbers, no labels, no watermark, no borders. Subject: a biomechanical siphon apparatus, two glass reservoirs connected by curved copper tubes transferring luminous crimson energy into a vibrant green healing chamber, elegant non-gory machinery",
+      "file": "public/art/augments/lifesteal.jpg"
+    },
+    {
+      "id": "cooldown",
+      "source": "C:\\Users\\macab\\.codex\\generated_images\\01a1c3ed-943e-7012-a53c-201a1edc5ba0\\exec-8d4b3b84-eea9-4e4a-943c-586e12288637.png",
+      "prompt": "Use case: stylized-concept. Create ONE square game upgrade illustration, not a card layout, for RED HORIZON. Cohesive neofuturist steampunk art: exquisite brass and weathered copper mechanisms, graphite metal, cinematic painterly 3D concept-art finish, luminous energy, deep charcoal laboratory background with faint etched technical circles. Single large centered subject, readable at thumbnail size, fully visible with 15 percent safe margin. Dramatic warm rim light and cool energy glow. No text, no numbers, no labels, no watermark, no borders. Subject: a cryogenic capacitor, frosted pale blue crystal cylinder wrapped in brass cooling coils and tiny pressure valves, cold mist and blue energy",
+      "file": "public/art/augments/cooldown.jpg"
+    },
+    {
+      "id": "pierce",
+      "source": "C:\\Users\\macab\\.codex\\generated_images\\01a1c3ed-943e-7012-a53c-201a1edc5ba0\\exec-3c48ace3-de8e-459f-8b71-a228ce3b2216.png",
+      "prompt": "Use case: stylized-concept. Create ONE square game upgrade illustration, not a card layout, for RED HORIZON. Cohesive neofuturist steampunk art: exquisite brass and weathered copper mechanisms, graphite metal, cinematic painterly 3D concept-art finish, luminous energy, deep charcoal laboratory background with faint etched technical circles. Single large centered subject, readable at thumbnail size, fully visible with 15 percent safe margin. Dramatic warm rim light and cool energy glow. No text, no numbers, no labels, no watermark, no borders. Subject: a slender elongated phase needle projectile passing through three hovering parallel steel plates with clean glowing violet portals, copper electromagnetic barrel behind it, readable elegant side view",
+      "file": "public/art/augments/pierce.jpg"
+    },
+    {
+      "id": "area",
+      "source": "C:\\Users\\macab\\.codex\\generated_images\\01a1c3ed-943e-7012-a53c-201a1edc5ba0\\exec-09ec1bbd-a471-48f8-9fa1-3fa99ed74d32.png",
+      "prompt": "Use case: stylized-concept. Create ONE square game upgrade illustration, not a card layout, for RED HORIZON. Cohesive neofuturist steampunk art: exquisite brass and weathered copper mechanisms, graphite metal, cinematic painterly 3D concept-art finish, luminous energy, deep charcoal laboratory background with faint etched technical circles. Single large centered subject, readable at thumbnail size, fully visible with 15 percent safe margin. Dramatic warm rim light and cool energy glow. No text, no numbers, no labels, no watermark, no borders. Subject: a small orbital resonance generator, three concentric brass rings around a teal energy sphere projecting wide circular ripples of light into the air, an intricate mechanical astrolabe",
+      "file": "public/art/augments/area.jpg"
+    },
+    {
+      "id": "shield",
+      "source": "C:\\Users\\macab\\.codex\\generated_images\\01a1c3ed-943e-7012-a53c-201a1edc5ba0\\exec-ca2acb76-65aa-4684-b2f2-72a23bb13380.png",
+      "prompt": "Use case: stylized-concept. Create ONE square game upgrade illustration, not a card layout, for RED HORIZON. Cohesive neofuturist steampunk art: exquisite brass and weathered copper mechanisms, graphite metal, cinematic painterly 3D concept-art finish, luminous energy, deep charcoal laboratory background with faint etched technical circles. Single large centered subject, readable at thumbnail size, fully visible with 15 percent safe margin. Dramatic warm rim light and cool energy glow. No text, no numbers, no labels, no watermark, no borders. Subject: a compact brass emergency shield projector generating a luminous turquoise hexagonal energy dome, a curved white-blue protective shell with clearly visible honeycomb cells around the device",
+      "file": "public/art/augments/shield.jpg"
+    },
+    {
+      "id": "bounce",
+      "source": "C:\\Users\\macab\\.codex\\generated_images\\01a1c3ed-943e-7012-a53c-201a1edc5ba0\\exec-abe4c9c2-145f-4147-8212-54a7216c9884.png",
+      "prompt": "Use case: stylized-concept. Create ONE square game upgrade illustration, not a card layout, for RED HORIZON. Cohesive neofuturist steampunk art: exquisite brass and weathered copper mechanisms, graphite metal, cinematic painterly 3D concept-art finish, luminous energy, deep charcoal laboratory background with faint etched technical circles. Single large centered subject, readable at thumbnail size, fully visible with 15 percent safe margin. Dramatic warm rim light and cool energy glow. No text, no numbers, no labels, no watermark, no borders. Subject: a bright magenta plasma orb ricocheting between three small copper reflector pylons, a clear angular zigzag energy trail, brass coils and graphite bases",
+      "file": "public/art/augments/bounce.jpg"
+    },
+    {
+      "id": "menu",
+      "source": "C:\\Users\\macab\\.codex\\generated_images\\01a1c3ed-943e-7012-a53c-201a1edc5ba0\\exec-ee64e727-27ce-4d8d-9196-8d2cb17c7bc2.png",
+      "prompt": "Create a wide landscape background illustration for the main menu of RED HORIZON, a third-person science fiction survival game. Original neofuturism with tasteful steampunk: a solitary armored explorer seen from behind on the RIGHT third, overlooking a red desert planet and a gigantic orbital beacon with copper rings, brass machinery and cyan energy. Rust dust, graphite steel, restrained patinated brass, luminous teal, warm pale sunlight. High-end painterly cinematic game concept art, intricate but calm, atmospheric scale. LEFT half dark and quiet negative space for readable interface text to be added in HTML, no lettering anywhere, no logos, no watermarks. Composition 16:9 landscape. Project asset, not a UI screenshot.",
+      "file": "public/art/menu-aster.jpg"
+    }
+  ]
+}

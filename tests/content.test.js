@@ -8,7 +8,7 @@ it('pulso causa daño, aturde, protege y respeta enfriamiento', () => {
 });
 it('relé se consume una sola vez y recompensa', () => { const run = new Run(world(), 'relay'); run.interaction = run.world.beacons[0]; expect(run.interact()).toBe(true); expect(run.interact()).toBe(false); expect(run.relays).toBe(1); expect(run.salvage).toBe(15); });
 it('jefe tiene dos fases, anticipa áreas, invoca y concede victoria', () => {
-  const run = new Run(world(), 'boss'); run.time = 360; run.boss.update(0.1, run); const boss = run.boss.enemy; expect(boss.type).toBe('titan');
+  const run = new Run(world(), 'boss'); for (const altar of run.altars) { run.player.x = altar.x; run.player.z = altar.z; run.boss.awaken(run, altar); } run.time = 360; run.boss.update(0.1, run); const boss = run.boss.enemy; expect(boss.type).toBe('titan');
   boss.hp = boss.maxHp * 0.4; run.boss.update(0.1, run); expect(boss.phase).toBe(2);
   run.boss.update(1, run); expect(run.boss.zones.length).toBe(3); expect(run.boss.zones[0].remaining).toBeGreaterThan(0);
   boss.summonTimer = 0; run.boss.update(0.1, run); expect(run.enemies.length).toBeGreaterThan(1);
@@ -21,7 +21,7 @@ it('jefe tiene dos fases, anticipa áreas, invoca y concede victoria', () => {
     run.player.x = gem.x; run.player.z = gem.z;
     run.update(0, { take: () => false, buttons: new Set(), down: () => false }, 0, { x: 0, y: 0, z: -1 });
   }
-  expect(run.status).toBe('victory');
+  expect(run.status).toBe('playing'); expect(run.mission.phase).toBe('ready');
 });
 it('las tres armas generan sus proyectiles', () => {
   const run = new Run(world(), 'weapons');
@@ -36,6 +36,7 @@ it('una victoria es terminal aunque quede daño enemigo en el mismo tick', () =>
 
 it('recoge gemas al acercarse y reinicia su inventario', () => {
   const run = new Run(world(), 'gems');
+  for (const altar of run.altars) { run.player.x = altar.x; run.player.z = altar.z; run.boss.awaken(run, altar); }
   const boss = run.boss.guardians[0]; run.combat.hit(boss, 100000);
   expect(run.gems[0].collected).toBe(false);
   run.player.x = boss.x; run.player.z = boss.z;

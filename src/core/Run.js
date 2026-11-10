@@ -17,7 +17,7 @@ export class Run {
     this.combat = new CombatSystem(this); this.weapon = new WeaponSystem();
     this.director = new DifficultyDirector();
     this.experience = new ExperienceSystem(); this.upgrades = new UpgradeSystem(); this.salvage = 0;
-    this.ability = new AbilitySystem(); this.boss = new BossController(); this.relays = 0; this.interaction = null; this.autoFire = false; this.gems = []; this.boss.awaken(this);
+    this.ability = new AbilitySystem(); this.boss = new BossController(); this.relays = 0; this.interaction = null; this.autoFire = false; this.gems = []; this.mission = { phase: 'collect', countdown: 60, cinematic: 0 }; this.launchBeacon = { x: 0, z: 7, type: 'launch', used: false }; this.altars = this.boss.prepareAltars(this);
   }
   spawn(type, x, z, scale = 1) { const enemy = createEnemy(this.nextId++, type, x, z, scale); enemy.y = this.world.heightAt(x, z) + enemy.height; this.enemies.push(enemy); return enemy; }
   get level() { return this.experience.level; }
@@ -26,16 +26,22 @@ export class Run {
     enemy.rewardGranted = true;
     if (enemy.gemColor) this.gems.push({ id: enemy.id, x: enemy.x, z: enemy.z, color: enemy.gemColor, collected: false });
     this.experience.add(enemy.xp); this.salvage += enemy.type === 'elite' ? 5 : 1;
-    if (enemy.type === 'titan' && this.boss.guardians.every(b => b.dead)) this.salvage += 50;
+    if (enemy.type === 'titan' && this.boss.guardians.length === 5 && this.boss.guardians.every(b => b.dead)) this.salvage += 50;
   }
   interact() {
     const target = this.interaction; if (!target || target.used) return false;
+    if (target.type === 'altar') return this.boss.awaken(this, target);
+    if (target.type === 'launch') {
+      if (this.mission.phase !== 'ready') return false;
+      target.used = true; this.mission.phase = 'countdown'; this.emit('launch', {}); return true;
+    }
     target.used = true;
     if (target.type) { this.relays++; this.salvage += 15; this.experience.add(35); this.player.hp = Math.min(this.player.stats.maxHp, this.player.hp + 30); this.emit('relay', {}); }
     else { this.player.hp = Math.min(this.player.stats.maxHp, this.player.hp + 45); this.salvage += 3; this.emit('upgrade', {}); }
     return true;
   }
   checkLevel() {
+    if (this.mission.phase === 'countdown' || this.mission.phase === 'cinematic') return;
     if (this.experience.pending > 0 && this.status === 'playing') {
       this.upgrades.roll(this.random);
       if (!this.upgrades.offers.length) { this.player.hp = this.player.stats.maxHp; this.experience.pending = 0; return; }
@@ -46,19 +52,35 @@ export class Run {
     if (this.status !== 'upgrade' || !this.upgrades.apply(id, this.player)) return false;
     this.experience.pending--; this.status = 'playing'; this.emit('upgrade', {}); this.checkLevel(); return true;
   }
-  hurtPlayer(amount) { if (this.status !== 'playing') return; if (this.player.hurt(amount)) this.emit('hurt', {}); if (this.player.dead) this.status = 'defeat'; }
+  hurtPlayer(amount) { if (this.status !== 'playing' || this.mission.phase === 'cinematic') return; if (this.player.hurt(amount)) this.emit('hurt', {}); if (this.player.dead) { if (this.mission.phase !== 'countdown') this.status = 'defeat'; } }
+  beginExtinction() {
+    this.mission.phase = 'cinematic'; this.mission.cinematic = 0; this.interaction = null;
+    this.player.hp = 0; this.player.dead = true;
+    for (const enemy of this.enemies) enemy.dead = true;
+    this.combat.pool.clear(); this.emit('extinction', {});
+  }
   update(dt, input, yaw, aim) {
     if (this.status !== 'playing') return;
+    if (this.mission.phase === 'cinematic') {
+      this.mission.cinematic += dt;
+      if (this.mission.cinematic >= 24) { this.status = 'victory'; this.emit('victory', {}); }
+      return;
+    }
+    if (this.mission.phase === 'countdown') {
+      this.mission.countdown = Math.max(0, this.mission.countdown - dt);
+      if (this.mission.countdown === 0) { this.beginExtinction(); return; }
+    }
+    if (this.player.dead) { this.time += dt; return; }
     for (const g of this.gems) if (Math.hypot(g.x - this.player.x, g.z - this.player.z) < 2.5) g.collected = true;
-    if (this.boss.guardians.every(b => b.dead) && this.gems.length === 5 && this.gems.every(g => g.collected) && !this.player.dead) { this.status = 'victory'; this.emit('victory', {}); return; }
-    this.time += dt; this.player.update(dt, input, yaw, this.world); this.weapon.update(dt);
+    if (this.mission.phase === 'collect' && this.gems.length === 5 && this.gems.every(g => g.collected)) { this.mission.phase = 'ready'; this.emit('beaconReady', {}); }
+    this.time += dt; this.player.update(dt, input, yaw, this.world); this.weapon.update(dt); this.weapon.aim = aim;
     this.director.update(dt, this); this.ability.update(dt, this); this.boss.update(dt, this);
     for (const [key, weapon] of [['Digit1', 'plasma'], ['Digit2', 'scatter'], ['Digit3', 'nova']]) if (input.take(key)) this.weapon.equipped = weapon;
     if (input.take('KeyF')) this.autoFire = !this.autoFire;
     if (input.take('KeyQ')) this.ability.activate(this);
-    this.interaction = [...(this.world.beacons || []), ...(this.world.rewards || [])].find(o => !o.used && Math.hypot(this.player.x - o.x, this.player.z - o.z) < 3.5) || null;
+    this.interaction = [this.launchBeacon, ...this.altars, ...(this.world.beacons || []), ...(this.world.rewards || [])].find(o => !o.used && Math.hypot(this.player.x - o.x, this.player.z - o.z) < 3.5) || null;
     if (input.take('KeyE')) this.interact();
-    if (input.buttons.has(0) || this.autoFire) { this.player.yaw = Math.atan2(aim.x, aim.z); this.weapon.fire(this, aim); }
+    if ((input.down ? input.down('Mouse0') : input.buttons.has(0)) || this.autoFire) { this.weapon.fire(this, aim); }
     this.enemies = this.enemies.filter(e => !e.dead);
     for (const enemy of this.enemies) { if (this.status !== 'playing') break; updateEnemy(enemy, dt, this); }
     this.combat.update(dt);

@@ -1,5 +1,7 @@
 import { Game } from './core/Game.js';
 import './style.css';
+import './theme.css';
+import './ui/hud-theme.css';
 try {
   const game = new Game(document.querySelector('#app'));
   if (import.meta.env.DEV && new URLSearchParams(location.search).has('qa')) window.__RED_HORIZON__ = game;

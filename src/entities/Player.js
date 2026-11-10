@@ -6,24 +6,55 @@ export function baseStats() {
 export class Player {
   constructor(height = 0) {
     Object.assign(this, { x: 0, y: height, z: 0, vx: 0, vy: 0, vz: 0, radius: CONFIG.playerRadius, grounded: true, hp: 120, shield: 0, invulnerable: 0, shieldDelay: 0, dead: false, yaw: Math.PI, steps: 0 });
-    this.stats = baseStats();
+    this.stats = baseStats(); this.groundTime = 1; this.hasJumped = false; this.jumpBuffer = 0; this.slideTime = 0; this.slideCooldown = 0; this.hopChain = 0;
   }
   update(dt, input, yaw, world) {
     const f = Number(input.down('KeyW')) - Number(input.down('KeyS'));
     const s = Number(input.down('KeyD')) - Number(input.down('KeyA'));
-    const len = Math.hypot(f, s) || 1, speed = (input.down('ShiftLeft') ? 10.5 : 7) * this.stats.speed;
-    const tx = (Math.sin(yaw) * f + Math.cos(yaw) * s) / len * speed;
-    const tz = (-Math.cos(yaw) * f + Math.sin(yaw) * s) / len * speed;
-    const blend = 1 - Math.exp(-12 * dt);
-    this.vx += (tx - this.vx) * blend; this.vz += (tz - this.vz) * blend;
+    const len = Math.hypot(f, s) || 1, moving = !!(f || s);
+    const speed = (input.down('ShiftLeft') ? 10.5 : 7) * this.stats.speed;
+    const dx = (Math.sin(yaw) * f + Math.cos(yaw) * s) / len;
+    const dz = (-Math.cos(yaw) * f + Math.sin(yaw) * s) / len;
+    this.groundTime = this.grounded ? this.groundTime + dt : 0;
+    this.slideTime = Math.max(0, this.slideTime - dt);
+    this.slideCooldown = Math.max(0, this.slideCooldown - dt);
+    this.jumpBuffer = Math.max(0, this.jumpBuffer - dt);
+    if (input.take('Space')) this.jumpBuffer = 0.12;
+    const velocity = Math.hypot(this.vx, this.vz);
+    if (input.take('ControlLeft') && this.grounded && velocity >= 6 && this.slideCooldown === 0) {
+      this.slideTime = 0.8; this.slideCooldown = 1.2;
+      const boost = Math.min(18, velocity + 2) / velocity;
+      this.vx *= boost; this.vz *= boost;
+    }
+    if (this.grounded && (this.jumpBuffer > 0 || input.down('Space'))) {
+      const chained = this.hasJumped && this.groundTime <= 0.12 && moving && velocity >= 5;
+      this.hopChain = chained ? this.hopChain + 1 : 0;
+      if (chained) {
+        const boost = Math.min(Math.max(speed, 18), velocity + 1.4) / velocity;
+        this.vx *= boost; this.vz *= boost;
+      }
+      this.hasJumped = true; this.jumpBuffer = 0; this.slideTime = 0;
+      this.vy = CONFIG.jumpSpeed; this.grounded = false;
+    }
+    if (this.slideTime > 0) {
+      const friction = Math.exp(-0.85 * dt); this.vx *= friction; this.vz *= friction;
+    } else if (this.grounded) {
+      const blend = 1 - Math.exp(-12 * dt);
+      this.vx += (dx * speed - this.vx) * blend; this.vz += (dz * speed - this.vz) * blend;
+      if (this.groundTime > 0.12) this.hopChain = 0;
+    } else if (moving) {
+      // Limited air steering preserves earned momentum without accelerating by itself.
+      const current = Math.hypot(this.vx, this.vz), targetSpeed = Math.max(speed, current);
+      const blend = 1 - Math.exp(-2.5 * dt);
+      this.vx += (dx * targetSpeed - this.vx) * blend; this.vz += (dz * targetSpeed - this.vz) * blend;
+    }
     moveCircle(this, this.vx * dt, this.vz * dt, world.obstacles);
-    const jump = input.take('Space');
-    if (jump && this.grounded) { this.vy = CONFIG.jumpSpeed; this.grounded = false; }
+    if (!this.grounded) { this.vy -= CONFIG.gravity * dt; this.y += this.vy * dt; }
     const ground = world.heightAt(this.x, this.z);
     if (!this.grounded) { this.vy -= CONFIG.gravity * dt; this.y += this.vy * dt; }
     if (this.y <= ground || this.grounded) { this.y = ground; this.vy = 0; this.grounded = true; }
-    if (Math.abs(f) + Math.abs(s) > 0) this.yaw = Math.atan2(this.vx, this.vz);
-    if (input.buttons.size) this.yaw = Math.PI - yaw;
+    // Face the camera heading independently of movement direction.
+    this.yaw = Math.PI - yaw;
     this.steps += Math.hypot(this.vx, this.vz) * dt;
     this.invulnerable = Math.max(0, this.invulnerable - dt); this.shieldDelay -= dt;
     if (this.shieldDelay <= 0) this.shield = Math.min(this.stats.shield, this.shield + dt * 8);

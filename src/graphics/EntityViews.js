@@ -1,9 +1,18 @@
 import * as THREE from 'three';
+import { loadPlayerAvatar } from './PlayerAvatar.js';
+import { WeaponModels } from './WeaponModels.js';
 import { CONFIG } from '../config.js';
 export class EntityViews {
-  constructor(scene, models) {
+  constructor(scene, models, emitShotParticles) {
     this.scene = scene; this.models = models; this.enemies = new Map(); this.free = new Map(); this.gems = new Map();
     this.player = models.player(); scene.add(this.player);
+    this.weapons = new WeaponModels(models, this.player.userData.gun); this.emitShotParticles = emitShotParticles;
+    this.disposed = false;
+    this.avatarReady = loadPlayerAvatar(this.player).then(avatar => {
+      if (this.disposed) { avatar.dispose(); return; }
+      this.avatar = avatar;
+      for (const child of this.player.children) if (child !== avatar.root && child !== this.player.userData.gun) child.visible = false;
+    }).catch(error => { if (!this.disposed) console.warn('No se pudo cargar el personaje; se mantiene el modelo de respaldo.', error); });
     this.projectileMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
     this.projectiles = new THREE.InstancedMesh(models.geometry('sphere'), this.projectileMaterial, CONFIG.projectileLimit);
     this.projectiles.instanceMatrix.setUsage(THREE.DynamicDrawUsage); this.projectiles.frustumCulled = false; scene.add(this.projectiles);
@@ -17,7 +26,8 @@ export class EntityViews {
       mesh.position.y = run.world.heightAt(g.x, g.z) + 1 + Math.sin(run.time * 3) * 0.2;
     }
     this.models.animatePlayer(this.player, run.player, run.time);
-    this.player.userData.gun.position.z = 0.3 - run.weapon.recoil * 0.16;
+    this.avatar?.update(run.player, run.time);
+    this.weapons.update(run, this.emitShotParticles);
     for (const [id, mesh] of this.enemies) {
       if (!run.enemies.some(e => e.id === id && !e.dead)) {
         mesh.visible = false; this.enemies.delete(id);
@@ -39,7 +49,7 @@ export class EntityViews {
     let count = 0;
     for (const p of run.combat.pool.items) {
       if (!p.active) continue;
-      this.dummy.position.set(p.x, p.y, p.z); this.dummy.scale.set(p.radius, p.radius, p.radius * (p.friendly ? 2.8 : 1.4));
+      this.dummy.position.set(p.x, p.y, p.z); this.dummy.scale.set(p.radius, p.radius, p.radius * (p.kind === 'plasma' ? 4 : p.kind === 'scatter' ? 1.8 : p.kind === 'nova' ? 1.2 : 1.4));
       this.dummy.lookAt(p.x + p.vx, p.y + p.vy, p.z + p.vz); this.dummy.updateMatrix();
       this.projectiles.setMatrixAt(count, this.dummy.matrix); this.projectiles.setColorAt(count, this.color.setHex(p.color)); count++;
     }
@@ -47,6 +57,7 @@ export class EntityViews {
     if (this.projectiles.instanceColor) this.projectiles.instanceColor.needsUpdate = true;
   }
   dispose() {
+    this.disposed = true; this.avatar?.dispose();
     this.scene.remove(this.player, this.projectiles); this.projectiles.dispose(); this.projectileMaterial.dispose();
     for (const mesh of this.enemies.values()) this.scene.remove(mesh);
     for (const meshes of this.free.values()) for (const mesh of meshes) this.scene.remove(mesh);

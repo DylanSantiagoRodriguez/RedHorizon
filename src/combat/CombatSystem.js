@@ -6,7 +6,7 @@ export class CombatSystem {
   constructor(run) { this.run = run; this.pool = new ObjectPool(CONFIG.projectileLimit, () => ({ hits: new Set() })); }
   spawn(data) {
     const p = this.pool.acquire(); if (!p) return;
-    p.hits.clear(); Object.assign(p, { pierce: 0, bounce: 0, blast: 0, radius: 0.22, color: 0xc4ed71, friendly: false }, data);
+    p.hits.clear(); Object.assign(p, { pierce: 0, bounce: 0, blast: 0, radius: 0.22, color: 0xc4ed71, friendly: false, kind: null }, data);
   }
   enemyShot(enemy) {
     const p = this.run.player, dx = p.x - enemy.x, dy = p.y + 1 - enemy.y, dz = p.z - enemy.z, d = Math.hypot(dx, dy, dz) || 1, speed = enemy.type === 'spitter' ? 13 : 18;
@@ -64,7 +64,7 @@ export class CombatSystem {
         }
       } else if (!p.friendly && !collision) {
         const player = run.player;
-        if (segmentHit(ax, ay, az, p.x, p.y, p.z, player.x, player.y + 1, player.z, 0.85)) { run.hurtPlayer(p.damage); collision = true; }
+        if (segmentHit(ax, ay, az, p.x, p.y, p.z, player.x, player.y + (player.slideTime > 0 ? 0.45 : 1), player.z, player.slideTime > 0 ? 0.5 : 0.85)) { run.hurtPlayer(p.damage); collision = true; }
       }
       if (collision || p.life <= 0) {
         if (p.blast) this.explode(p.x, p.y, p.z, p.blast * run.player.stats.area, p.damage);

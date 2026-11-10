@@ -10,7 +10,7 @@ export class Models {
   }
   geometry(type) {
     if (!this.geometries.has(type)) {
-      const geo = type === 'rock' ? new THREE.IcosahedronGeometry(1, 1) : type === 'sphere' ? new THREE.SphereGeometry(1, 12, 8) : type === 'cone' ? new THREE.ConeGeometry(1, 1, 6) : type === 'cylinder' ? new THREE.CylinderGeometry(1, 1, 1, 8) : new THREE.BoxGeometry(1, 1, 1);
+      const geo = type === 'torus' ? new THREE.TorusGeometry(1, 0.13, 6, 16) : type === 'rock' ? new THREE.IcosahedronGeometry(1, 1) : type === 'sphere' ? new THREE.SphereGeometry(1, 12, 8) : type === 'cone' ? new THREE.ConeGeometry(1, 1, 6) : type === 'cylinder' ? new THREE.CylinderGeometry(1, 1, 1, 8) : new THREE.BoxGeometry(1, 1, 1);
       this.geometries.set(type, geo);
     }
     return this.geometries.get(type);
@@ -40,8 +40,6 @@ export class Models {
       this.part(arm, 'box', white, [0, -0.32, 0.05], [0.23, 0.44, 0.25]); arms.push(arm);
     }
     const gun = new THREE.Group(); gun.position.set(0.48, 1.21, 0.3); g.add(gun);
-    this.part(gun, 'box', dark, [0, 0, 0.23], [0.2, 0.25, 0.8]);
-    this.part(gun, 'box', 0x58f2e0, [0, 0.06, 0.65], [0.12, 0.1, 0.05], true);
     g.userData = { legs, arms, gun }; return g;
   }
   animatePlayer(mesh, player, time) {

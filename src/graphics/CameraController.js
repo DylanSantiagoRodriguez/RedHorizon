@@ -7,10 +7,10 @@ export class CameraController {
   }
   update(dt, input, player, world) {
     this.yaw += input.dx * 0.0025 * this.sensitivity;
-    this.pitch = THREE.MathUtils.clamp(this.pitch + input.dy * 0.002 * this.sensitivity, -0.65, 0.9);
+    this.pitch = THREE.MathUtils.clamp(this.pitch + input.dy * 0.002 * this.sensitivity, -1.48, 1.48);
     input.dx = 0; input.dy = 0;
-    this.target.set(player.x + Math.cos(this.yaw) * 0.95, player.y + 1.9, player.z + Math.sin(this.yaw) * 0.95);
-    const distance = input.buttons.has(2) ? 3.4 : this.distance;
+    this.target.set(player.x + Math.cos(this.yaw) * 0.95, player.y + (player.slideTime > 0 ? 1.05 : 1.9), player.z + Math.sin(this.yaw) * 0.95);
+    const distance = (input.down ? input.down('Mouse2') : input.buttons.has(2)) ? 3.4 : this.distance;
     this.direction.set(-Math.sin(this.yaw) * Math.cos(this.pitch), Math.sin(this.pitch), Math.cos(this.yaw) * Math.cos(this.pitch));
     this.ray.set(this.target, this.direction); this.ray.far = distance;
     const hit = this.ray.intersectObjects(world.cameraColliders || [], false)[0];
@@ -19,7 +19,8 @@ export class CameraController {
     this.desired.y = Math.max(this.desired.y, world.heightAt(this.desired.x, this.desired.z) + 0.5);
     const smoothing = this.ready ? 1 - Math.exp(-14 * dt) : 1;
     this.camera.position.lerp(this.desired, hit ? 1 : smoothing);
-    this.camera.lookAt(this.target); this.ready = true;
+    // Terrain may lift the camera, but must not flatten the aiming angle.
+    this.camera.lookAt(this.desired.copy(this.camera.position).addScaledVector(this.direction, -1)); this.ready = true;
   }
   aim() { return new THREE.Vector3(Math.sin(this.yaw) * Math.cos(this.pitch), -Math.sin(this.pitch), -Math.cos(this.yaw) * Math.cos(this.pitch)); }
   shotDirection(run, assist = false) {
@@ -36,6 +37,6 @@ export class CameraController {
         if (d < distance) { distance = d; target.set(enemy.x, enemy.y, enemy.z); }
       }
     }
-    return target.sub(new THREE.Vector3(run.player.x, run.player.y + 1.45, run.player.z)).normalize();
+    return target.sub(new THREE.Vector3(run.player.x, run.player.y + (run.player.slideTime > 0 ? 0.75 : 1.45), run.player.z)).normalize();
   }
 }

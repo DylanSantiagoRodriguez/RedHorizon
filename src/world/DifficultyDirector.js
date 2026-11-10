@@ -14,7 +14,7 @@ export class DifficultyDirector {
     if (run.time > 65) types.push('drone');
     if (run.time > 120) types.push('elite');
     for (let i = 0; i < Math.min(5, d.batch); i++) {
-      if (run.enemies.filter(e => !e.dead).length >= CONFIG.enemyLimit - (run.boss?.spawned ? 0 : 1)) break;
+      if (run.enemies.filter(e => !e.dead).length >= CONFIG.enemyLimit - (5 - (run.boss?.guardians.length || 0))) break;
       const point = this.spawnPoint(run); if (point) run.spawn(run.random.pick(types), point.x, point.z, d.scale);
     }
   }

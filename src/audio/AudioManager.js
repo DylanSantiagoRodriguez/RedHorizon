@@ -21,7 +21,13 @@ export class AudioManager {
   play(type, data = {}) {
     const now = this.context?.currentTime || 0;
     if (now - (this.last[type] ?? -10) < (type === 'hit' ? 0.08 : 0.035)) return; this.last[type] = now;
-    if (type === 'shot') this.tone(data.kind === 'nova' ? 120 : 650, 65, data.kind === 'nova' ? 0.28 : 0.09, 'sawtooth', 0.055);
+    if (type === 'launch') { this.tone(70, 450, 3, 'sawtooth', 0.07); for (const [i, f] of [220, 330, 440].entries()) this.tone(f, f, 1.2, 'sine', 0.06, i * 0.4); }
+    if (type === 'extinction') { this.boss = false; this.tone(100, 20, 4, 'sawtooth', 0.1); }
+    if (type === 'shot') {
+      if (data.kind === 'plasma') { this.tone(950, 240, 0.12, 'sawtooth', 0.045); this.tone(1450, 600, 0.07, 'sine', 0.025); }
+      else if (data.kind === 'scatter') { this.tone(180, 35, 0.19, 'square', 0.055); this.tone(1300, 180, 0.09, 'sawtooth', 0.035); this.tone(240, 100, 0.07, 'triangle', 0.03, 0.19); }
+      else { this.tone(100, 25, 0.38, 'sawtooth', 0.075); this.tone(320, 70, 0.22, 'triangle', 0.045); }
+    }
     if (type === 'hit') this.tone(200, 80, 0.045, 'triangle', 0.1);
     if (type === 'death') this.tone(120, 35, 0.18, 'sawtooth', 0.05);
     if (type === 'hurt') this.tone(95, 38, 0.3, 'square', 0.075);

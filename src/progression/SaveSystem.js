@@ -1,4 +1,5 @@
-const DEFAULTS = { salvage: 0, armor: 0, best: 0, wins: 0, runs: 0, options: { volume: 0.35, sensitivity: 1, distance: 7.5, quality: 'high', assist: false } };
+import { DEFAULT_BINDINGS, normalizeBindings } from '../core/Controls.js';
+const DEFAULTS = { salvage: 0, armor: 0, best: 0, wins: 0, runs: 0, options: { volume: 0.35, sensitivity: 1, distance: 7.5, quality: 'high', assist: false, bindings: { ...DEFAULT_BINDINGS } } };
 export class SaveSystem {
   constructor(storage = globalThis.localStorage) {
     this.storage = storage; this.data = structuredClone(DEFAULTS);
@@ -9,7 +10,7 @@ export class SaveSystem {
       const o = saved.options || {}, d = this.data.options;
       for (const [key, min, max] of [['volume', 0, 1], ['sensitivity', 0.3, 2.5], ['distance', 4, 12]]) if (Number.isFinite(o[key])) d[key] = Math.min(max, Math.max(min, o[key]));
       if (['low', 'high'].includes(o.quality)) d.quality = o.quality;
-      d.assist = o.assist === true;
+      d.assist = o.assist === true; d.bindings = normalizeBindings(o.bindings);
     } catch { /* Storage may be denied; session play remains available. */ }
   }
   write() { try { this.storage.setItem('red-horizon-v1', JSON.stringify(this.data)); } catch { /* Memory-only fallback. */ } }

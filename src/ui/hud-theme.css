@@ -1,0 +1,138 @@
+/* In-game instruments share the copper and aether palette of the menu. */
+.neo-hud { --hud-panel:linear-gradient(135deg,#14242aeb,#0b141ce8); --hud-line:#bf95624d; --hud-text:#ede5d3; color:var(--hud-text); }
+.neo-hud .topline { top:24px; left:30px; right:30px; }
+.neo-hud .hud-brand { padding:10px 16px 10px 12px; border-left:2px solid var(--copper); background:linear-gradient(90deg,#0a161cdd,#0a161c44); }
+.neo-hud .hud-brand .brand-symbol { color:var(--brass); }
+.neo-hud .hud-brand b { font-size:12px; letter-spacing:2px; }
+.neo-hud .hud-brand small { color:#aab9b7; font:8px monospace; letter-spacing:1px; }
+.neo-hud .compass { top:10px; padding:10px 20px; border-top:1px solid var(--hud-line); border-bottom:1px solid var(--hud-line); color:#b6b29c; background:linear-gradient(90deg,transparent,#101f26ad,transparent); font-size:9px; }
+.neo-hud .compass b { color:var(--aether); min-width:38px; text-align:center; font-size:14px; }
+.neo-hud .compass b::before { color:var(--brass); top:-12px; }
+.neo-hud #pause-button { margin-top:7px; background:#101e26dd; border:1px solid #bf956266; color:var(--brass); padding:11px 14px; box-shadow:inset 0 0 0 3px #c0975f0a; }
+.neo-hud .mission { top:118px; left:30px; width:300px; padding:17px 18px; background:var(--hud-panel); border:1px solid var(--hud-line); border-left:2px solid var(--copper); box-shadow:0 5px 22px #0003; }
+.neo-hud .mission>.eyebrow { color:#d3b78c; font:8px monospace; letter-spacing:1.7px; }
+.neo-hud .mission h3 { font-size:17px; font-weight:600; line-height:1.35; color:#f1e5cf; margin:10px 0; }
+.neo-hud .mission p { font:9px monospace; letter-spacing:1px; color:#aad4cf; }
+.neo-hud .mission-line { width:100%; margin:12px 0 9px; background:linear-gradient(90deg,#c3986266,transparent); }
+.neo-hud .mission small { color:#b4b9ae; font:8px/1.7 monospace; letter-spacing:.4px; display:block; }
+.gem-sockets { display:flex; gap:11px; margin-top:14px; }
+.gem-sockets span { display:grid; place-items:center; width:26px; height:26px; color:#a1a59d; border:1px solid #9e89584d; background:#050e15; font-size:17px; border-radius:3px; }
+.gem-sockets .collected { color:var(--gem); border-color:var(--gem); box-shadow:inset 0 0 12px color-mix(in srgb,var(--gem) 15%,transparent); }
+.neo-hud .mission.extinction-warning { border-color:#f09c67; }
+.neo-hud .extinction-warning #boss-arrival { color:#ffc59a; font-size:12px; letter-spacing:1px; }
+.neo-hud .telemetry { top:110px; right:30px; width:192px; padding:12px 0 10px; }
+.neo-hud .time-row { padding:8px 11px 12px; border-bottom:1px solid var(--hud-line); background:#0b1820cb; }
+.neo-hud .time-row b { color:#ead0a6; font-size:25px; }
+.neo-hud .time-row span { color:#aebcba; font-size:7px; }
+.neo-hud .threat-row { justify-content:center; color:#d3b58d; font:8px monospace; letter-spacing:1.4px; padding:11px 0; background:#0b182080; }
+.neo-hud .threat-row i { background:#e4ad70; box-shadow:0 0 7px #ecae5966; transform:rotate(45deg); }
+.radar-bezel { position:relative; padding:7px; border-radius:50%; border:2px solid #97764b; background:linear-gradient(135deg,#dfbb7d,#473c2d 35%,#98734e 70%,#d2ab77); box-shadow:0 5px 18px #0008,inset 0 0 0 2px #0b161c; }
+.neo-hud #radar { width:174px; height:174px; opacity:1; border:1px solid #c3a572; box-shadow:0 0 0 2px #0b141b; border-radius:50%; }
+.radar-bolt { position:absolute; width:5px; height:5px; background:#edce96; border:1px solid #463222; border-radius:50%; }
+.bolt-nw { left:24px; top:24px; } .bolt-ne { right:24px; top:24px; } .bolt-sw { left:24px; bottom:24px; } .bolt-se { right:24px; bottom:24px; }
+.neo-hud .radar-label { color:#ddc299; font:7px monospace; letter-spacing:1.3px; margin:12px 0 9px; }
+.radar-legend { display:grid; grid-template-columns:1fr 1fr; gap:5px 10px; font:8px monospace; color:#c7d0c7; background:#0a171dcc; border-top:1px solid var(--hud-line); padding:9px 12px; }
+.radar-legend span:first-child { color:#f6a38a; }
+.neo-hud .vitals,.neo-hud .loadout { background:var(--hud-panel); border:1px solid var(--hud-line); border-top:2px solid var(--copper); box-shadow:0 8px 24px #0005,inset 0 0 0 4px #c49b6305; padding:16px 18px; bottom:66px; }
+.neo-hud .vitals { left:30px; width:320px; }
+.instrument-label { display:flex; justify-content:space-between; align-items:center; padding-bottom:12px; margin-bottom:14px; border-bottom:1px solid #ae8d5c33; font:8px monospace; letter-spacing:1.5px; color:#bcaa8c; }
+.instrument-label b { font-size:7px; font-weight:400; color:var(--aether); letter-spacing:1px; }
+.neo-hud .pilot-label { gap:12px; margin-bottom:14px; }
+.neo-hud .pilot-icon { width:34px; height:34px; display:grid; place-items:center; font-size:20px; border:1px solid #c19a6866; border-radius:50%; color:var(--brass); box-shadow:0 0 0 3px #c19a6812,inset 0 0 0 3px #c19a6812; }
+.neo-hud .pilot-label b { color:#e5d6ba; font-size:9px; letter-spacing:1px; }
+.neo-hud .pilot-label small { color:#90b9b8; font:8px monospace; margin-top:5px; }
+.neo-hud .pilot-label strong { font:27px monospace; color:#f3e6cf; }
+.neo-hud .pilot-label strong small { color:#b6b3a4; font-size:10px; }
+.neo-hud .track { background:#050d12; border:1px solid #ae8b5840; box-shadow:inset 0 2px 4px #0009; position:relative; }
+.neo-hud .track.hp { height:12px; padding:2px; overflow:visible; }
+.neo-hud .track.hp i { background:linear-gradient(90deg,#348d88,#a7efdc); box-shadow:0 0 10px #7bdcc84d; }
+.neo-hud .track.hp::after { content:""; position:absolute; inset:2px; background:repeating-linear-gradient(90deg,transparent 0,transparent calc(10% - 2px),#0a161bcc calc(10% - 2px),#0a161bcc 10%); pointer-events:none; }
+.neo-hud .shield-row { margin-top:12px; gap:12px; }
+.neo-hud .shield-row>span { color:#a6dce4; font:8px monospace; }
+.neo-hud .shield-row .track { height:6px; }
+.neo-hud .shield-row i { background:linear-gradient(90deg,#3b708f,#a2e2f3); }
+.neo-hud .xp-row { color:#cfb588; font:8px monospace; margin-top:13px; }
+.neo-hud .xp-row .track { height:5px; }
+.neo-hud .xp-row i { background:linear-gradient(90deg,#987047,#e8c893); }
+.neo-hud .run-counters { margin-top:15px; padding-top:12px; border-top-color:var(--hud-line); color:#c4c8b9; font:8px monospace; }
+.neo-hud .critical { border-top-color:#f18062; }
+.neo-hud .critical #vital-status { color:#ffab8d; }
+.neo-hud .critical .track.hp i { background:linear-gradient(90deg,#a5382c,#ffc29a); box-shadow:0 0 12px #e7664666; }
+.neo-hud .loadout { right:30px; width:370px; transform:none; }
+.neo-hud .loadout .instrument-label { margin-bottom:12px; font-size:7px; letter-spacing:1.2px; }
+.neo-hud #weapon-status { color:#8ecbc7; font-size:7px; }
+.neo-hud .weapon-name { text-align:left; font-size:13px; color:#f0d8ad; margin-bottom:14px; letter-spacing:1.4px; }
+.neo-hud .weapon-name small { color:#aebfbc; font:7px monospace; letter-spacing:.5px; }
+.neo-hud .slots { gap:7px; }
+.neo-hud .weapon-slot,.neo-hud .ability-slot { width:76px; height:80px; flex:1; background:linear-gradient(150deg,#243037,#101a21); border:1px solid #b9935b59; color:#9ba9a5; overflow:hidden; }
+.neo-hud .weapon-slot { display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.neo-hud .weapon-slot kbd,.neo-hud .ability-slot kbd { color:#d2c7af; background:#0a131c; padding:2px 4px; top:5px; left:5px; font:7px monospace; max-width:90%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.neo-hud .weapon-slot svg { width:60px; height:30px; margin-top:13px; fill:#ad9e86; }
+.weapon-core { fill:#7ebbb5; stroke:#293d40; stroke-width:1.5px; }
+.weapon-trace { fill:none; stroke:#d1af7d; stroke-width:2px; }
+.weapon-rivet { fill:#111c24; }
+.slot-name { font:6px monospace; letter-spacing:1px; color:#aebdb5; margin-top:3px; }
+.neo-hud .weapon-slot.selected { border-color:#d8b57d; background:linear-gradient(150deg,#564a36,#243233); box-shadow:inset 0 -2px var(--brass),0 0 10px #bf92551c; }
+.neo-hud .weapon-slot.selected svg { fill:#e4bd83; filter:drop-shadow(0 0 4px #dfb77533); }
+.neo-hud .weapon-slot.selected .weapon-core { fill:#b5fff0; stroke:#467e7b; }
+.neo-hud .weapon-slot.selected .slot-name { color:#f8ddae; }
+.neo-hud .ability-slot { margin-left:5px; color:#83a5ae; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.neo-hud .ability-slot b { margin:13px 0 4px; width:30px; height:30px; line-height:26px; border-radius:50%; border:2px solid transparent; background:linear-gradient(#14252d,#14252d) padding-box,conic-gradient(#9ce4d8 var(--charge,360deg),#294349 0deg) border-box; font-size:22px; }
+.neo-hud .ability-slot small { font:7px monospace; }
+.neo-hud .ability-slot.ready { border-color:#7dcfc180; color:#a7efdd; background:linear-gradient(150deg,#254347,#122129); }
+.neo-hud .loadout-hint { color:#acb7ad; font:7px/1.5 monospace; letter-spacing:.4px; margin-top:12px; text-align:left; }
+.neo-hud #boss-bar { top:92px; background:#10181edb; border:1px solid #bd88534d; padding:12px 16px; width:34%; max-width:520px; }
+.neo-hud #boss-bar>div:first-child { color:#edc994; font:9px monospace; letter-spacing:1px; }
+.neo-hud #boss-bar small { font:8px monospace; color:#f29b77; }
+.neo-hud #boss-bar .track { height:8px; }
+.neo-hud #boss-fill { background:linear-gradient(90deg,#8a4337,#f0a774); }
+.neo-hud .crosshair { filter:drop-shadow(0 1px 2px #050a0c); }
+.neo-hud .crosshair i,.neo-hud .crosshair::before,.neo-hud .crosshair::after { background:#b6eadf; }
+.neo-hud .crosshair b { background:#ffe6b9; }
+.neo-hud #interaction { max-width:80vw; white-space:normal; text-align:center; background:linear-gradient(120deg,#172a30ed,#101b23ed); border-color:#c7a06b88; color:#e9dabf; box-shadow:0 8px 30px #0006; line-height:1.6; }
+.neo-hud #interaction kbd { color:var(--aether); border-color:#8fcac56b; background:#0a151b; }
+.neo-hud #toast { top:35%; background:#10242ce8; border:1px solid #c69c6959; border-left:2px solid var(--copper); color:#d9e7de; font:10px/1.7 monospace; }
+.neo-hud .bottom-coordinates { left:30px; right:30px; bottom:23px; padding-top:12px; color:#cbb893; border-top-color:#bc925a38; font:7px monospace; letter-spacing:1.5px; }
+.neo-hud .bottom-coordinates #fps { color:#9aada6; }
+@media(max-width:1100px) {
+  .neo-hud .mission { width:265px; left:22px; padding:14px; } .neo-hud .mission h3 { font-size:15px; }
+  .neo-hud .vitals { width:290px; left:22px; }
+  .neo-hud .loadout { width:330px; right:22px; padding:14px; }
+  .neo-hud .telemetry { right:22px; }
+  .neo-hud .compass { gap:12px; } .neo-hud .compass>span { letter-spacing:1px; }
+}
+@media(max-height:740px) and (min-width:701px) {
+  .neo-hud .mission { top:100px; padding:12px 14px; }
+  .neo-hud .telemetry { top:87px; width:162px; }
+  .neo-hud #radar { width:144px; height:144px; }
+  .neo-hud .radar-legend { font-size:7px; padding:6px 10px; }
+  .neo-hud .vitals,.neo-hud .loadout { bottom:52px; padding:12px 14px; }
+  .neo-hud .instrument-label { padding-bottom:8px; margin-bottom:9px; }
+  .neo-hud .run-counters { margin-top:10px; padding-top:8px; }
+  .neo-hud .bottom-coordinates { bottom:16px; }
+  .neo-hud #toast { top:40%; }
+}
+@media(max-width:700px) {
+  .neo-hud .topline { top:12px; left:14px; right:14px; }
+  .neo-hud .hud-brand { padding:7px 9px; } .neo-hud .hud-brand b { font-size:9px; }
+  .neo-hud .compass { display:none; }
+  .neo-hud .mission { top:84px; left:14px; width:calc(100% - 178px); padding:12px; }
+  .neo-hud .mission h3 { font-size:13px; } .neo-hud .mission>.eyebrow { font-size:6px; letter-spacing:1px; }
+  .neo-hud .mission p { font-size:8px; } .gem-sockets { gap:5px; } .gem-sockets span { width:20px; height:22px; font-size:14px; }
+  .neo-hud .telemetry { top:72px; right:14px; width:140px; } .neo-hud #radar { width:122px; height:122px; }
+  .neo-hud .time-row b { font-size:20px; } .neo-hud .radar-legend { font-size:7px; gap:5px; padding:7px; } .neo-hud .radar-label { font-size:6px; letter-spacing:.7px; }
+  .neo-hud .vitals { left:12px; width:44%; padding:10px; bottom:48px; } .neo-hud .loadout { right:12px; width:48%; padding:10px; bottom:48px; }
+  .neo-hud .pilot-icon { display:none; } .neo-hud .pilot-label { flex-wrap:wrap; gap:5px; } .neo-hud .pilot-label strong { font-size:21px; }
+  .neo-hud .pilot-label b { font-size:7px; } .neo-hud .instrument-label { font-size:6px; letter-spacing:.4px; margin-bottom:9px; padding-bottom:8px; }
+  .neo-hud .instrument-label b { font-size:6px; } .neo-hud .loadout .instrument-label { font-size:6px; letter-spacing:0; }
+  .neo-hud #weapon-status { display:none; } .neo-hud .weapon-name { font-size:10px; }
+  .neo-hud .slots { gap:4px; } .neo-hud .weapon-slot,.neo-hud .ability-slot { min-width:0; width:25%; height:67px; }
+  .neo-hud .weapon-slot svg { width:90%; height:24px; } .slot-name { font-size:5px; letter-spacing:0; }
+  .neo-hud .ability-slot { margin-left:0; } .neo-hud .ability-slot b { width:23px; height:23px; font-size:17px; line-height:20px; }
+  .neo-hud .weapon-name small,.neo-hud .loadout-hint { font-size:6px; } .neo-hud .run-counters { font-size:6px; gap:4px; }
+  .neo-hud .shield-row { gap:5px; } .neo-hud .xp-row { gap:4px; font-size:6px; }
+  .neo-hud #boss-bar { top:320px; width:80%; }
+  .neo-hud #toast { top:43%; width:75%; font-size:9px; } .neo-hud #interaction { bottom:32%; font-size:9px; }
+  .neo-hud .bottom-coordinates { left:14px; right:14px; font-size:6px; gap:10px; bottom:16px; }
+}
+@media(prefers-reduced-motion:reduce) { .neo-hud .track i { transition:none; } }
