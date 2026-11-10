@@ -29,14 +29,14 @@ export class WorldManager {
   }
   buildHorizon() {
     for (let i = 0; i < 55; i++) {
-      const a = i / 55 * Math.PI * 2, d = this.random.range(115, 165), height = this.random.range(14, 47);
+      const a = i / 55 * Math.PI * 2, d = this.random.range(140, 190), height = this.random.range(14, 47);
       const mesh = this.models.part(this.group, 'rock', this.random.pick([0x704132, 0x884b36, 0x603c35]), [Math.cos(a) * d, height * 0.15 - 2, Math.sin(a) * d], [this.random.range(15, 29), height, this.random.range(13, 25)]);
       mesh.rotation.y = a;
     }
     const sun = this.models.part(this.group, 'sphere', 0xffe4b1, [-95, 85, -165], [11, 11, 11], true); sun.castShadow = false;
     // Boundary is a visible hazard perimeter, not an invisible map edge.
     const points = [];
-    for (let i = 0; i <= 160; i++) { const a = i / 160 * Math.PI * 2, x = Math.cos(a) * 89, z = Math.sin(a) * 89; points.push(new THREE.Vector3(x, this.heightAt(x, z) + 0.3, z)); }
+    for (let i = 0; i <= 160; i++) { const a = i / 160 * Math.PI * 2, x = Math.cos(a) * 109, z = Math.sin(a) * 109; points.push(new THREE.Vector3(x, this.heightAt(x, z) + 0.3, z)); }
     const geo = new THREE.BufferGeometry().setFromPoints(points), mat = new THREE.LineBasicMaterial({ color: 0xff8050, transparent: true, opacity: 0.7 });
     this.group.add(new THREE.Line(geo, mat)); this.owned.push(geo, mat);
   }

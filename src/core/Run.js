@@ -17,13 +17,16 @@ export class Run {
     this.combat = new CombatSystem(this); this.weapon = new WeaponSystem();
     this.director = new DifficultyDirector();
     this.experience = new ExperienceSystem(); this.upgrades = new UpgradeSystem(); this.salvage = 0;
-    this.ability = new AbilitySystem(); this.boss = new BossController(); this.relays = 0; this.interaction = null; this.autoFire = false;
+    this.ability = new AbilitySystem(); this.boss = new BossController(); this.relays = 0; this.interaction = null; this.autoFire = false; this.gems = []; this.boss.awaken(this);
   }
   spawn(type, x, z, scale = 1) { const enemy = createEnemy(this.nextId++, type, x, z, scale); enemy.y = this.world.heightAt(x, z) + enemy.height; this.enemies.push(enemy); return enemy; }
   get level() { return this.experience.level; }
   onKill(enemy) {
+    if (enemy.rewardGranted) return;
+    enemy.rewardGranted = true;
+    if (enemy.gemColor) this.gems.push({ id: enemy.id, x: enemy.x, z: enemy.z, color: enemy.gemColor, collected: false });
     this.experience.add(enemy.xp); this.salvage += enemy.type === 'elite' ? 5 : 1;
-    if (enemy.type === 'titan' && !this.player.dead) { this.status = 'victory'; this.salvage += 50; this.emit('victory', {}); }
+    if (enemy.type === 'titan' && this.boss.guardians.every(b => b.dead)) this.salvage += 50;
   }
   interact() {
     const target = this.interaction; if (!target || target.used) return false;
@@ -46,6 +49,8 @@ export class Run {
   hurtPlayer(amount) { if (this.status !== 'playing') return; if (this.player.hurt(amount)) this.emit('hurt', {}); if (this.player.dead) this.status = 'defeat'; }
   update(dt, input, yaw, aim) {
     if (this.status !== 'playing') return;
+    for (const g of this.gems) if (Math.hypot(g.x - this.player.x, g.z - this.player.z) < 2.5) g.collected = true;
+    if (this.boss.guardians.every(b => b.dead) && this.gems.length === 5 && this.gems.every(g => g.collected) && !this.player.dead) { this.status = 'victory'; this.emit('victory', {}); return; }
     this.time += dt; this.player.update(dt, input, yaw, this.world); this.weapon.update(dt);
     this.director.update(dt, this); this.ability.update(dt, this); this.boss.update(dt, this);
     for (const [key, weapon] of [['Digit1', 'plasma'], ['Digit2', 'scatter'], ['Digit3', 'nova']]) if (input.take(key)) this.weapon.equipped = weapon;

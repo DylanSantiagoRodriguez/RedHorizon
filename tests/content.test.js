@@ -12,7 +12,16 @@ it('jefe tiene dos fases, anticipa áreas, invoca y concede victoria', () => {
   boss.hp = boss.maxHp * 0.4; run.boss.update(0.1, run); expect(boss.phase).toBe(2);
   run.boss.update(1, run); expect(run.boss.zones.length).toBe(3); expect(run.boss.zones[0].remaining).toBeGreaterThan(0);
   boss.summonTimer = 0; run.boss.update(0.1, run); expect(run.enemies.length).toBeGreaterThan(1);
-  run.combat.hit(boss, 100000); expect(run.status).toBe('victory');
+  run.combat.hit(boss, 100000); expect(run.status).toBe('playing');
+  for (const guardian of run.boss.guardians) run.combat.hit(guardian, 100000);
+  expect(run.status).toBe('playing');
+  expect(run.gems).toHaveLength(5); expect(new Set(run.gems.map(g => g.color)).size).toBe(5);
+  run.onKill(boss); expect(run.gems).toHaveLength(5);
+  for (const gem of run.gems) {
+    run.player.x = gem.x; run.player.z = gem.z;
+    run.update(0, { take: () => false, buttons: new Set(), down: () => false }, 0, { x: 0, y: 0, z: -1 });
+  }
+  expect(run.status).toBe('victory');
 });
 it('las tres armas generan sus proyectiles', () => {
   const run = new Run(world(), 'weapons');
@@ -23,4 +32,14 @@ it('las tres armas generan sus proyectiles', () => {
 });
 it('una victoria es terminal aunque quede daño enemigo en el mismo tick', () => {
   const run = new Run(world(), 'terminal'); run.status = 'victory'; run.hurtPlayer(10000); expect(run.status).toBe('victory'); expect(run.player.hp).toBe(120);
+});
+
+it('recoge gemas al acercarse y reinicia su inventario', () => {
+  const run = new Run(world(), 'gems');
+  const boss = run.boss.guardians[0]; run.combat.hit(boss, 100000);
+  expect(run.gems[0].collected).toBe(false);
+  run.player.x = boss.x; run.player.z = boss.z;
+  run.update(0, { take: () => false, buttons: new Set(), down: () => false }, 0, { x: 0, y: 0, z: -1 });
+  expect(run.gems[0].collected).toBe(true);
+  expect(new Run(world(), 'gems').gems).toHaveLength(0);
 });

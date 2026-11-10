@@ -1,10 +1,23 @@
 import { CONFIG } from '../config.js';
 export class BossController {
-  constructor() { this.spawned = false; this.enemy = null; this.zones = []; this.nextZone = 1; }
+  constructor() { this.spawned = false; this.enemy = null; this.guardians = []; this.zones = []; this.nextZone = 1; }
   awaken(run) {
     if (this.spawned) return false;
-    const point = run.director.spawnPoint(run, 28, 35); if (!point) return false;
-    this.spawned = true; this.enemy = run.spawn('titan', point.x, point.z);
+    this.spawned = true;
+    const colors = [0xff5060, 0x509dff, 0x50e090, 0xb580ff, 0xffd050];
+    const names = ['Guardián rubí', 'Guardián zafiro', 'Guardián esmeralda', 'Guardián amatista', 'Titán del polvo'];
+    for (let i = 0; i < 5; i++) {
+      let x = Math.sin(i * Math.PI * 2 / 5) * 82, z = -Math.cos(i * Math.PI * 2 / 5) * 82;
+      for (let j = 0; j < 100; j++) {
+        if (!run.world.obstacles.some(o => Math.hypot(x - o.x, z - o.z) < o.radius + 4)) break;
+        x = Math.sin(i * Math.PI * 2 / 5 + j * 0.015) * 95;
+        z = -Math.cos(i * Math.PI * 2 / 5 + j * 0.015) * 95;
+      }
+      const boss = run.spawn('titan', x, z, i < 4 ? 0.35 : 1);
+      Object.assign(boss, { name: names[i], gemColor: colors[i], active: false });
+      this.guardians.push(boss);
+    }
+    this.enemy = this.guardians[4];
     run.emit('boss', {}); return true;
   }
   update(dt, run) {
@@ -36,12 +49,5 @@ export class BossController {
         const p = run.director.spawnPoint(run, 16, 25); if (p) run.spawn(i % 2 ? 'stalker' : 'drone', p.x, p.z);
       }
     }
-    for (const zone of this.zones) {
-      zone.remaining -= dt;
-      if (zone.remaining > 0) continue;
-      if (Math.hypot(run.player.x - zone.x, run.player.z - zone.z) < zone.radius && run.player.y < zone.y + 1.6) run.hurtPlayer(boss.phase === 2 ? 42 : 32);
-      run.emit('explosion', { x: zone.x, y: zone.y, z: zone.z, radius: zone.radius });
-    }
-    this.zones = this.zones.filter(z => z.remaining > 0);
   }
 }

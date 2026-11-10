@@ -51,10 +51,10 @@ export class HUD {
     n['auto-fire'].textContent = `F · DISPARO CONTINUO: ${run.autoFire ? 'ON' : 'OFF'}`;
     n.ability.textContent = run.ability.timer > 0 ? `${run.ability.timer.toFixed(1)}s` : 'LISTO'; this.nodes['ability-button'].classList.toggle('ready', run.ability.timer <= 0);
     this.root.querySelectorAll('[data-weapon]').forEach(b => b.classList.toggle('selected', b.dataset.weapon === run.weapon.equipped));
-    n['relay-progress'].textContent = `${run.relays} / 3 RELÉS ACTIVADOS`; n.objective.textContent = run.boss.spawned ? 'Derrota al Titán' : 'Reconecta los relés';
-    n['boss-arrival'].textContent = run.boss.spawned ? 'ANOMALÍA MASIVA DETECTADA' : `LLEGADA DEL TITÁN · ${clock(Math.max(0, 360 - run.time))}`;
+    n['relay-progress'].textContent = `${run.boss.guardians.filter(b => b.dead).length} / 5 JEFES · ${run.gems.filter(g => g.collected).length} / 5 GEMAS`; n.objective.textContent = 'Derrota a los cinco jefes';
+    n['boss-arrival'].textContent = run.boss.spawned ? 'GEMAS: RUBÍ · ZAFIRO · ESMERALDA · AMATISTA · TOPACIO' : `LLEGADA DEL TITÁN · ${clock(Math.max(0, 360 - run.time))}`;
     n['boss-bar'].hidden = !run.boss.enemy || run.boss.enemy.dead;
-    if (run.boss.enemy) { n['boss-fill'].style.width = `${run.boss.enemy.hp / run.boss.enemy.maxHp * 100}%`; n['boss-phase'].textContent = `FASE ${run.boss.enemy.phase === 1 ? 'I' : 'II · SOBRECARGA'}`; }
+    if (run.boss.enemy) { n['boss-bar'].querySelector('span').textContent = run.boss.enemy.name; n['boss-fill'].style.width = `${run.boss.enemy.hp / run.boss.enemy.maxHp * 100}%`; n['boss-phase'].textContent = `FASE ${run.boss.enemy.phase === 1 ? 'I' : 'II · SOBRECARGA'}`; }
     n.interaction.hidden = !run.interaction; if (run.interaction) n.interaction.innerHTML = `<kbd>E</kbd> ${run.interaction.type ? 'CONECTAR ' + run.interaction.name.toUpperCase() : 'RECOGER SUMINISTROS · +45 VIDA'}`;
     n.bearing.textContent = `${((this.game.camera.yaw * 180 / Math.PI % 360 + 360) % 360).toFixed(0)}°`;
     n.coordinates.textContent = `${p.x.toFixed(1)} / ${p.z.toFixed(1)}`; n.fps.textContent = `${Math.round(this.game.fps || 60)} FPS`; this.drawRadar(run);
@@ -65,6 +65,7 @@ export class HUD {
     c.beginPath(); c.moveTo(90, 0); c.lineTo(90, 180); c.moveTo(0, 90); c.lineTo(180, 90); c.stroke();
     const dot = (x, z, color, size) => { const dx = x - run.player.x, dz = z - run.player.z; if (Math.hypot(dx, dz) > 86) return; c.fillStyle = color; c.fillRect(90 + dx - size / 2, 90 + dz - size / 2, size, size); };
     for (const e of run.enemies) if (!e.dead) dot(e.x, e.z, e.type === 'titan' ? '#ffdf8f' : '#ff8264', e.type === 'titan' ? 7 : 3);
+    for (const g of run.gems) if (!g.collected) dot(g.x, g.z, '#' + g.color.toString(16).padStart(6, '0'), 8);
     for (const b of run.world.beacons) if (!b.used) dot(b.x, b.z, '#a2f7d6', 6);
     c.save(); c.translate(90, 90); c.rotate(this.game.camera.yaw); c.fillStyle = '#f0f3df'; c.beginPath(); c.moveTo(0, -6); c.lineTo(4, 4); c.lineTo(0, 2); c.lineTo(-4, 4); c.closePath(); c.fill(); c.restore();
   }

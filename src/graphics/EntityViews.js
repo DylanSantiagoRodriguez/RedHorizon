@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 export class EntityViews {
   constructor(scene, models) {
-    this.scene = scene; this.models = models; this.enemies = new Map(); this.free = new Map();
+    this.scene = scene; this.models = models; this.enemies = new Map(); this.free = new Map(); this.gems = new Map();
     this.player = models.player(); scene.add(this.player);
     this.projectileMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
     this.projectiles = new THREE.InstancedMesh(models.geometry('sphere'), this.projectileMaterial, CONFIG.projectileLimit);
@@ -10,6 +10,12 @@ export class EntityViews {
     this.dummy = new THREE.Object3D(); this.color = new THREE.Color();
   }
   sync(run) {
+    for (const g of run.gems) {
+      let mesh = this.gems.get(g.id);
+      if (!mesh) { mesh = this.models.part(this.scene, 'rock', g.color, [g.x, 0, g.z], [0.55, 0.95, 0.55], true); this.gems.set(g.id, mesh); }
+      mesh.visible = !g.collected; mesh.rotation.y = run.time;
+      mesh.position.y = run.world.heightAt(g.x, g.z) + 1 + Math.sin(run.time * 3) * 0.2;
+    }
     this.models.animatePlayer(this.player, run.player, run.time);
     this.player.userData.gun.position.z = 0.3 - run.weapon.recoil * 0.16;
     for (const [id, mesh] of this.enemies) {
@@ -44,6 +50,8 @@ export class EntityViews {
     this.scene.remove(this.player, this.projectiles); this.projectiles.dispose(); this.projectileMaterial.dispose();
     for (const mesh of this.enemies.values()) this.scene.remove(mesh);
     for (const meshes of this.free.values()) for (const mesh of meshes) this.scene.remove(mesh);
+    for (const mesh of this.gems.values()) this.scene.remove(mesh);
+    this.gems.clear();
     this.enemies.clear(); this.free.clear();
   }
 }

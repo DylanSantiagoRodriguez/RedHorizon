@@ -1,6 +1,7 @@
 import { moveCircle } from '../physics/CollisionSystem.js';
 export function updateEnemy(enemy, dt, run) {
   if (enemy.dead) { enemy.state = 'Dead'; return; }
+  if (enemy.behavior === 'boss' && enemy.active === false) return;
   enemy.attackTimer = Math.max(0, enemy.attackTimer - dt); enemy.flash = Math.max(0, enemy.flash - dt);
   if (enemy.stun > 0) { enemy.stun -= dt; enemy.state = 'Stunned'; return; }
   const p = run.player, dx = p.x - enemy.x, dz = p.z - enemy.z, distance = Math.hypot(dx, dz) || 0.01;
