@@ -42,6 +42,7 @@ export class Game {
   applyOptions() { const o = this.save.data.options; this.input.bindings = { ...o.bindings }; this.camera.sensitivity = o.sensitivity; this.camera.distance = o.distance; this.view.quality(o.quality); this.audio.setVolume(o.volume); }
   onEvent(event, data) {
     this.audio.play(event, data);
+    if (event === 'guardianEffect') this.particles.guardian(data);
     if (event === 'hit') this.ui?.hud.hit(data);
     if (event === 'hurt') this.ui?.hud.hurt();
     if (['impact', 'death', 'explosion'].includes(event)) this.particles.burst(data, event === 'explosion' ? 35 : event === 'death' ? 16 : 4, data.color, event === 'explosion' ? data.radius * 2 : 5);

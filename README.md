@@ -70,4 +70,6 @@ Las versiones exactas están fijadas por `package-lock.json`. Three.js y Vite se
 
 ## Arte del menú y aumentos
 
+Los enemigos usan modelos procedurales de metal oscuro, cobre y latón. Cada altar invoca una identidad visual distinta: rubí (horno y brasas), zafiro (bobinas, giroscopios y descargas), esmeralda (araña de calderas y vapor), amatista (cristales orbitales y fragmentos) y polvo (taladros, engranaje y onda dorada). Sus proyectiles y avisos de impacto comparten el color de su gema. La armadura se combina en dos buffers por modelo, con mecanismos animados independientes para los jefes y recursos reutilizados entre invocaciones.
+
 El menú y las 15 tarjetas usan ilustraciones originales generadas con la herramienta integrada ImageGen, con estética neofuturista y steampunk. Los archivos optimizados están en `public/art/`; los prompts y la procedencia están en `docs/art-generation.json`. El Archivo de aumentos permite consultar toda la colección desde el menú. Los nombres, efectos y rarezas siguen siendo texto accesible de la interfaz.

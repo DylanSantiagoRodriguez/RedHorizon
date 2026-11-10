@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { loadPlayerAvatar } from './PlayerAvatar.js';
 import { WeaponModels } from './WeaponModels.js';
+import { enemyModelKey } from '../data/guardians.js';
+import { animateGuardian } from './EnemyModels.js';
 import { CONFIG } from '../config.js';
 export class EntityViews {
   constructor(scene, models, emitShotParticles) {
@@ -31,19 +33,20 @@ export class EntityViews {
     for (const [id, mesh] of this.enemies) {
       if (!run.enemies.some(e => e.id === id && !e.dead)) {
         mesh.visible = false; this.enemies.delete(id);
-        const type = mesh.userData.type; if (!this.free.has(type)) this.free.set(type, []); this.free.get(type).push(mesh);
+        const type = mesh.userData.modelKey; if (!this.free.has(type)) this.free.set(type, []); this.free.get(type).push(mesh);
       }
     }
     for (const e of run.enemies) {
       if (e.dead) continue;
       let mesh = this.enemies.get(e.id);
       if (!mesh) {
-        mesh = this.free.get(e.type)?.pop() || this.models.enemy(e); mesh.userData.type = e.type;
+        const key = enemyModelKey(e);
+        mesh = this.free.get(key)?.pop() || this.models.enemy(e); mesh.userData.modelKey = key;
         this.enemies.set(e.id, mesh); this.scene.add(mesh); mesh.visible = true;
       }
       mesh.position.set(e.x, e.y + (e.type === 'drone' ? Math.sin(run.time * 3 + e.id) * 0.2 : 0), e.z); mesh.rotation.y = e.yaw;
       if (e.type !== 'drone') { mesh.position.y += Math.sin(run.time * e.speed * 2 + e.id) * 0.045; mesh.rotation.z = Math.sin(run.time * e.speed + e.id) * 0.025; }
-      mesh.userData.limbs.forEach((limb, i) => { limb.rotation.x = Math.sin(run.time * e.speed * 2 + i * 2) * 0.2; });
+      if (e.type === 'titan') animateGuardian(mesh, e, run.time);
       mesh.visible = e.flash <= 0 || Math.floor(run.time * 35) % 2 === 0;
     }
     let count = 0;

@@ -10,7 +10,7 @@ export class CombatSystem {
   }
   enemyShot(enemy) {
     const p = this.run.player, dx = p.x - enemy.x, dy = p.y + 1 - enemy.y, dz = p.z - enemy.z, d = Math.hypot(dx, dy, dz) || 1, speed = enemy.type === 'spitter' ? 13 : 18;
-    this.spawn({ x: enemy.x, y: enemy.y, z: enemy.z, vx: dx / d * speed, vy: dy / d * speed, vz: dz / d * speed, damage: enemy.damage, life: 4, color: enemy.type === 'spitter' ? 0xb6e953 : 0xff6852 });
+    this.spawn({ x: enemy.x, y: enemy.y, z: enemy.z, vx: dx / d * speed, vy: dy / d * speed, vz: dz / d * speed, damage: enemy.damage, life: 4, color: enemy.gemColor || (enemy.type === 'spitter' ? 0x73df94 : enemy.type === 'drone' ? 0x67dfea : 0xff6852) });
   }
   hit(enemy, damage, chain = true) {
     if (enemy.dead) return;

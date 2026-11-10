@@ -1,21 +1,20 @@
+import { GUARDIANS } from '../data/guardians.js';
 import { CONFIG } from '../config.js';
 export class BossController {
   constructor() { this.spawned = false; this.enemy = null; this.guardians = []; this.zones = []; this.nextZone = 1; }
   prepareAltars(run) {
-    const colors = [0xff5060, 0x509dff, 0x50e090, 0xb580ff, 0xffd050];
-    const names = ['Guardián rubí', 'Guardián zafiro', 'Guardián esmeralda', 'Guardián amatista', 'Titán del polvo'];
-    return colors.map((color, i) => {
+    return GUARDIANS.map(({ color, name }, i) => {
       // Search each sector for an arena large enough for the altar and summon.
       for (let j = 0; j < 400; j++) {
         const angle = i * Math.PI * 2 / 5 + (j % 40 - 20) * 0.015;
         const radius = 65 + Math.floor(j / 40) * 3;
         const x = Math.sin(angle) * radius, z = -Math.cos(angle) * radius;
         if (run.world.obstacles.some(o => Math.hypot(x - o.x, z - o.z) < o.radius + 10)) continue;
-        return { x, z, color, name: names[i], index: i, type: 'altar', used: false };
+        return { x, z, color, name, index: i, type: 'altar', used: false };
       }
       // A clear spawn is required; never summon inside an obstacle.
       const point = run.director.spawnPoint(run, 45, 95);
-      return { ...(point || { x: 0, z: 0 }), color, name: names[i], index: i, type: 'altar', used: false };
+      return { ...(point || { x: 0, z: 0 }), color, name, index: i, type: 'altar', used: false };
     });
   }
   awaken(run, altar) {
@@ -29,7 +28,7 @@ export class BossController {
     }
     if (!point) return false;
     const boss = run.spawn('titan', point.x, point.z, altar.index < 4 ? 0.35 : 1);
-    Object.assign(boss, { name: altar.name, gemColor: altar.color, active: true });
+    Object.assign(boss, { name: altar.name, gemColor: altar.color, guardianId: GUARDIANS[altar.index].id, color: altar.color, active: true });
     altar.used = true; this.spawned = true; this.guardians.push(boss); this.enemy = boss;
     run.emit('boss', { name: boss.name }); return true;
   }
@@ -41,7 +40,8 @@ export class BossController {
       zone.remaining -= dt;
       if (zone.remaining > 0) continue;
       if (Math.hypot(run.player.x - zone.x, run.player.z - zone.z) < zone.radius && run.player.y < zone.y + 1.6) run.hurtPlayer(zone.damage);
-      run.emit('explosion', { x: zone.x, y: zone.y, z: zone.z, radius: zone.radius });
+      run.emit('explosion', { x: zone.x, y: zone.y, z: zone.z, radius: zone.radius, color: zone.color });
+      run.emit('guardianEffect', { x: zone.x, y: zone.y + 0.2, z: zone.z, guardianId: zone.guardianId, color: zone.color });
     }
     this.zones = this.zones.filter(zone => zone.remaining > 0);
   }
@@ -52,15 +52,17 @@ export class BossController {
     boss.abilityTimer -= dt; boss.summonTimer -= dt;
     if (boss.abilityTimer <= 0) {
       boss.abilityTimer = boss.phase === 2 ? 3.4 : 5.5;
+      boss.lastAbilityAt = run.time;
+      run.emit('guardianEffect', { x: boss.x, y: boss.y, z: boss.z, guardianId: boss.guardianId, color: boss.gemColor });
       const count = boss.phase === 2 ? 3 : 1;
       for (let i = 0; i < count; i++) {
         const x = run.player.x + (i ? run.random.range(-7, 7) : 0), z = run.player.z + (i ? run.random.range(-7, 7) : 0);
-        this.zones.push({ id: this.nextZone++, x, y: run.world.heightAt(x, z), z, radius: 5, remaining: 1.6, duration: 1.6, damage: boss.phase === 2 ? 42 : 32 });
+        this.zones.push({ id: this.nextZone++, x, y: run.world.heightAt(x, z), z, radius: 5, color: boss.gemColor, guardianId: boss.guardianId, remaining: 1.6, duration: 1.6, damage: boss.phase === 2 ? 42 : 32 });
       }
       const shots = boss.phase === 2 ? 14 : 9;
       for (let i = 0; i < shots; i++) {
         const a = i / shots * Math.PI * 2 + run.time * 0.1;
-        run.combat.spawn({ x: boss.x, y: boss.y - 1.5, z: boss.z, vx: Math.cos(a) * 13, vy: -0.3, vz: Math.sin(a) * 13, damage: 22, life: 5, radius: 0.4, color: 0xff6143 });
+        run.combat.spawn({ x: boss.x, y: boss.y - 1.5, z: boss.z, vx: Math.cos(a) * 13, vy: -0.3, vz: Math.sin(a) * 13, damage: 22, life: 5, radius: 0.4, color: boss.gemColor || 0xff6143 });
       }
       run.combat.enemyShot(boss);
     }

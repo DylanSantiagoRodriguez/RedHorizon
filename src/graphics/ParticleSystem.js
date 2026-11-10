@@ -22,7 +22,7 @@ export class ParticleSystem {
   burst(data, count = 10, color = data.color || 0xffbd76, speed = 5) {
     for (let i = 0; i < count; i++) {
       const p = this.pool.acquire(); if (!p) break;
-      Object.assign(p, { x: data.x, y: data.y, z: data.z, vx: this.random.range(-speed, speed), vy: this.random.range(1, speed), vz: this.random.range(-speed, speed), life: this.random.range(0.2, 0.65), size: this.random.range(0.04, 0.16), gravity: 10, color });
+      Object.assign(p, { x: data.x, y: data.y, z: data.z, vx: this.random.range(-speed, speed), vy: this.random.range(1, speed), vz: this.random.range(-speed, speed), life: this.random.range(0.2, 0.65), size: this.random.range(0.04, 0.16), gravity: 10, stretch: 1, color });
     }
   }
   shot(data) {
@@ -36,7 +36,21 @@ export class ParticleSystem {
         vy: data.direction.y * speed + this.random.range(-spread, spread),
         vz: data.direction.z * speed + this.random.range(-spread, spread),
         life: steam ? 0.55 : this.random.range(0.12, 0.3), size: steam ? 0.13 : 0.035,
-        color: steam ? 0x9aacae : data.color, gravity: steam ? -2 : 3 });
+        color: steam ? 0x9aacae : data.color, gravity: steam ? -2 : 3, stretch: 1 });
+    }
+  }
+  guardian(data) {
+    const id = data.guardianId || 'dust';
+    for (let i = 0; i < 24; i++) {
+      const p = this.pool.acquire(); if (!p) break;
+      const a = i / 24 * Math.PI * 2, speed = id === 'dust' ? 11 : id === 'sapphire' ? 8 : 3;
+      const vapor = id === 'emerald', ember = id === 'ruby', shard = id === 'amethyst';
+      Object.assign(p, { x: data.x + Math.cos(a) * (vapor ? 1 : 0.3), y: data.y, z: data.z + Math.sin(a) * (vapor ? 1 : 0.3),
+        vx: Math.cos(a) * speed, vz: Math.sin(a) * speed,
+        vy: ember ? this.random.range(3, 8) : vapor ? this.random.range(1, 3) : shard ? Math.sin(a * 3) * 4 : 0.15,
+        life: vapor ? 1.2 : shard ? 0.8 : 0.55, gravity: vapor ? -1.5 : ember ? 9 : 0,
+        color: vapor && i % 3 === 0 ? 0x9eafa2 : data.color || 0xffd050,
+        size: vapor ? 0.23 : shard ? 0.16 : 0.07, stretch: id === 'sapphire' ? 7 : shard ? 2.5 : 1 });
     }
   }
   reset() { this.pool.clear(); for (const ring of this.rings) ring.visible = false; }
@@ -45,13 +59,15 @@ export class ParticleSystem {
     for (const p of this.pool.items) {
       if (!p.active) continue; p.life -= dt; if (p.life <= 0) { p.active = false; continue; }
       p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; p.vy -= dt * p.gravity;
-      this.dummy.position.set(p.x, p.y, p.z); this.dummy.scale.setScalar(p.size * Math.min(1, p.life * 4)); this.dummy.rotation.x += dt; this.dummy.updateMatrix();
+      this.dummy.position.set(p.x, p.y, p.z); this.dummy.scale.setScalar(p.size * Math.min(1, p.life * 4));
+      this.dummy.scale.z *= p.stretch;
+      this.dummy.lookAt(p.x + p.vx, p.y + p.vy, p.z + p.vz); this.dummy.updateMatrix();
       this.mesh.setMatrixAt(count, this.dummy.matrix); this.mesh.setColorAt(count, this.color.setHex(p.color)); count++;
     }
     this.mesh.count = count; this.mesh.instanceMatrix.needsUpdate = true; if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
     for (let i = 0; i < this.rings.length; i++) {
       const zone = run.boss.zones[i], ring = this.rings[i]; ring.visible = !!zone;
-      if (zone) { ring.position.set(zone.x, zone.y + 0.14, zone.z); ring.scale.setScalar(zone.radius); ring.material.opacity = 0.4 + (1 - zone.remaining / zone.duration) * 0.6; }
+      if (zone) { ring.position.set(zone.x, zone.y + 0.14, zone.z); ring.scale.setScalar(zone.radius); ring.material.color.setHex(zone.color || 0xff7553); ring.material.opacity = 0.4 + (1 - zone.remaining / zone.duration) * 0.6; }
     }
     const storm = Math.sin(run.time / 35) > 0.8;
     for (let i = 0; i < this.dust.length; i += 3) { this.dust[i] += dt * (storm ? 15 : 4); if (this.dust[i] > 60) this.dust[i] = -60; }

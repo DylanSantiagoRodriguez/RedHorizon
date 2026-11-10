@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { enemyModelKey } from '../data/guardians.js';
+import { buildEnemyArmor, addGuardianEffects } from './EnemyModels.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 // Shared geometries/materials live for the application, all disposed at shutdown.
 export class Models {
@@ -50,49 +52,13 @@ export class Models {
     mesh.visible = player.invulnerable <= 0 || Math.floor(time * 18) % 2 === 0;
   }
   enemy(data) {
-    if (this.enemyTemplates.has(data.type)) { const copy = this.enemyTemplates.get(data.type).clone(); copy.userData.limbs = []; return copy; }
-    const g = new THREE.Group(), color = data.color, glow = data.type === 'spitter' ? 0xb7f66b : data.type === 'elite' ? 0xca88ff : 0xff7153;
-    const limbs = [];
-    if (data.model === 'drone') {
-      this.part(g, 'rock', color, [0, 0, 0], [0.75, 0.35, 0.65]);
-      this.part(g, 'sphere', glow, [0, 0, 0.5], [0.18, 0.18, 0.15], true);
-      for (const s of [-1, 1]) {
-        this.part(g, 'box', 0x29383d, [s * 0.85, 0, 0], [0.9, 0.12, 0.26]);
-        this.part(g, 'cylinder', color, [s * 1.15, 0.05, 0], [0.35, 0.18, 0.35]);
-        this.part(g, 'cylinder', 0x68d6e1, [s * 1.15, -0.12, 0], [0.18, 0.2, 0.18], true);
-      }
-    } else if (data.model === 'brute' || data.model === 'titan') {
-      const titan = data.model === 'titan';
-      this.part(g, 'rock', color, [0, 0.1, 0], [1.15, 1, 0.75]);
-      this.part(g, 'box', 0x302e30, [0, 0.2, 0.7], [0.9, 0.8, 0.12]);
-      this.part(g, 'sphere', glow, [0, 0.3, 0.8], [0.24, 0.24, 0.12], true);
-      this.part(g, 'rock', color, [0, 1.05, 0.1], [0.55, 0.45, 0.45]);
-      this.part(g, 'box', glow, [0, 1.09, 0.5], [0.58, 0.08, 0.05], true);
-      for (const side of [-1, 1]) {
-        const arm = this.part(g, 'rock', color, [side * 1.2, 0, 0], [0.48, 0.95, 0.55]); limbs.push(arm);
-        this.part(g, 'cone', 0x282b30, [side * 1.1, 0.95, 0], [0.35, 0.9, 0.35]);
-        const leg = this.part(g, 'box', 0x343d3d, [side * 0.6, -1, 0.05], [0.52, 1, 0.7]); limbs.push(leg);
-        if (titan) {
-          const cannon = this.part(g, 'cylinder', 0x6e7874, [side * 1.25, 0.8, 0.6], [0.27, 1.2, 0.27]); cannon.rotation.x = Math.PI / 2;
-          this.part(g, 'sphere', glow, [side * 1.25, 0.8, 1.2], [0.22, 0.22, 0.08], true);
-        }
-      }
-      if (titan) g.scale.setScalar(2.6);
-    } else {
-      this.part(g, 'rock', color, [0, 0, 0], [0.65, 0.45, 0.9]);
-      this.part(g, 'rock', color, [0, 0.05, 0.7], [0.43, 0.32, 0.4]);
-      for (const s of [-1, 1]) {
-        this.part(g, 'sphere', glow, [s * 0.22, 0.15, 0.98], [0.1, 0.1, 0.06], true);
-        for (let i = 0; i < 3; i++) {
-          const leg = this.part(g, 'cone', color, [s * 0.72, -0.28, (i - 1) * 0.55], [0.15, 1, 0.15]); leg.rotation.z = s * 0.9; limbs.push(leg);
-        }
-      }
-      for (let i = 0; i < 3; i++) this.part(g, 'cone', 0xb0a49a, [0, 0.5, (i - 1) * 0.45], [0.15, 0.65, 0.15]);
-      if (data.type === 'elite') g.scale.setScalar(1.4);
-      if (data.type === 'spitter') this.part(g, 'sphere', glow, [0, 0.3, -0.5], [0.45, 0.5, 0.5], true);
+    const key = enemyModelKey(data);
+    if (!this.enemyTemplates.has(key)) {
+      const compact = this.compactEnemy(buildEnemyArmor(this, data), key);
+      if (data.type === 'titan') addGuardianEffects(this, compact, data);
+      this.enemyTemplates.set(key, compact);
     }
-    const compact = this.compactEnemy(g, data.type); this.enemyTemplates.set(data.type, compact);
-    const copy = compact.clone(); copy.userData.limbs = []; return copy;
+    return this.enemyTemplates.get(key).clone();
   }
   compactEnemy(group, type) {
     // Profiling found >1000 calls with a full horde. Bake static anatomy into
@@ -110,7 +76,7 @@ export class Models {
       if (!batches[i].length) continue;
       const geometry = mergeGeometries(batches[i]); batches[i].forEach(g => g.dispose()); this.geometries.set(`enemy-${type}-${i}`, geometry);
       const key = `enemy-batch-${i}`;
-      if (!this.materials.has(key)) this.materials.set(key, i ? new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false }) : new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.78, metalness: 0.2, flatShading: true }));
+      if (!this.materials.has(key)) this.materials.set(key, i ? new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false }) : new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.48, metalness: 0.65, flatShading: true }));
       const mesh = new THREE.Mesh(geometry, this.materials.get(key)); mesh.castShadow = !i; mesh.receiveShadow = !i; compact.add(mesh);
     }
     return compact;
