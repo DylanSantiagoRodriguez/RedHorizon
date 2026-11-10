@@ -1,0 +1,70 @@
+{
+  "method": "QA bot, perfect aim, normal stats, seeded rocky terrain, no relay acceleration or healing crates",
+  "reports": [
+    {
+      "seed": "ASTER-09",
+      "status": "victory",
+      "seconds": 428.4,
+      "kills": 487,
+      "level": 20,
+      "health": 145,
+      "minHp": 77,
+      "maxEnemies": 64,
+      "bossSpawned": true,
+      "bossHp": 0,
+      "upgrades": {
+        "fireRate": 5,
+        "damage": 5,
+        "regen": 2,
+        "lifesteal": 4,
+        "area": 1,
+        "maxHp": 1,
+        "explosion": 1
+      }
+    },
+    {
+      "seed": "RED-2026",
+      "status": "victory",
+      "seconds": 371.3,
+      "kills": 517,
+      "level": 20,
+      "health": 170,
+      "minHp": 112.6,
+      "maxEnemies": 64,
+      "bossSpawned": true,
+      "bossHp": 0,
+      "upgrades": {
+        "fireRate": 5,
+        "maxHp": 2,
+        "explosion": 3,
+        "damage": 5,
+        "lifesteal": 1,
+        "multishot": 1,
+        "crit": 1,
+        "regen": 1
+      }
+    },
+    {
+      "seed": "DUST-42",
+      "status": "victory",
+      "seconds": 385.3,
+      "kills": 669,
+      "level": 23,
+      "health": 120,
+      "minHp": 85,
+      "maxEnemies": 64,
+      "bossSpawned": true,
+      "bossHp": 0,
+      "upgrades": {
+        "fireRate": 6,
+        "damage": 5,
+        "explosion": 1,
+        "area": 3,
+        "shield": 1,
+        "lifesteal": 2,
+        "crit": 3,
+        "multishot": 1
+      }
+    }
+  ]
+}
