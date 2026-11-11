@@ -13,7 +13,7 @@ npm install
 npm run dev
 ```
 
-Abre la dirección local que imprime Vite (normalmente http://127.0.0.1:5173). El servidor escucha solamente en localhost. No se ha publicado ni desplegado el proyecto.
+Abre la dirección local que imprime Vite (normalmente http://127.0.0.1:5173). El servidor de desarrollo escucha solamente en localhost. El despliegue de producción en EC2 y la configuración de red se describen en [Despliegue](docs/DEPLOYMENT.md).
 
 ```sh
 npm run check       # ESLint, Vitest y compilación de producción
