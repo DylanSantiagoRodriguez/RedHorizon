@@ -1,5 +1,5 @@
 import { AMETHYST_CLIPS, AMETHYST_SCALE } from '../data/amethystAnimations.js';
-import muzzle from '../data/amethystMuzzle.json';
+import muzzle from '../data/amethystMuzzle.json' with { type: 'json' };
 export function amethystMuzzlePosition(enemy) {
  const [x,y,z]=muzzle.position.map(v=>v*AMETHYST_SCALE),c=Math.cos(enemy.yaw),s=Math.sin(enemy.yaw);
  return {x:enemy.x+x*c+z*s,y:enemy.y+y,z:enemy.z-x*s+z*c};

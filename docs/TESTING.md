@@ -1,3 +1,23 @@
+# Validación del cooperativo — 11 de noviembre de 2026
+
+Resultados locales sobre esta implementación (macOS arm64, Node v26.11.1, Chromium de Playwright):
+
+| Comando / comprobación | Resultado |
+| --- | --- |
+| `npm run check` | ESLint correcto, 152 pruebas Vitest correctas (29 archivos), build Vite correcto |
+| `npm run test:integration` | 30 pruebas online correctas (3 archivos); son un subconjunto de las 152 |
+| `PLAYWRIGHT_PORT=5181 npm run test:e2e` | 27 escenarios individuales correctos, aproximadamente 5 minutos |
+| `npm run test:online` | Escenario cooperativo correcto, dos contextos independientes y backend real, aproximadamente 1,1 minutos |
+| Runtime empaquetado con `npm ci --omit=dev --ignore-scripts` | Arranque en producción, health/buildId, ausencia de rutas de pruebas y cierre SIGTERM correctos |
+| `bash -n` sobre scripts de despliegue | Correcto |
+| Caddy/systemd, EC2 y dos redes públicas | No ejecutados; procedimiento preparado |
+
+La prueba online cubre sala/código normalizado, apodos como texto, preparación e inicio, avatares independientes, movimiento remoto, combate compartido, menú Escape local, corte/reconexión sin duplicar jugador, recuperación tras recargar, estadísticas base pese a blindaje local y guardado individual intacto, guardianes/gemas, lanzamiento por el segundo participante y victoria. La preparación de combate y los relojes del final se aceleran mediante un proceso de fixture que no se incluye en las releases. Vitest comprueba además 60+24 segundos completos de simulación, plazo real de mejoras, tokens, límites y atribución de daño. No equivale a una expedición manual sin ayudas entre redes distintas.
+
+En las primeras ejecuciones se detectó y corrigió un acceso al historial vacío durante reconexión, y el fallback de altares antes de inicializar miembros. Se aisló el puerto de Vite de otros proyectos locales y se repitieron las suites sin ejecuciones simultáneas que compartieran artefactos de Playwright. Los resultados de la tabla corresponden a las ejecuciones finales correctas. Chromium mantiene un aviso previo de Three.js sobre `PCFSoftShadowMap`; las pruebas no detectaron errores de JavaScript/WebGL.
+
+Ver [MULTIPLAYER.md](MULTIPLAYER.md) para comandos, microbenchmark, latencia, límites y pruebas manuales pendientes; [DEPLOYMENT.md](DEPLOYMENT.md) para instalación/rollback. Las secciones siguientes conservan evidencia histórica del modo individual y sus recuentos anteriores.
+
 # Verificación y evidencias
 
 ## Entorno

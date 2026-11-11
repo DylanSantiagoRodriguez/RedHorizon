@@ -1,5 +1,5 @@
 import { RUBY_CLIPS } from '../data/rubyAnimations.js';
-import muzzle from '../data/rubyMuzzle.json';
+import muzzle from '../data/rubyMuzzle.json' with { type: 'json' };
 export function rubyMuzzlePosition(enemy) {
  const [x,y,z]=muzzle.position,c=Math.cos(enemy.yaw),s=Math.sin(enemy.yaw);
  return {x:enemy.x+x*c+z*s,y:enemy.y-enemy.height+y,z:enemy.z-x*s+z*c};

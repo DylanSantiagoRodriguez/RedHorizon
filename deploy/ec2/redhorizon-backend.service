@@ -1,0 +1,27 @@
+[Unit]
+Description=Red Horizon authoritative WebSocket server
+After=network.target
+ConditionPathExists=/srv/redhorizon/current/runtime/server/main.js
+
+[Service]
+Type=simple
+User=redhorizon-backend
+Group=redhorizon-backend
+WorkingDirectory=/srv/redhorizon/current/runtime
+EnvironmentFile=/etc/redhorizon/backend.env
+ExecStart=/usr/bin/node server/main.js
+Restart=on-failure
+RestartSec=3
+KillSignal=SIGTERM
+TimeoutStopSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+RestrictSUIDSGID=true
+MemoryMax=1G
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target

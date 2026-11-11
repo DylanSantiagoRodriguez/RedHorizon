@@ -1,5 +1,5 @@
 import { EMERALD_CLIPS } from '../data/emeraldAnimations.js';
-import muzzle from '../data/emeraldMuzzle.json';
+import muzzle from '../data/emeraldMuzzle.json' with { type: 'json' };
 export function emeraldMuzzlePosition(enemy) {
  const [x,y,z]=muzzle.position,c=Math.cos(enemy.yaw),s=Math.sin(enemy.yaw);
  return {x:enemy.x+x*c+z*s,y:enemy.y-enemy.height+y,z:enemy.z-x*s+z*c};

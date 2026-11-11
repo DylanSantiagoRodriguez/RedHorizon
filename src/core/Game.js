@@ -1,3 +1,4 @@
+import { OnlineGame } from '../network/OnlineGame.js';
 import { MissionView } from '../graphics/MissionView.js';
 import { WorldManager } from '../world/WorldManager.js';
 import { Renderer } from '../graphics/Renderer.js';
@@ -26,15 +27,17 @@ export class Game {
     document.addEventListener('visibilitychange', () => { if (document.hidden) this.pause(); }, options);
     document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement) this.pause(); }, options);
   }
-  createRun(seed) {
+  createRun(seed, meta = true) {
     this.missionView?.dispose(); this.entities?.dispose(); this.world?.dispose();
     this.world = new WorldManager(this.view.scene, this.models, seed);
     this.run = new Run(this.world, seed, (event, data) => this.onEvent(event, data)); this.entities = new EntityViews(this.view.scene, this.models, data => this.particles.shot(data)); this.camera.ready = false;
-    this.run.player.stats.maxHp += this.save.data.armor * 5; this.run.player.hp = this.run.player.stats.maxHp;
+    if (meta) this.run.player.stats.maxHp += this.save.data.armor * 5; this.run.player.hp = this.run.player.stats.maxHp;
     if (this.ui) this.missionView = new MissionView(this);
     this.particles.reset(); this.ui?.hud.reset(); this.audio.boss = false;
   }
+  multiplayer() { this.online?.dispose(); this.online = new OnlineGame(this); this.online.open(); }
   start(seed) {
+    this.online?.dispose(); this.online = null;
     const clean = seed?.trim().replace(/[^\p{L}\p{N}_-]/gu, '').slice(0, 32);
     this.createRun(clean || `RH-${Math.floor(Math.random() * 999999)}`); this.camera.yaw = 0; this.camera.pitch = 0.1;
     this.change('playing'); this.audio.unlock().catch(() => {}); this.ui.hud.toast('Último soldado: recupera las gemas. Interactuar: ' + this.input.label('KeyE'));
@@ -54,20 +57,23 @@ export class Game {
     if (event === 'relay') this.ui?.hud.toast('Relé conectado · +35 XP · +30 vida');
   }
   change(state) {
+    if (this.online) { this.online.show(state); return; }
     if (!this.state.set(state)) return;
     this.run.status = state; this.input.active = state === 'playing'; this.input.clear();
     if (state === 'victory' || state === 'defeat') this.save.finish(this.run);
     if (state !== 'playing' && document.pointerLockElement) document.exitPointerLock();
     this.ui.show(state);
   }
-  pause() { if (this.state.value === 'playing') this.change('paused'); }
-  resume() { if (this.state.value === 'paused') this.change('playing'); }
-  menu() { this.change('menu'); }
+  pause() { if (this.online) { this.online.pause(); return; } if (this.state.value === 'playing') this.change('paused'); }
+  resume() { if (this.online) { this.online.resume(); return; } if (this.state.value === 'paused') this.change('playing'); }
+  menu() { if (this.online) { this.online.dispose(); this.online = null; this.createRun('ASTER-09'); this.state.value = 'playing'; } this.change('menu'); }
   chooseUpgrade(id) {
+    if (this.online) { this.online.choose(id); return; }
     if (!this.run.chooseUpgrade(id)) return;
     if (this.run.status === 'upgrade') this.ui.show('upgrade'); else this.change('playing');
   }
   update(dt) {
+    if (this.online) { this.online.update(dt); return; }
     if (this.input.rebinding) return;
     if (this.input.take('Escape')) { if (this.state.value === 'paused') this.resume(); else this.pause(); }
     if (this.state.value !== 'playing') return;
@@ -76,10 +82,12 @@ export class Game {
   }
   render(dt) {
     this.fps += ((dt > 0 ? 1 / dt : 60) - this.fps) * 0.03;
-    this.world.update(this.run.time); this.entities.sync(this.run, ['paused', 'upgrade'].includes(this.state.value) ? 0 : Math.min(dt, 0.1));
+    this.online?.interpolate();
+    this.world.update(this.run.time); this.entities.sync(this.run, (this.online ? this.run.status === 'upgrade' : ['paused', 'upgrade'].includes(this.state.value)) ? 0 : Math.min(dt, 0.1));
     if (this.state.value === 'menu') { this.view.camera.position.set(8, 4.6, 10); this.view.camera.lookAt(-4, 1.8, -11); }
-    else this.camera.update(dt, this.input, this.run.player, this.world);
-    if (this.state.value === 'playing' && this.run.mission.phase !== 'cinematic') {
+    else this.camera.update(dt, this.input, this.online?.cameraPlayer() || this.run.player, this.world);
+    if (this.online?.started) this.entities.syncPlayers(this.online.players, this.online.playerId, this.run, this.run.status === 'upgrade' ? 0 : Math.min(dt, .1));
+    if (!this.online && this.state.value === 'playing' && this.run.mission.phase !== 'cinematic') {
       this.run.player.yaw = Math.PI - this.camera.yaw;
       this.entities.player.rotation.y = this.run.player.yaw;
     }
@@ -89,6 +97,7 @@ export class Game {
     this.ui.update(this.run, dt); this.missionView.update(); this.view.draw();
   }
   dispose() {
+    this.online?.dispose();
     this.ui.cancelBinding?.(); this.missionView.dispose(); this.abort.abort(); this.input.dispose(); this.entities.dispose(); this.world.dispose(); this.particles.dispose(); this.ui.hud.reset(); this.ui.root.remove();
     this.audio.dispose(); this.models.dispose(); this.view.dispose(); this.view.renderer.domElement.remove();
   }

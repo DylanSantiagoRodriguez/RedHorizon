@@ -13,6 +13,6 @@ export class WeaponSystem {
       const dx = direction.x + run.random.range(-spread, spread), dy = direction.y + run.random.range(-spread, spread), dz = direction.z + run.random.range(-spread, spread), n = Math.hypot(dx, dy, dz);
       run.combat.spawn({ x: p.x, y: p.y + (p.slideTime > 0 ? 0.75 : 1.45), z: p.z, vx: dx / n * w.speed, vy: dy / n * w.speed, vz: dz / n * w.speed, damage: w.damage, life: w.range / w.speed, radius: w.radius, blast: w.blast, color: w.color, friendly: true, kind: this.equipped, pierce: p.stats.pierce, bounce: p.stats.bounce });
     }
-    run.emit('shot', { kind: this.equipped }); return true;
+    run.emit('shot', { playerId: p.id, kind: this.equipped }); return true;
   }
 }

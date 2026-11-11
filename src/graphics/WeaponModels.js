@@ -79,6 +79,7 @@ export class WeaponModels {
     }
     if (w.shotId !== this.seenShot) {
       this.seenShot = w.shotId;
+      if (!w.lastShot || run.time - w.lastShot.time > .2) return;
       const v = this.variants[w.lastShot.kind];
       this.mount.updateWorldMatrix(true, true); v.flash.getWorldPosition(this.muzzle); v.flash.getWorldDirection(this.direction);
       emitParticles?.({ ...this.muzzle, direction: this.direction, kind: w.lastShot.kind, color: v.color });

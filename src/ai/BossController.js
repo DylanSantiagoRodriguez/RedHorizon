@@ -20,11 +20,11 @@ export class BossController {
         const radius = 65 + Math.floor(j / 40) * 3;
         const x = Math.sin(angle) * radius, z = -Math.cos(angle) * radius;
         if (run.world.obstacles.some(o => Math.hypot(x - o.x, z - o.z) < o.radius + 10)) continue;
-        return { x, z, color, name, index: i, type: 'altar', used: false };
+        return { id: `altar-${i}`, x, z, color, name, index: i, type: 'altar', used: false };
       }
       // A clear spawn is required; never summon inside an obstacle.
       const point = run.director.spawnPoint(run, 45, 95);
-      return { ...(point || { x: 0, z: 0 }), color, name, index: i, type: 'altar', used: false };
+      return { id: `altar-${i}`, ...(point || { x: 0, z: 0 }), color, name, index: i, type: 'altar', used: false };
     });
   }
   awaken(run, altar) {
@@ -45,12 +45,16 @@ export class BossController {
   }
   update(dt, run) {
     if (run.status !== 'playing') return;
-    for (const boss of this.guardians) if (!boss.dead) this.updateBoss(dt, run, boss);
+    for (const boss of this.guardians) if (!boss.dead) {
+      if (run.withTarget) run.withTarget(boss, () => this.updateBoss(dt, run, boss));
+      else this.updateBoss(dt, run, boss);
+    }
     this.enemy = this.guardians.filter(b => !b.dead).sort((a, b) => Math.hypot(a.x - run.player.x, a.z - run.player.z) - Math.hypot(b.x - run.player.x, b.z - run.player.z))[0] || null;
     for (const zone of this.zones) {
       zone.remaining -= dt;
       if (zone.remaining > 0) continue;
-      if (Math.hypot(run.player.x - zone.x, run.player.z - zone.z) < zone.radius && run.player.y < zone.y + 1.6) run.hurtPlayer(zone.damage);
+      const damage = () => { if (Math.hypot(run.player.x - zone.x, run.player.z - zone.z) < zone.radius && run.player.y < zone.y + 1.6) run.hurtPlayer(zone.damage); };
+      if (run.forEachLiving) run.forEachLiving(damage); else damage();
       run.emit('explosion', { x: zone.x, y: zone.y, z: zone.z, radius: zone.radius, color: zone.color });
       run.emit('guardianEffect', { x: zone.x, y: zone.y + 0.2, z: zone.z, guardianId: zone.guardianId, color: zone.color });
     }

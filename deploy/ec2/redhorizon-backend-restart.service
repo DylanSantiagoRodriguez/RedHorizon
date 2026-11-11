@@ -1,0 +1,6 @@
+[Unit]
+Description=Restart backend after activating or rolling back a release
+
+[Service]
+Type=oneshot
+ExecStart=/bin/systemctl restart redhorizon-backend.service
