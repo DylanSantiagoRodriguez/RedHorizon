@@ -15,7 +15,10 @@ export default {
   expect: { ...base.expect, timeout: 45000 },
   use: {
     ...base.use,
-    viewport: { width: 960, height: 600 },
+    viewport: { width: 640, height: 480 },
+    // Continuous trace screenshots force costly ReadPixels on SwiftShader.
+    // Keep DOM/network traces and the final failure screenshot.
+    trace: { mode: 'retain-on-failure', screenshots: false, snapshots: true, sources: true },
     storageState: {
       cookies: [],
       origins: [{ origin: new URL(base.use.baseURL).origin, localStorage: [{ name: 'red-horizon-v1', value: JSON.stringify({ options: { quality: 'low', volume: 0 } }) }] }],

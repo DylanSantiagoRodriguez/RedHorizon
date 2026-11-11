@@ -1,5 +1,5 @@
 import { AnimationMixer, Group, LoopOnce, LoopRepeat } from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { loadModel } from './ModelTextures.js';
 import { clone } from 'three/addons/utils/SkeletonUtils.js';
 import { STALKER_CLIPS } from '../data/stalkerAnimations.js';
 import { ENEMIES } from '../data/enemies.js';
@@ -7,7 +7,7 @@ import { ENEMIES } from '../data/enemies.js';
 // Share immutable geometry/textures across the horde; each instance owns its rig and mixer.
 let templatePromise;
 export async function loadStalkerAvatar(parent) {
-  templatePromise ??= new GLTFLoader().loadAsync(import.meta.env.BASE_URL + 'models/stalker.glb')
+  templatePromise ??= loadModel(import.meta.env.BASE_URL + 'models/stalker.glb')
     .catch(error => { templatePromise = null; throw error; });
   const template = await templatePromise, model = clone(template.scene);
   const root = new Group(); root.name = 'stalker-avatar'; root.add(model); parent.add(root);

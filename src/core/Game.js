@@ -1,4 +1,5 @@
 import { OnlineGame } from '../network/OnlineGame.js';
+import { Connection } from '../network/Connection.js';
 import { MissionView } from '../graphics/MissionView.js';
 import { WorldManager } from '../world/WorldManager.js';
 import { Renderer } from '../graphics/Renderer.js';
@@ -14,15 +15,20 @@ import { SaveSystem } from '../progression/SaveSystem.js';
 import { AudioManager } from '../audio/AudioManager.js';
 import { ParticleSystem } from '../graphics/ParticleSystem.js';
 import { ModelLoadingScreen } from '../ui/ModelLoadingScreen.js';
+import { setModelQuality } from '../graphics/ModelTextures.js';
 export class Game {
   constructor(container) {
     this.view = new Renderer(container); this.models = new Models(); this.input = new InputManager(this.view.renderer.domElement);
     this.state = new StateManager(); this.camera = new CameraController(this.view.camera);
     this.save = new SaveSystem(); this.audio = new AudioManager(); this.particles = new ParticleSystem(this.view.scene, this.models); this.fps = 60;
     this.loading = new ModelLoadingScreen(container);
+    setModelQuality(this.save.data.options.quality);
     this.createRun('ASTER-09'); this.ui = new UI(this, container); this.missionView = new MissionView(this);
     this.waitForModels();
     this.applyOptions();
+    // Recover the tab's session before starting the expensive render loop.
+    // Waiting for another menu click can consume the server's 30-second grace.
+    if (Connection.saved()) this.multiplayer();
     this.loop = new GameLoop(dt => this.update(dt), dt => this.render(dt));
     this.view.renderer.setAnimationLoop(t => this.loop.frame(t));
     this.abort = new AbortController(); const options = { signal: this.abort.signal };
@@ -53,7 +59,7 @@ export class Game {
     this.createRun(clean || `RH-${Math.floor(Math.random() * 999999)}`); this.camera.yaw = 0; this.camera.pitch = 0.1;
     this.change('playing'); this.audio.unlock().catch(() => {}); this.ui.hud.toast('Último soldado: recupera las gemas. Interactuar: ' + this.input.label('KeyE'));
   }
-  applyOptions() { const o = this.save.data.options; this.input.bindings = { ...o.bindings }; this.camera.sensitivity = o.sensitivity; this.camera.distance = o.distance; this.view.quality(o.quality); this.audio.setVolume(o.volume); }
+  applyOptions() { const o = this.save.data.options; setModelQuality(o.quality); this.input.bindings = { ...o.bindings }; this.camera.sensitivity = o.sensitivity; this.camera.distance = o.distance; this.view.quality(o.quality); this.audio.setVolume(o.volume); }
   onEvent(event, data) {
     this.audio.play(event, data, this.run.time + this.run.mission.cinematic);
     if (event === 'guardianEffect') this.particles.guardian(data);

@@ -1,8 +1,8 @@
 import { Box3, Vector3, Group } from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { loadModel } from '../graphics/ModelTextures.js';
 export async function loadEnvironment(world) {
- const loader=new GLTFLoader(), assets=[];
- const load=async path=>{const a=await loader.loadAsync(import.meta.env.BASE_URL+'models/'+path);assets.push(a);return a;};
+ const assets=[];
+ const load=async path=>{const a=await loadModel(import.meta.env.BASE_URL+'models/'+path);assets.push(a);return a;};
  const dispose=()=>{const geo=new Set(),mats=new Set(),textures=new Set();for(const a of assets)a.scene.traverse(n=>{if(n.geometry)geo.add(n.geometry);for(const m of n.material?(Array.isArray(n.material)?n.material:[n.material]):[]){mats.add(m);for(const v of Object.values(m))if(v?.isTexture)textures.add(v);}});geo.forEach(g=>g.dispose());mats.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());};
  world.disposeEnvironment=dispose;
  const place=(asset,x,y,z,yaw,width,height)=>{

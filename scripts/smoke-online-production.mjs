@@ -47,7 +47,6 @@ try {
   await a.page.keyboard.press('KeyF');
   await expect.poll(() => a.snapshot.enemies.some(e => b.snapshot.enemies.some(other => other.id === e.id)), { timeout: 10000 }).toBe(true);
   await a.page.reload({ waitUntil: 'domcontentloaded' });
-  await a.page.getByRole('button', { name: 'Multijugador', exact: true }).click();
   await expect(a.page.locator('.online-team [data-player-id]')).toHaveCount(2, { timeout: 15000 });
   expect(a.id).toBe(id); expect(b.snapshot.players).toHaveLength(2);
   expect(errors).toEqual([]);

@@ -1,8 +1,8 @@
 import { AnimationMixer } from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { loadModel } from './ModelTextures.js';
 // Load bundled GLB models and own their animation, mesh and texture resources.
 export async function loadAnimatedModel(url) {
-  const asset = await new GLTFLoader().loadAsync(url);
+  const asset = await loadModel(url);
   const mixer = new AnimationMixer(asset.scene);
   const actions = Object.fromEntries(asset.animations.map(clip => [clip.name, mixer.clipAction(clip)]));
   return { scene: asset.scene, actions, clips: asset.animations, mixer, update: dt => mixer.update(dt), dispose() {

@@ -1,3 +1,13 @@
+# Corrección del consumo de memoria durante el despliegue — 11 de noviembre de 2026
+
+La integración del entorno añadió texturas de 4096×4096. En EC2, dos contextos de Chromium superaron los límites del trabajador de 2 GiB y posteriormente 5 GiB (`oom-kill` en el journal). La calidad baja ahora limita las texturas GLB a 1024 píxeles al cargarlas, comparte la imagen reducida entre materiales y cierra el bitmap original. Conserva geometría, reglas físicas y resolución original en calidad alta.
+
+Validación local después del ajuste: `npm run check` correcto, 171 pruebas en 35 archivos, ESLint y build. `npx playwright test --config deploy/ec2/playwright.config.mjs`: dos escenarios correctos en 2,5 minutos, incluidos carga del entorno real, resolución de texturas, combate, reconexión, lanzamiento y victoria con preparación controlada. Un intento anterior fue interrumpido por suspensión del Mac y no cuenta como validación. El despliegue vuelve a ejecutar las suites en EC2 antes de activar; consultar el journal para el resultado de cada revisión y ejecutar el smoke público documentado en DEPLOYMENT.md.
+
+La validación de EC2 detectó además que esperar otra pulsación de Multijugador tras recargar podía agotar el plazo de 30 segundos. Ahora la pestaña recupera su identidad automáticamente antes del bucle de renderizado. La regresión local vuelve a pasar `check` (171 pruebas) y los dos escenarios online en 1,4 minutos, sin ampliar el plazo autoritativo de reconexión.
+
+Las verificaciones históricas siguientes conservan sus recuentos y alcance originales.
+
 # Corrección del arranque local y del reintento inicial
 
 Se reprodujo el fallo con Vite en 5174 y sin backend en 8787. `npm run dev` ahora inicia ambos servicios y configura el Origin con el puerto realmente asignado por Vite. `dev:frontend` permite utilizar un backend iniciado por separado. Una conexión que nunca recibió identidad ya no anuncia una sala expirada y se puede reintentar desde la misma pantalla; una identidad recuperada tras recargar conserva su token durante los reintentos.
