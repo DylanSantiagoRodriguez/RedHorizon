@@ -11,6 +11,7 @@ export function menuScreen(save) {
   <h1>RED<br><span>HORIZON</span></h1><div class="hero-rule"><i></i><span>UN SOLDADO. CINCO GEMAS. UN MAÑANA.</span></div>
   <p class="intro">El mundo termina aquí.<br>La esperanza despega contigo.</p>
   <button id="start" class="primary start-button"><span>INICIAR EXPEDICIÓN</span><span>↗</span></button>
+  <button id="multiplayer" class="secondary">Multijugador</button>
   <div class="menu-links"><button id="options">OPCIONES <span>⚙</span></button><button id="controls">CONTROLES <span>＋</span></button></div>
   <button id="augment-archive" class="archive-button"><span>◈</span><span>ARCHIVO DE AUMENTOS<small>15 PIEZAS DE INGENIERÍA</small></span><b>→</b></button>
   <label class="seed-label">SEMILLA <input id="seed" maxlength="32" placeholder="Aleatoria" autocomplete="off"></label></section>

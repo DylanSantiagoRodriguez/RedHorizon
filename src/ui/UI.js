@@ -22,8 +22,9 @@ export class UI {
   }
   bind() {
     const on = (id, fn) => this.overlay.querySelector('#' + id)?.addEventListener('click', fn);
+    on('multiplayer', () => this.game.multiplayer());
     on('start', () => this.game.start(this.overlay.querySelector('#seed')?.value));
-    on('restart', () => this.game.start()); on('resume', () => this.game.resume()); on('menu', () => this.game.menu());
+    on('restart', () => { if (this.game.online) { this.game.menu(); this.game.multiplayer(); } else this.game.start(); }); on('resume', () => this.game.resume()); on('menu', () => this.game.menu());
     on('options', () => { this.overlay.innerHTML = optionsScreen(this.game.save.data.options); this.overlay.className = 'modal-overlay'; this.bindOptions(); });
     on('controls', () => { this.overlay.innerHTML = controlsScreen(this.game.save.data.options.bindings); this.overlay.className = 'modal-overlay'; this.overlay.querySelector('#back').onclick = () => this.show(this.game.state.value); });
     on('augment-archive', () => { this.overlay.innerHTML = archiveScreen(); this.overlay.className = 'modal-overlay archive-overlay'; this.overlay.querySelector('#back').onclick = () => this.show(this.game.state.value); });
