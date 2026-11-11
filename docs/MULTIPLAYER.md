@@ -76,3 +76,5 @@ Microbenchmark ejecutado localmente en darwin/arm64, Node v26.11.1: una sala, cu
 5. Completar los cinco altares sin utilidades de prueba y lanzar desde B. Morir tras lanzar debe conservar cuenta atrás y epílogo. Reiniciar el backend en una sala aparte: se recibe aviso y se pierde la sala; no debe aparentar recuperación persistente.
 
 No se han comprobado manualmente dos redes reales ni una expedición completa sin aceleración. Reconexión y misión sí se automatizan localmente. No hay continuidad entre reinicios/despliegues, migración de salas, reanimación, matchmaking, voz ni compensación de lag de disparos. El servidor es autoritativo, pero no pretende detectar bots o apuntado automatizado.
+
+Al recargar una pestaña que conserva una identidad online, el cliente intenta recuperarla automáticamente antes de iniciar el bucle de renderizado. No exige volver a pulsar Multijugador. El servidor mantiene el plazo de 30 segundos y el personaje sigue siendo vulnerable. Una sala expirada muestra el error y permite volver al menú.

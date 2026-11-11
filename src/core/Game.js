@@ -1,4 +1,5 @@
 import { OnlineGame } from '../network/OnlineGame.js';
+import { Connection } from '../network/Connection.js';
 import { MissionView } from '../graphics/MissionView.js';
 import { WorldManager } from '../world/WorldManager.js';
 import { Renderer } from '../graphics/Renderer.js';
@@ -22,6 +23,9 @@ export class Game {
     setModelQuality(this.save.data.options.quality);
     this.createRun('ASTER-09'); this.ui = new UI(this, container); this.missionView = new MissionView(this);
     this.applyOptions();
+    // Recover the tab's session before starting the expensive render loop.
+    // Waiting for another menu click can consume the server's 30-second grace.
+    if (Connection.saved()) this.multiplayer();
     this.loop = new GameLoop(dt => this.update(dt), dt => this.render(dt));
     this.view.renderer.setAnimationLoop(t => this.loop.frame(t));
     this.abort = new AbortController(); const options = { signal: this.abort.signal };

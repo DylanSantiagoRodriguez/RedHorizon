@@ -42,7 +42,7 @@ test('dos contextos completan una expedición compartida y reconectan', async ({
     await contexts[0].setOffline(true); await expect.poll(async () => (await game(b)).time).toBeGreaterThan(before + 1); await a.evaluate(() => window.__RED_HORIZON__.online.connection.socket.close());
     await contexts[0].setOffline(false); await expect.poll(async () => (await game(a)).connected).toBe(true); expect((await game(a)).playerId).toBe(id); expect((await game(b)).count).toBe(2);
     // A reload also recovers the identity from tab-scoped sessionStorage.
-    await a.reload(); await a.getByRole('button', { name: 'Multijugador', exact: true }).click(); await expect.poll(async () => (await game(a)).count).toBe(2); expect((await game(a)).playerId).toBe(id);
+    await a.reload({ waitUntil: 'domcontentloaded' }); await expect.poll(async () => (await game(a)).count).toBe(2); expect((await game(a)).playerId).toBe(id);
     await fixture(request, code, 'mission'); await a.keyboard.press('KeyQ'); await expect.poll(async () => (await game(b)).gems).toBe(5);
     await fixture(request, code, 'launch-position'); await expect.poll(async () => (await game(b)).phase).toBe('ready');
     // The second player may launch the team's beacon.

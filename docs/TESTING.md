@@ -4,6 +4,8 @@ La integración del entorno añadió texturas de 4096×4096. En EC2, dos context
 
 Validación local después del ajuste: `npm run check` correcto, 171 pruebas en 35 archivos, ESLint y build. `npx playwright test --config deploy/ec2/playwright.config.mjs`: dos escenarios correctos en 2,5 minutos, incluidos carga del entorno real, resolución de texturas, combate, reconexión, lanzamiento y victoria con preparación controlada. Un intento anterior fue interrumpido por suspensión del Mac y no cuenta como validación. El despliegue vuelve a ejecutar las suites en EC2 antes de activar; consultar el journal para el resultado de cada revisión y ejecutar el smoke público documentado en DEPLOYMENT.md.
 
+La validación de EC2 detectó además que esperar otra pulsación de Multijugador tras recargar podía agotar el plazo de 30 segundos. Ahora la pestaña recupera su identidad automáticamente antes del bucle de renderizado. La regresión local vuelve a pasar `check` (171 pruebas) y los dos escenarios online en 1,4 minutos, sin ampliar el plazo autoritativo de reconexión.
+
 Las verificaciones históricas siguientes conservan sus recuentos y alcance originales.
 
 # Corrección del arranque local y del reintento inicial
