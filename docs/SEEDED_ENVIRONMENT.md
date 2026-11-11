@@ -8,6 +8,8 @@ Los cinco peluches (Ichika, Nino, Miku, Yotsuba, Itsuki) miden 55 cm. Se colocan
 
 Al recoger los cinco, una sola vez por partida: daño ×4, cadencia ×1,5, +500 vida máxima y curación completa, +300 escudo, +8 regeneración/s y velocidad ×1,2. La mejora dura hasta finalizar la partida; una nueva partida reinicia la colección. No altera las cinco gemas ni los objetivos de misión.
 
+En cooperativo, WorldModel genera los mismos escondites y colisiones en servidor y clientes. La colección es del equipo: al completar los cinco, cada integrante vivo recibe la mejora una sola vez. El servidor valida la recogida y replica los objetos usados, el progreso y las estadísticas; reconectar no vuelve a conceder el beneficio.
+
 Carga asíncrona con geometría y texturas compartidas entre clones de roca. Liberación al reiniciar partida. Si falla una descarga se mantiene el respaldo y se registra environmentError. environmentReady permite esperar la carga en pruebas.
 
 Validación: pruebas de repetibilidad y cinco escondites libres en 100 semillas, distancia de recogida y recompensa no duplicable; prueba de navegador de carga y colección completa. Los 13 GLB originales se conservan en public/models/environment y public/models/plushies.

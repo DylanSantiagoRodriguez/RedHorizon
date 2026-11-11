@@ -1,5 +1,5 @@
 import { SAPPHIRE_CLIPS } from '../data/sapphireAnimations.js';
-import muzzle from '../data/sapphireMuzzle.json';
+import muzzle from '../data/sapphireMuzzle.json' with { type: 'json' };
 export function sapphireMuzzlePosition(enemy) {
  const [x,y,z]=muzzle.position,c=Math.cos(enemy.yaw),s=Math.sin(enemy.yaw);
  return {x:enemy.x+x*c+z*s,y:enemy.y-enemy.height+y,z:enemy.z-x*s+z*c};

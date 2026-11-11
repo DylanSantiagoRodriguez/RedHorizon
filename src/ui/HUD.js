@@ -16,8 +16,8 @@ export class HUD {
       <div class="bottom-coordinates">ASTER PLANITIA <span id="coordinates">00.0 / 00.0</span><span id="fps"></span></div></div><div id="numbers"></div><div id="overlay"></div>`;
     this.nodes = Object.fromEntries([...root.querySelectorAll('[id]')].map(n => [n.id, n])); this.radar = this.nodes.radar.getContext('2d');
     this.nodes['pause-button'].onclick = () => game.pause();
-    this.nodes['ability-button'].onclick = () => { if (game.state.value === 'playing') game.run.ability.activate(game.run); };
-    root.querySelectorAll('[data-weapon]').forEach(b => { b.onclick = () => { if (game.state.value === 'playing') game.run.weapon.equipped = b.dataset.weapon; }; });
+    this.nodes['ability-button'].onclick = () => { if (game.online) game.online.action('KeyQ'); else if (game.state.value === 'playing') game.run.ability.activate(game.run); };
+    root.querySelectorAll('[data-weapon]').forEach(b => { b.onclick = () => { if (game.online) game.online.action({ plasma: 'Digit1', scatter: 'Digit2', nova: 'Digit3' }[b.dataset.weapon]); else if (game.state.value === 'playing') game.run.weapon.equipped = b.dataset.weapon; }; });
   }
   toast(message) { this.nodes.toast.textContent = message; this.nodes.toast.classList.add('visible'); this.toastUntil = performance.now() + 4500; }
   hit(data) {

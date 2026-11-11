@@ -31,4 +31,3 @@ export async function loadEnvironment(world) {
  } catch(error){world.environmentError=String(error);console.warn('No se pudieron cargar todos los modelos del entorno.',error);}
  finally {if(world.disposed)dispose();}
 }
-

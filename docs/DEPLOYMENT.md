@@ -1,3 +1,29 @@
+# Evolución del despliegue para cooperativo
+
+Los archivos están preparados en el repositorio; no se han aplicado a EC2 durante esta implementación. Los datos de infraestructura y verificaciones históricas de la sección siguiente no constituyen una comprobación actual del host.
+
+Cada release mantiene los archivos estáticos en su raíz e incluye `runtime/` con `server/`, `src/`, manifiestos y `npm ci --omit=dev --ignore-scripts`. Caddy deniega `/runtime` y sus descendientes y reenvía `/ws` y `/health` a `127.0.0.1:8787`; HTTPS aporta wss. No abrir el puerto Node al exterior. `redhorizon-backend.service` usa un usuario propio sin privilegios y `/etc/redhorizon/backend.env` (plantilla `backend.env.example`). En producción WS_ORIGINS es obligatorio y debe enumerar exactamente los orígenes permitidos.
+
+`deploy-main.sh` ejecuta check, integración, navegador online real y smoke de la compilación antes de activar. Luego valida el backend **empaquetado** en 8789, cambia atómicamente `current`, toca `/srv/redhorizon/backend-restart` y espera que `/health` informe el commit esperado. Una unidad systemd.path activa un servicio fijo de reinicio; el usuario de despliegue no recibe sudo. Fallar restaura el enlace anterior, solicita otro reinicio y comprueba la salud anterior. Frontend y backend pertenecen a la misma release; durante el breve reinicio puede haber desconexión. Los clientes incompatibles reciben VERSION y deben recargar. Incrementar PROTOCOL_VERSION/GAME_VERSION al cambiar contratos/reglas incompatibles.
+
+Primera migración desde releases solo estáticas: instalar las unidades, plantilla y Caddyfile desde una copia revisada usando el procedimiento de instalación existente. El backend solo arranca cuando existe `current/runtime/server/main.js`. Un rollback a una release estática conserva individual, pero **no** ofrece online. No se garantiza disponibilidad continua durante activación ni rollback. Las releases posteriores permiten validar ambos componentes juntos.
+
+SIGTERM avisa a los clientes, cierra WebSocket y limpia salas/timers. El estado en memoria **no sobrevive** despliegues, fallos o reinicios. La reconexión de 30 segundos solo funciona mientras vive el mismo proceso. Comunicar mantenimientos; no prometer migración o continuidad de expediciones.
+
+Validación operativa después de instalar:
+
+```sh
+sudo systemctl status redhorizon-backend redhorizon-backend-restart.path
+sudo journalctl -u redhorizon-backend -n 80 --no-pager
+curl -fsS http://127.0.0.1:8787/health
+curl -fsS https://redhorizon.lat/health
+curl -I https://redhorizon.lat/runtime/package.json # debe devolver 404
+```
+
+Para rollback manual, detener el timer, cambiar `current` como se describe abajo, ejecutar `sudo systemctl restart redhorizon-backend` y validar que `/health.buildId` coincide con `current/runtime/release.json`. Reiniciar también la unidad backend es obligatorio; cambiar únicamente el enlace deja al proceso anterior ejecutándose. Las salas activas se pierden en ambos sentidos.
+
+Antes de publicar: comprobar scripts con `bash -n`, unidades con `systemd-analyze verify` en Linux, Caddyfile con `caddy validate`, y ejecutar las suites en la máquina objetivo. Aquí se han comprobado sintaxis shell y pruebas locales; Caddy/systemd y la red pública requieren validación en el host Linux. Las cuotas configuradas no equivalen a una capacidad probada: medir CPU, cola y ancho de banda antes de elegir MAX_ROOMS. Ver [MULTIPLAYER.md](MULTIPLAYER.md).
+
 # Producción y despliegue automático
 
 Sitio: https://redhorizon.lat. `www` redirige al dominio principal; Caddy gestiona HTTPS y la renovación del certificado.
@@ -33,7 +59,7 @@ Las reglas de protección de la rama no se modifican: hacer obligatorio el check
 | Configuración web | `/etc/caddy/Caddyfile` |
 | Versión pública | https://redhorizon.lat/deployment.json |
 
-Se conservan cinco releases y, si hace falta, la release anterior adicional para recuperación. La aplicación se ejecuta en el navegador y guarda las partidas localmente; no utiliza base de datos ni backend de juego. Node.js se usa únicamente para comprobar y compilar.
+Se conservan cinco releases y, si hace falta, la release anterior adicional para recuperación. El modo individual se ejecuta en el navegador. El cooperativo requiere Node.js persistente en loopback, WebSocket mediante Caddy y salas en memoria. No utiliza base de datos; un reinicio pierde las salas.
 
 ## Puertos y DNS
 

@@ -25,7 +25,7 @@ export class EntityViews {
     this.scene = scene; this.models = models; this.enemies = new Map(); this.free = new Map(); this.gems = new Map();
     this.player = models.player(); scene.add(this.player);
     this.weapons = new WeaponModels(models, this.player.userData.gun); this.emitShotParticles = emitShotParticles;
-    this.disposed = false;
+    this.disposed = false; this.remotePlayers = new Map();
     this.amethystAvatars = new Map(); this.emeraldAvatars = new Map(); this.sapphireAvatars = new Map(); this.rubyAvatars = new Map(); this.dustAvatars = new Map(); this.stalkerAvatars = new Map(); this.bruteAvatars = new Map(); this.elteAvatars = new Map(); this.spitterAvatars = new Map(); this.droneAvatars = new Map(); this.corpses = new Map(); this.enemyData = new Map();
     this.avatarReady = loadPlayerAvatar(this.player).then(avatar => {
       if (this.disposed) { avatar.dispose(); return; }
@@ -36,6 +36,25 @@ export class EntityViews {
     this.projectiles = new THREE.InstancedMesh(models.geometry('sphere'), this.projectileMaterial, CONFIG.projectileLimit);
     this.projectiles.instanceMatrix.setUsage(THREE.DynamicDrawUsage); this.projectiles.frustumCulled = false; scene.add(this.projectiles);
     this.dummy = new THREE.Object3D(); this.color = new THREE.Color();
+  }
+  syncPlayers(players, localId, run, dt) {
+    for (const [id, member] of players) {
+      if (id === localId) continue;
+      let view = this.remotePlayers.get(id);
+      if (!view) {
+        const mesh = this.models.player(); this.scene.add(mesh);
+        view = { mesh, weapons: new WeaponModels(this.models, mesh.userData.gun) }; this.remotePlayers.set(id, view); view.weapons.seenShot = member.weapon.shotId;
+        loadPlayerAvatar(mesh).then(avatar => {
+          if (this.disposed || !this.remotePlayers.has(id)) { avatar.dispose(); return; }
+          view.avatar = avatar;
+          for (const child of mesh.children) if (child !== avatar.root && child !== mesh.userData.gun) child.visible = false;
+        }).catch(() => {});
+      }
+      const context = { ...run, player: member.player, weapon: member.weapon, ability: member.ability };
+      this.models.animatePlayer(view.mesh, member.player); view.avatar?.update(context, dt); view.weapons.update(context, this.emitShotParticles, view.avatar);
+      view.mesh.visible = run.mission.phase !== 'cinematic' || run.mission.cinematic < 4;
+    }
+    for (const [id, view] of this.remotePlayers) if (!players.has(id)) { view.avatar?.dispose(); this.scene.remove(view.mesh); this.remotePlayers.delete(id); }
   }
   sync(run, dt = 0) {
     for (const g of run.gems) {
@@ -217,6 +236,7 @@ export class EntityViews {
   }
   animatedAvatar(mesh) { return this.amethystAvatars.get(mesh) || this.emeraldAvatars.get(mesh) || this.sapphireAvatars.get(mesh) || this.rubyAvatars.get(mesh) || this.elteAvatars.get(mesh) || this.droneAvatars.get(mesh) || this.spitterAvatars.get(mesh) || this.bruteAvatars.get(mesh) || this.stalkerAvatars.get(mesh) || this.dustAvatars.get(mesh); }
   dispose() {
+    for (const view of this.remotePlayers.values()) { view.avatar?.dispose(); this.scene.remove(view.mesh); } this.remotePlayers.clear();
     this.disposed = true; this.avatar?.dispose();
     for (const avatar of this.amethystAvatars.values()) avatar.dispose();
     for (const avatar of this.emeraldAvatars.values()) avatar.dispose();

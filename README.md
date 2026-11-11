@@ -13,7 +13,7 @@ npm install
 npm run dev
 ```
 
-Abre la dirección local que imprime Vite (normalmente http://127.0.0.1:5173). El servidor de desarrollo escucha solamente en localhost. El despliegue de producción en EC2 y la configuración de red se describen en [Despliegue](docs/DEPLOYMENT.md).
+El comando inicia el frontend y el backend multijugador. Abre la dirección local que imprime Vite (normalmente http://127.0.0.1:5173; si está ocupado, usa el siguiente puerto disponible). El backend permite automáticamente ese origen real. Ambos servicios escuchan en loopback por defecto. El despliegue de producción en EC2 y la configuración de red se describen en [Despliegue](docs/DEPLOYMENT.md).
 
 ```sh
 npm run check       # ESLint, Vitest y compilación de producción
@@ -23,13 +23,27 @@ npm run build
 npm run preview    # Comprobar dist localmente
 ```
 
+## Cooperativo online (2–4 jugadores)
+
+```sh
+npm run dev:online  # alias de npm run dev: frontend + backend
+npm run test:integration
+npm run test:online # dos contextos independientes y servidor real
+```
+
+Si ya ejecutas el backend por separado con `npm run server`, utiliza `npm run dev:frontend` para iniciar solo Vite.
+
+Abre **Multijugador**, crea una sala y comparte su código. Cada participante pulsa **Listo** y el creador inicia. Sin registro; reconexión durante 30 segundos mediante identidad temporal por pestaña. Combate, enemigos, misión y XP son compartidos; vida, armas y mejoras son individuales. Online comienza con estadísticas base y no modifica fragmentos ni blindaje individual. Escape abre un menú local sin detener al equipo.
+
+[Guía cooperativa, arquitectura, límites, pruebas y procedimiento entre redes](docs/MULTIPLAYER.md). El servidor guarda las salas en memoria: reiniciar o desplegar termina las expediciones activas. Los archivos de despliegue están preparados; esta implementación no modifica infraestructura real.
+
 ## La expedición
 
 Sobrevive en Aster Planitia. Elimina criaturas para obtener experiencia y elige uno de tres módulos cada vez que subes de nivel. Hay 15 mejoras acumulables, cuatro rarezas y tres armas disponibles desde el inicio.
 
-Eres el último soldado de Aster. Activa los cinco altares con E para invocar a sus jefes; derrótalos, recoge sus cinco gemas y vuelve a la baliza blanca junto al punto de partida (0, 7). Pulsa **E** para insertarlas y lanzar la señal hacia la nave nodriza Aurora. Comienza una cuenta atrás de **60 segundos** hasta la extinción global, seguida de un epílogo original de 24 segundos realizado en el motor del juego. Morir antes del lanzamiento fracasa; morir después no cancela la señal. Pausa detiene tanto el reloj como la cinemática. Los relés y suministros siguen ofreciendo apoyo.
+Eres el último soldado de Aster. Activa los cinco altares con E para invocar a sus jefes; derrótalos, recoge sus cinco gemas y vuelve a la baliza blanca junto al punto de partida (0, 7). Pulsa **E** para insertarlas y lanzar la señal hacia la nave nodriza Aurora. Comienza una cuenta atrás de **60 segundos** hasta la extinción global, seguida de un epílogo original de 24 segundos realizado en el motor del juego. Morir antes del lanzamiento fracasa; morir después no cancela la señal. En individual, pausa detiene tanto el reloj como la cinemática; en online solo abre el menú local. Los relés y suministros siguen ofreciendo apoyo.
 
-Los fragmentos obtenidos al finalizar se guardan localmente. En el menú puedes invertirlos en hasta cinco módulos de blindaje permanente (+5 de vida inicial cada uno). No hay cuentas, servidor ni compras. Abandonar desde pausa no deposita fragmentos.
+Los fragmentos obtenidos al finalizar se guardan localmente. En el menú puedes invertirlos en hasta cinco módulos de blindaje permanente (+5 de vida inicial cada uno). El modo individual no usa cuentas ni compras. El cooperativo utiliza un servidor autoritativo sin registro. Abandonar desde pausa no deposita fragmentos.
 
 ## Controles
 
@@ -50,11 +64,11 @@ Los fragmentos obtenidos al finalizar se guardan localmente. En el menú puedes 
 
 Opciones: abre la pestaña Controles para reasignar acciones a teclas o botones del ratón. Las asignaciones ocupadas se intercambian; Esc cancela la captura y queda reservado para pausar. Puedes restaurar los controles originales. Se guardan localmente.
 
-Otros ajustes: volumen, sensibilidad, distancia de cámara, calidad alta/baja y asistencia de apuntado. El audio se inicia después de pulsar Iniciar expedición. Si el navegador rechaza la captura del ratón, se puede girar manteniendo un botón sobre el lienzo. La pérdida de foco pausa la partida.
+Otros ajustes: volumen, sensibilidad, distancia de cámara, calidad alta/baja y asistencia de apuntado. El audio se inicia después de pulsar Iniciar expedición. Si el navegador rechaza la captura del ratón, se puede girar manteniendo un botón sobre el lienzo. La pérdida de foco pausa el modo individual; en online neutraliza tus entradas mientras el equipo continúa.
 
 ## Estado y alcance
 
-Versión jugable inicial con ciclo completo, mapa compacto con semilla, cinco tipos de enemigo, cinco jefes de dos fases y misión final con cinemática, evolución, victoria/derrota y reinicio. No es una versión comercial final. El arte es de baja poligonización y las animaciones son procedurales.
+Versión jugable inicial con ciclo completo, mapa compacto con semilla, cinco tipos de enemigo, cinco jefes de dos fases y misión final con cinemática, evolución, victoria/derrota y reinicio. No es una versión comercial final. Combina escenarios y modelos procedurales con personajes GLB animados.
 
 La evidencia, resultados exactos y límites de las pruebas están en [TESTING](docs/TESTING.md). El objetivo de 60 FPS depende del equipo; no se garantiza por la compilación o las pruebas de lógica. La calidad baja desactiva sombras y limita la densidad de píxeles.
 
@@ -76,6 +90,6 @@ La locomoción mezcla avance, retroceso y desplazamientos laterales sin cambiar 
 
 ## Arte del menú, aumentos y enemigos
 
-Los enemigos usan modelos procedurales de metal oscuro, cobre y latón. Cada altar invoca una identidad visual distinta: rubí (horno y brasas), zafiro (bobinas, giroscopios y descargas), esmeralda (araña de calderas y vapor), amatista (cristales orbitales y fragmentos) y polvo (taladros, engranaje y onda dorada). Sus proyectiles y avisos de impacto comparten el color de su gema. La armadura se combina en dos buffers por modelo, con mecanismos animados independientes para los jefes y recursos reutilizados entre invocaciones.
+Los enemigos cargan sus GLB animados y mantienen modelos procedurales de metal oscuro, cobre y latón como respaldo. Cada altar invoca una identidad visual distinta: rubí (horno y brasas), zafiro (bobinas, giroscopios y descargas), esmeralda (araña de calderas y vapor), amatista (cristales orbitales y fragmentos) y polvo (taladros, engranaje y onda dorada). Sus proyectiles y avisos de impacto comparten el color de su gema. La armadura se combina en dos buffers por modelo, con mecanismos animados independientes para los jefes y recursos reutilizados entre invocaciones.
 
 El menú y las 15 tarjetas usan ilustraciones originales generadas con la herramienta integrada ImageGen, con estética neofuturista y steampunk. Los archivos optimizados están en `public/art/`; los prompts y la procedencia están en `docs/art-generation.json`. El Archivo de aumentos permite consultar toda la colección desde el menú. Los nombres, efectos y rarezas siguen siendo texto accesible de la interfaz.

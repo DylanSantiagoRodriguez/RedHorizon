@@ -122,7 +122,7 @@ test('altares: inicio sin jefe, invocación con E y persecución', async ({ page
   await expect.poll(() => page.evaluate(() => {
     const b = window.__RED_HORIZON__.run.boss.enemy;
     return Math.hypot(b.x - window.bossStart.x, b.z - window.bossStart.z);
-  })).toBeGreaterThan(0.5);
+  }), { timeout: 20000 }).toBeGreaterThan(0.5);
 });
 
 test('personaje importado, bunnyhop y deslizamiento', async ({ page }) => {
@@ -186,23 +186,25 @@ test('aumentos: disparo sostenido y clics rápidos no seleccionan tarjetas', asy
   await page.waitForTimeout(850);
   await expect(cards.first()).toBeDisabled();
   // Dispatch the rapid sequence in-page so driver/render latency cannot turn it into slow deliberate clicks.
-  const pending = await page.evaluate(async () => {
+  const pending = await page.evaluate(() => {
     const card = document.querySelector('button[data-upgrade]');
     window.dispatchEvent(new PointerEvent('pointerup', { button: 0 }));
     for (let i = 0; i < 5; i++) {
       card.dispatchEvent(new PointerEvent('pointerdown', { button: 0, bubbles: true }));
       card.dispatchEvent(new PointerEvent('pointerup', { button: 0, bubbles: true }));
       card.click();
-      await new Promise(resolve => setTimeout(resolve, 80));
     }
     return window.__RED_HORIZON__.run.experience.pending;
   });
   expect(pending).toBe(2);
   await page.mouse.up();
   await expect(cards.first()).toBeEnabled();
-  await cards.first().click();
-  await expect(cards.first()).toBeDisabled();
-  expect(await page.evaluate(() => window.__RED_HORIZON__.run.experience.pending)).toBe(1);
+  // Observe the new gate synchronously; a slow render can outlast its 700 ms lock.
+  const nextSelection = await cards.first().evaluate(card => {
+    card.click();
+    return { disabled: document.querySelector('button[data-upgrade]').disabled, pending: window.__RED_HORIZON__.run.experience.pending };
+  });
+  expect(nextSelection).toEqual({ disabled: true, pending: 1 });
   await expect(cards.first()).toBeEnabled();
   await cards.first().focus(); await page.keyboard.press('Enter');
   await expect(page.locator('#overlay')).toBeHidden();

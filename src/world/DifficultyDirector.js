@@ -21,7 +21,9 @@ export class DifficultyDirector {
   spawnPoint(run, min = 24, max = 36) {
     for (let i = 0; i < 40; i++) {
       const a = run.random.range(0, Math.PI * 2), r = run.random.range(min, max);
-      const x = run.player.x + Math.cos(a) * r, z = run.player.z + Math.sin(a) * r;
+      const origin = run.spawnOrigin?.() || run.player;
+      const x = origin.x + Math.cos(a) * r, z = origin.z + Math.sin(a) * r;
+      if (run.livingPlayers?.().some(p => Math.hypot(p.x - x, p.z - z) < Math.min(min, 12))) continue;
       if (Math.hypot(x, z) > CONFIG.mapRadius - 5) continue;
       if (run.world.obstacles.some(o => Math.hypot(x - o.x, z - o.z) < o.radius + 3.5)) continue;
       return { x, z };

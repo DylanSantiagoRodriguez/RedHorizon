@@ -18,4 +18,3 @@ test('Aurora appears only in final shot and stays framed on wide and portrait sc
  }
  expect(errors).toEqual([]);
 });
-

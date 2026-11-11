@@ -1,12 +1,17 @@
-# Arquitectura
+# Arquitectura vigente: individual y cooperativo
+
+El modo individual ejecuta `Run` en el navegador. El cooperativo ejecuta `CoopRun` en Node, una simulación por sala; el navegador presenta snapshots y predice movimiento local. Ambos comparten física, combate, IA, misión y progresión. `WorldModel` contiene el mundo físico sin Three.js/DOM, y `WorldManager` lo representa. Los obstáculos/suministros ya no dependen de la decoración.
+
+La descripción completa del contrato, adaptadores, identidad, autoridad, escalado y límites está en [MULTIPLAYER.md](MULTIPLAYER.md). Las notas históricas que describían solo ejecución en navegador o ausencia de GLB no representan el estado actual. El workflow CI anteriormente vacío queda definido para comprobaciones individuales y online.
 
 ## Responsabilidades
 
 ```text
 src/
-  core/          Game, Run, GameLoop, InputManager, StateManager
+  core/          Game, Run, CoopRun, GameLoop, InputManager, StateManager
+  network/       protocolo, DTOs, Connection y OnlineGame
   graphics/      Renderer, CameraController, Models, EntityViews, ParticleSystem, AssetLoader
-  world/         TerrainGenerator, WorldManager, DifficultyDirector
+  world/         TerrainGenerator, WorldModel, WorldManager, DifficultyDirector
   entities/      Player, fábrica de Enemy
   combat/        DamageSystem, CombatSystem, WeaponSystem, AbilitySystem
   ai/            EnemyAI, BossController
@@ -21,13 +26,13 @@ src/
 
 `Game` conecta sistemas, gestiona estados de aplicación y ciclo de vida. `Run` contiene la simulación de una expedición y no importa Three.js ni el DOM. Los sistemas reciben la partida explícitamente; no hay un singleton global de producción. Los efectos se comunican mediante un callback `emit(event, data)`, suficiente para este alcance sin una infraestructura de eventos adicional.
 
-`GameLoop` acumula tiempo a 60 pasos por segundo y limita la recuperación a seis pasos. El render se ejecuta mediante `WebGLRenderer.setAnimationLoop`. Si el equipo no puede seguir el ritmo, la simulación limita recuperación en lugar de dar saltos físicos grandes; el tiempo mostrado es tiempo simulado, no reloj real. Al pausar no se actualiza Run. La cámara se interpola, pero las entidades todavía se presentan en su último estado simulado.
+`GameLoop` acumula tiempo a 60 pasos por segundo y limita la recuperación a seis pasos. El render se ejecuta mediante `WebGLRenderer.setAnimationLoop`. Si el equipo no puede seguir el ritmo, la simulación limita recuperación en lugar de dar saltos físicos grandes; el tiempo mostrado es tiempo simulado, no reloj real. En individual, al pausar no se actualiza Run y las entidades se presentan en su último estado simulado. Online tiene un reloj fijo independiente en el servidor, reconcilia el jugador local e interpola los demás jugadores y enemigos; Escape solo neutraliza entradas locales.
 
-Estados permitidos: menú → jugando → pausa/mejora/derrota/victoria. Pausa y mejora regresan a jugando; resultados permiten otra partida o menú. `StateManager` valida las transiciones. `Run.status` comunica resultados de simulación a `Game`, que es quien activa/desactiva entrada y pantallas.
+Estados permitidos: menú → jugando → pausa/mejora/derrota/victoria. Pausa y mejora regresan a jugando; resultados permiten otra partida o menú. `StateManager` valida las transiciones individuales; online recibe las transiciones de simulación del servidor y mantiene separado el menú local. `Run.status` comunica resultados de simulación a `Game`, que es quien activa/desactiva entrada y pantallas.
 
 ## Mundo y física
 
-`TerrainGenerator` crea una malla de alturas de 121×121 muestras en 240×240 m. El radio transitable es 90 m. El exterior contiene horizonte decorativo. `heightAt` interpola exactamente los triángulos de la malla usada para renderizar. Las dunas y depresiones no usan ruido no determinista.
+`TerrainGenerator` crea una malla de alturas de 121×121 muestras en 240×240 m. El radio transitable es 110 m. El exterior contiene horizonte decorativo. `heightAt` interpola exactamente los triángulos de la malla usada para renderizar. Las dunas y depresiones no usan ruido no determinista.
 
 Rocas y estructuras tienen volúmenes circulares conservadores en XZ. El jugador acelera, desacelera, integra gravedad y se apoya en el terreno. La resolución de colisiones se repite para contactos múltiples. Este modelo está destinado a un mapa de exterior, no a físicas rígidas arbitrarias o edificios transitables de varios pisos.
 
@@ -51,7 +56,7 @@ Añade una entrada a `src/data/upgrades.js` con id único, nombre, icono, descri
 
 ### Importar GLB/GLTF
 
-No se incluye ningún GLB externo. `src/graphics/AssetLoader.js` es un adaptador opcional que usa `GLTFLoader` y `AnimationMixer` reales. Para sustituir un modelo:
+Se incluyen GLB locales para el jugador, enemigos y guardianes; las vistas actuales cargan rigs independientes con recursos compartidos. `src/graphics/AssetLoader.js` es un adaptador opcional que usa `GLTFLoader` y `AnimationMixer` reales. Para sustituir un modelo:
 
 1. Obtén un archivo existente y verifica su licencia; añade atribución si procede.
 2. Guarda el archivo en `public/models/` con su nombre real y comprueba que Vite lo sirve.
@@ -59,7 +64,7 @@ No se incluye ningún GLB externo. `src/graphics/AssetLoader.js` es un adaptador
 4. Ajusta escala/origen y conecta los clips por sus nombres reales, consultando `actions`.
 5. Ejecuta `update(dt)` y `dispose()` al terminar. Para múltiples rigs animados, clona con `SkeletonUtils` y administra cada mixer.
 
-El adaptador no se usa en la partida predeterminada y no se ha validado con un recurso GLB externo.
+La partida predeterminada carga los GLB mediante las vistas de cada personaje, con alternativa procedural si falla la carga.
 
 ## Recursos y rendimiento
 
@@ -67,13 +72,13 @@ El adaptador no se usa en la partida predeterminada y no se ha validado con un r
 - Pool fijo de 220 proyectiles y 260 partículas.
 - Proyectiles, partículas y 450 piedras pequeñas mediante InstancedMesh.
 - Reutilización de modelos de enemigos por tipo durante la partida.
-- Máximo de 64 enemigos, reservando un espacio para el jefe.
+- Máximo de 64 enemigos, reservando plazas para los cinco guardianes pendientes.
 - HUD actualizado a aproximadamente 12,5 Hz; máximo de 24 números de daño.
 - Dispose explícito de instancias, geometrías y materiales propios al reiniciar; modelos compartidos al cerrar.
 - Audio de osciladores desconectado al terminar; ruido ambiente compartido.
 - Listeners cancelables y limpieza en hot reload.
 
-`SaveSystem` es el único consumidor de localStorage. Guarda versión, estadísticas, fragmentos, blindaje y opciones; tolera datos corruptos o almacenamiento bloqueado. No guarda partidas activas.
+`SaveSystem` conserva la metaprogresión individual en localStorage; `Connection` utiliza sessionStorage solo para identidad online temporal. Guarda versión, estadísticas, fragmentos, blindaje y opciones; tolera datos corruptos o almacenamiento bloqueado. No guarda partidas activas.
 
 El stalker carga `public/models/stalker.glb` con rigs independientes y recursos visuales compartidos. `StalkerActions` resuelve el contacto del ataque en el fotograma 12 (0,4 s a 30 FPS), validando alcance, altura y frente al golpear. `StalkerAvatar` sincroniza el clip con ese reloj, mezcla transiciones y conserva death antes de devolver la vista al pool. Muerte/aturdimiento cancelan el ataque; pausa congela los clips.
 

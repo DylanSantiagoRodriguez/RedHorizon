@@ -17,4 +17,3 @@ test('seeded imported world loads and all hidden plushies grant the set bonus',a
  expect(result).toMatchObject({ready:true,count:5,meshes:true,power:true,damage:4,hidden:true});expect(result.error).toBeUndefined();
  await page.screenshot({path:'outputs/environment/in-game.png'});expect(errors).toEqual([]);
 });
-

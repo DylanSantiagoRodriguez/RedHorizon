@@ -24,7 +24,15 @@ on_failure() {
   if "$activated" && [ -n "$previous" ]; then
     ln -s "$previous" "$site/rollback-$$"
     mv -Tf "$site/rollback-$$" "$site/current"
+    printf '%s\n' "$previous" > "$site/backend-restart"
+    if [ -f "$previous/runtime/release.json" ]; then
+      /usr/local/lib/redhorizon/validate-backend.sh "$previous/runtime/release.json" || echo 'Backend rollback health check failed' >&2
+    fi
     echo "Deployment failed; restored $previous" >&2
+  fi
+  if "$activated" && [ -z "$previous" ]; then
+    rm -f -- "$site/current"
+    printf 'no-release\n' > "$site/backend-restart"
   fi
   [ -z "$staging" ] || rm -rf -- "$staging"
   if [ -n "$release_path" ] && [ "$(readlink "$site/current" || true)" != "$release_path" ]; then
@@ -56,8 +64,10 @@ echo "Checking main at $revision"
 git checkout --quiet --force --detach "$revision"
 npm ci --no-audit --no-fund
 npm run check
+npm run test:integration
 test -s dist/index.html
 npx --no-install playwright install chromium
+npm run test:online
 node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort > "$state/preview.log" 2>&1 &
 preview_pid=$!
 node scripts/smoke-production.mjs
@@ -79,6 +89,17 @@ node -e '
   const fs = require("node:fs");
   fs.writeFileSync(process.argv[1], JSON.stringify({commit: process.argv[2], deployedAt: new Date().toISOString()}) + "\n");
 ' "$staging/deployment.json" "$revision"
+mkdir "$staging/runtime"
+cp -a server src package.json package-lock.json "$staging/runtime/"
+cp "$staging/deployment.json" "$staging/runtime/release.json"
+(cd "$staging/runtime" && npm ci --omit=dev --ignore-scripts --no-audit --no-fund)
+# Validate the actual packaged backend on a separate loopback port before activation.
+PORT=8789 WS_ORIGINS=https://redhorizon.lat NODE_ENV=production node "$staging/runtime/server/main.js" > "$state/backend-preview.log" 2>&1 &
+preview_pid=$!
+BACKEND_PORT=8789 /usr/local/lib/redhorizon/validate-backend.sh "$staging/runtime/release.json"
+kill "$preview_pid"
+wait "$preview_pid" 2>/dev/null || true
+preview_pid=''
 chmod -R a+rX "$staging"
 mv "$staging" "$site/releases/$release"
 release_path="$site/releases/$release"
@@ -87,6 +108,8 @@ previous="$(readlink "$site/current" || true)"
 ln -s "$site/releases/$release" "$site/activate-$$"
 activated=true
 mv -Tf "$site/activate-$$" "$site/current"
+printf '%s\n' "$revision" > "$site/backend-restart"
+/usr/local/lib/redhorizon/validate-backend.sh "$site/current/runtime/release.json"
 
 curl --fail --silent --show-error --max-time 15 http://127.0.0.1:8080/ -o /dev/null
 curl --fail --silent --show-error --max-time 20 https://redhorizon.lat/deployment.json |

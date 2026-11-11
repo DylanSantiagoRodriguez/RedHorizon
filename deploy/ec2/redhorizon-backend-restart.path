@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch the atomic release activation marker
+
+[Path]
+PathChanged=/srv/redhorizon/backend-restart
+Unit=redhorizon-backend-restart.service
+
+[Install]
+WantedBy=multi-user.target

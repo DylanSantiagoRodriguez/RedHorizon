@@ -1,16 +1,15 @@
 import { loadEnvironment } from './EnvironmentAssets.js';
 import { loadBurningWreck } from '../graphics/BurningWreck.js';
-import { hiddenPlushies } from './Plushies.js';
 import * as THREE from 'three';
-import { TerrainGenerator } from './TerrainGenerator.js';
+import { WorldModel } from './WorldModel.js';
 import { Random } from '../utils/Random.js';
 export class WorldManager {
   constructor(scene, models, seed) {
     this.scene = scene; this.models = models; this.seed = seed; this.group = new THREE.Group(); scene.add(this.group);
-    this.terrain = new TerrainGenerator(seed); this.random = new Random(`${seed}-decoration`);
-    this.rockViews = []; this.obstacles = []; this.cameraColliders = []; this.owned = []; this.beacons = []; this.rewards = [];
+    this.model = new WorldModel(seed); this.terrain = this.model.terrain; this.random = new Random(`${seed}-decoration`);
+    this.rockViews = []; this.obstacles = this.model.obstacles; this.cameraColliders = []; this.owned = []; this.beacons = []; this.rewards = [];
     this.buildTerrain(); this.buildRocks(); this.buildHorizon(); this.buildSites(); this.buildDetails(); this.batchStatic();
-    this.plushies = hiddenPlushies(this.terrain,this.obstacles,seed);
+    this.plushies = this.model.plushies.map(p => ({ ...p }));
     this.environmentReady = loadEnvironment(this);
     this.group.updateMatrixWorld(true);
   }
@@ -29,7 +28,7 @@ export class WorldManager {
   buildRocks() {
     for (const rock of this.terrain.rocks) {
       const mesh = this.models.part(this.group, 'rock', this.random.pick([0x5b3b32, 0x6f4435, 0x814c37]), [rock.x, this.heightAt(rock.x, rock.z) + rock.height * 0.34, rock.z], [rock.radius, rock.height * 0.65, rock.radius]);
-      this.rockViews.push(mesh); mesh.rotation.y = rock.rotation; this.cameraColliders.push(mesh); this.obstacles.push({ ...rock });
+      this.rockViews.push(mesh); mesh.rotation.y = rock.rotation; this.cameraColliders.push(mesh);
     }
   }
   buildHorizon() {
@@ -45,9 +44,9 @@ export class WorldManager {
     const geo = new THREE.BufferGeometry().setFromPoints(points), mat = new THREE.LineBasicMaterial({ color: 0xff8050, transparent: true, opacity: 0.7 });
     this.group.add(new THREE.Line(geo, mat)); this.owned.push(geo, mat);
   }
-  solid(type, color, x, y, z, sx, sy, sz, radius) {
+  solid(type, color, x, y, z, sx, sy, sz, _radius) {
     const mesh = this.models.part(this.group, type, color, [x, y, z], [sx, sy, sz]);
-    this.cameraColliders.push(mesh); this.obstacles.push({ x, z, radius }); return mesh;
+    this.cameraColliders.push(mesh); return mesh;
   }
   buildSites() {
     for (const site of this.terrain.pois) {
@@ -71,7 +70,6 @@ export class WorldManager {
         this.models.part(this.wreckFallback, 'cone', 0xcf6b3f, [x + 7, h + 1.5, z - 4], [2, 4, 2]).rotation.z = -Math.PI / 2;
         this.cameraColliders.push(hull, wing);
         // A chain follows the long hull while leaving the site interaction beacon accessible.
-        for (const offset of [-6, -3, 0, 3, 6]) this.obstacles.push({ x: x + offset, z: z - 6, radius: 3.4 });
         this.wreckReady = loadBurningWreck(this.group, site, (px, pz) => this.heightAt(px, pz), this.seed).then(wreck => {
           if (this.disposed) { wreck.dispose(); return; }
           this.wreck = wreck; this.wreckFallback.visible = false;
@@ -83,15 +81,14 @@ export class WorldManager {
       const beacon = new THREE.Group(); beacon.position.set(x, h, z + 3); this.group.add(beacon);
       this.models.part(beacon, 'cylinder', 0x263d40, [0, 0.35, 0], [0.8, 0.7, 0.8]);
       const crystal = this.models.part(beacon, 'rock', 0x78e9db, [0, 1.3, 0], [0.3, 0.65, 0.3], true);
-      this.beacons.push({ ...site, x, z: z + 3, mesh: beacon, crystal, used: false });
+      this.beacons.push({ ...this.model.beacons[this.beacons.length], mesh: beacon, crystal, used: false });
     }
     const pad = this.models.part(this.group, 'cylinder', 0x394344, [0, -0.05, 0], [3, 0.18, 3]); pad.receiveShadow = true;
-    for (let i = 0; i < 7; i++) {
-      const a = this.random.range(0, Math.PI * 2), d = this.random.range(14, 65), x = Math.cos(a) * d, z = Math.sin(a) * d;
-      if (this.obstacles.some(o => Math.hypot(x - o.x, z - o.z) < o.radius + 2)) continue;
+    for (const reward of this.model.rewards) {
+      const { x, z } = reward;
       const mesh = this.models.part(this.group, 'box', 0x788f7b, [x, this.heightAt(x, z) + 0.5, z], [1.1, 0.8, 0.8]);
       this.models.part(mesh, 'box', 0xb5ff9c, [0, 0.3, 0.53], [0.6, 0.12, 0.05], true);
-      this.rewards.push({ x, z, mesh, used: false });
+      this.rewards.push({ ...reward, mesh });
     }
   }
   buildDetails() {

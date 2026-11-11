@@ -1,5 +1,5 @@
-import rockRatios from '../data/rockRatios.json';
-import worldHeights from '../data/worldHeights.json';
+import rockRatios from '../data/rockRatios.json' with { type: 'json' };
+import worldHeights from '../data/worldHeights.json' with { type: 'json' };
 import { Random } from '../utils/Random.js';
 export class TerrainGenerator {
   constructor(seed) {

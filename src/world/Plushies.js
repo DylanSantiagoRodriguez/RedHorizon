@@ -20,9 +20,9 @@ export function collectPlush(run, target) {
  if(Math.hypot(run.player.x-target.x,run.player.z-target.z)>1.25||Math.abs(run.player.y-target.y)>.9)return false;
  target.used=true;run.plushCount=(run.plushCount||0)+1;run.player.interactSerial++;
  if(run.plushCount===5&&!run.plushPower){
-  run.plushPower=true;const s=run.player.stats;s.damage*=4;s.fireRate*=1.5;s.maxHp+=500;s.shield+=300;s.regen+=8;s.speed*=1.2;
-  run.player.hp=s.maxHp;run.player.shield=s.shield;
+  run.plushPower=true;
+  const players=run.livingPlayers?run.livingPlayers():[run.player];
+  for(const player of players){const s=player.stats;s.damage*=4;s.fireRate*=1.5;s.maxHp+=500;s.shield+=300;s.regen+=8;s.speed*=1.2;player.hp=s.maxHp;player.shield=s.shield;}
  }
  run.emit('plush',{name:target.id,count:run.plushCount,power:!!run.plushPower});return true;
 }
-
