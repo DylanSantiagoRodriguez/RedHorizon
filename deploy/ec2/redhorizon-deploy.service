@@ -17,8 +17,10 @@ ExecStart=/usr/local/lib/redhorizon/deploy-main.sh
 TimeoutStartSec=15min
 UMask=0022
 Nice=10
-CPUQuota=100%
-MemoryMax=2G
+CPUQuota=150%
+# Chromium with two real WebGL contexts exceeded the previous 2 GiB cap.
+# On the 8 GiB / 2 vCPU host, leave capacity for the backend, Caddy and OS.
+MemoryMax=5G
 NoNewPrivileges=true
 PrivateTmp=true
 PrivateDevices=true
