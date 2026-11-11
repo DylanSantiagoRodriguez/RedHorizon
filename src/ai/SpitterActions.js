@@ -1,5 +1,5 @@
 import { SPITTER_CLIPS, SPITTER_FPS } from '../data/spitterAnimations.js';
-import muzzle from '../data/spitterMuzzle.json';
+import muzzle from '../data/spitterMuzzle.json' with { type: 'json' };
 
 // Baked from the exported GLB socket at frame 15: available even before rendering/loading.
 export function spitterMuzzlePosition(enemy) {

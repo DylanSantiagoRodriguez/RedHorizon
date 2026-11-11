@@ -1,5 +1,5 @@
 import { DRONE_CLIPS, DRONE_FPS } from '../data/droneAnimations.js';
-import muzzle from '../data/droneMuzzle.json';
+import muzzle from '../data/droneMuzzle.json' with { type: 'json' };
 
 // Baked from the exported GLB socket at frame 12: available even before rendering/loading.
 export function droneMuzzlePosition(enemy) {
