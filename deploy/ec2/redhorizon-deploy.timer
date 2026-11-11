@@ -1,0 +1,11 @@
+[Unit]
+Description=Look for merged Red Horizon changes every minute
+
+[Timer]
+OnBootSec=45s
+OnUnitInactiveSec=60s
+AccuracySec=5s
+Unit=redhorizon-deploy.service
+
+[Install]
+WantedBy=timers.target
