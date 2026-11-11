@@ -13,11 +13,13 @@ import { UI } from '../ui/UI.js';
 import { SaveSystem } from '../progression/SaveSystem.js';
 import { AudioManager } from '../audio/AudioManager.js';
 import { ParticleSystem } from '../graphics/ParticleSystem.js';
+import { setModelQuality } from '../graphics/ModelTextures.js';
 export class Game {
   constructor(container) {
     this.view = new Renderer(container); this.models = new Models(); this.input = new InputManager(this.view.renderer.domElement);
     this.state = new StateManager(); this.camera = new CameraController(this.view.camera);
     this.save = new SaveSystem(); this.audio = new AudioManager(); this.particles = new ParticleSystem(this.view.scene, this.models); this.fps = 60;
+    setModelQuality(this.save.data.options.quality);
     this.createRun('ASTER-09'); this.ui = new UI(this, container); this.missionView = new MissionView(this);
     this.applyOptions();
     this.loop = new GameLoop(dt => this.update(dt), dt => this.render(dt));
@@ -44,7 +46,7 @@ export class Game {
     this.createRun(clean || `RH-${Math.floor(Math.random() * 999999)}`); this.camera.yaw = 0; this.camera.pitch = 0.1;
     this.change('playing'); this.audio.unlock().catch(() => {}); this.ui.hud.toast('Último soldado: recupera las gemas. Interactuar: ' + this.input.label('KeyE'));
   }
-  applyOptions() { const o = this.save.data.options; this.input.bindings = { ...o.bindings }; this.camera.sensitivity = o.sensitivity; this.camera.distance = o.distance; this.view.quality(o.quality); this.audio.setVolume(o.volume); }
+  applyOptions() { const o = this.save.data.options; setModelQuality(o.quality); this.input.bindings = { ...o.bindings }; this.camera.sensitivity = o.sensitivity; this.camera.distance = o.distance; this.view.quality(o.quality); this.audio.setVolume(o.volume); }
   onEvent(event, data) {
     this.audio.play(event, data, this.run.time + this.run.mission.cinematic);
     if (event === 'guardianEffect') this.particles.guardian(data);

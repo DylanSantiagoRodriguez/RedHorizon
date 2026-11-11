@@ -1,5 +1,5 @@
 import { AnimationMixer, Box3, Vector3, Group, LoopOnce, LoopRepeat } from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { loadModel } from './ModelTextures.js';
 import { clone } from 'three/addons/utils/SkeletonUtils.js';
 import { DRONE_CLIPS } from '../data/droneAnimations.js';
 import { ENEMIES } from '../data/enemies.js';
@@ -7,7 +7,7 @@ import { ENEMIES } from '../data/enemies.js';
 // Share immutable geometry/textures across the horde; each instance owns its rig and mixer.
 let templatePromise;
 export async function loadDroneAvatar(parent) {
-  templatePromise ??= new GLTFLoader().loadAsync(import.meta.env.BASE_URL + 'models/drone.glb')
+  templatePromise ??= loadModel(import.meta.env.BASE_URL + 'models/drone.glb')
     .catch(error => { templatePromise = null; throw error; });
   const template = await templatePromise, model = clone(template.scene);
   const root = new Group(); root.name = 'drone-avatar'; root.add(model); parent.add(root);
