@@ -1,12 +1,14 @@
 # Evolución del despliegue para cooperativo
 
-Los archivos están preparados en el repositorio; no se han aplicado a EC2 durante esta implementación. Los datos de infraestructura y verificaciones históricas de la sección siguiente no constituyen una comprobación actual del host.
+La configuración cooperativa se instala en EC2 mediante `scripts/configure-ec2.sh`. La instalación de las unidades no implica que una release esté activa: comprobar el servicio y que `/health.buildId` coincida con `/deployment.json.commit`. Las validaciones impiden publicar una revisión que falle las pruebas.
 
 Cada release mantiene los archivos estáticos en su raíz e incluye `runtime/` con `server/`, `src/`, manifiestos y `npm ci --omit=dev --ignore-scripts`. Caddy deniega `/runtime` y sus descendientes y reenvía `/ws` y `/health` a `127.0.0.1:8787`; HTTPS aporta wss. No abrir el puerto Node al exterior. `redhorizon-backend.service` usa un usuario propio sin privilegios y `/etc/redhorizon/backend.env` (plantilla `backend.env.example`). En producción WS_ORIGINS es obligatorio y debe enumerar exactamente los orígenes permitidos.
 
 `deploy-main.sh` ejecuta check, integración, navegador online real y smoke de la compilación antes de activar. Luego valida el backend **empaquetado** en 8789, cambia atómicamente `current`, toca `/srv/redhorizon/backend-restart` y espera que `/health` informe el commit esperado. Una unidad systemd.path activa un servicio fijo de reinicio; el usuario de despliegue no recibe sudo. Fallar restaura el enlace anterior, solicita otro reinicio y comprueba la salud anterior. Frontend y backend pertenecen a la misma release; durante el breve reinicio puede haber desconexión. Los clientes incompatibles reciben VERSION y deben recargar. Incrementar PROTOCOL_VERSION/GAME_VERSION al cambiar contratos/reglas incompatibles.
 
-Primera migración desde releases solo estáticas: instalar las unidades, plantilla y Caddyfile desde una copia revisada usando el procedimiento de instalación existente. El backend solo arranca cuando existe `current/runtime/server/main.js`. Un rollback a una release estática conserva individual, pero **no** ofrece online. No se garantiza disponibilidad continua durante activación ni rollback. Las releases posteriores permiten validar ambos componentes juntos.
+El perfil `deploy/ec2/playwright.config.mjs` ejecuta los mismos escenarios online con calidad baja, ventana de 960×600 y hasta nueve minutos por escenario y 45 segundos por comprobación de navegador porque EC2 renderiza Chromium por CPU. No cambia los plazos del servidor. La preparación de pruebas inicia los encuentros de forma explícita para que la carga del navegador no cause daño antes de las comprobaciones.
+
+Primera migración desde releases solo estáticas: instalar las unidades, plantilla y Caddyfile desde una copia revisada usando el procedimiento de instalación existente. Una release estática se reconstruye aunque su commit ya coincida con `main`; solo se omite cuando también existen el backend y su manifiesto coincidente. El backend solo arranca cuando existe `current/runtime/server/main.js`. Un rollback a una release estática conserva individual, pero **no** ofrece online. No se garantiza disponibilidad continua durante activación ni rollback. Las releases posteriores permiten validar ambos componentes juntos.
 
 SIGTERM avisa a los clientes, cierra WebSocket y limpia salas/timers. El estado en memoria **no sobrevive** despliegues, fallos o reinicios. La reconexión de 30 segundos solo funciona mientras vive el mismo proceso. Comunicar mantenimientos; no prometer migración o continuidad de expediciones.
 
@@ -20,9 +22,17 @@ curl -fsS https://redhorizon.lat/health
 curl -I https://redhorizon.lat/runtime/package.json # debe devolver 404
 ```
 
+La comprobación pública reproducible usa dos contextos independientes, sin fixtures ni acceso QA:
+
+```sh
+SMOKE_URL=https://redhorizon.lat node scripts/smoke-online-production.mjs
+```
+
+Crea una sala temporal, comprueba movimiento, disparos, enemigos compartidos, Escape local y recuperación de identidad al recargar; al terminar abandona la sala. La expedición completa con preparación controlada se comprueba durante las pruebas previas a publicar.
+
 Para rollback manual, detener el timer, cambiar `current` como se describe abajo, ejecutar `sudo systemctl restart redhorizon-backend` y validar que `/health.buildId` coincide con `current/runtime/release.json`. Reiniciar también la unidad backend es obligatorio; cambiar únicamente el enlace deja al proceso anterior ejecutándose. Las salas activas se pierden en ambos sentidos.
 
-Antes de publicar: comprobar scripts con `bash -n`, unidades con `systemd-analyze verify` en Linux, Caddyfile con `caddy validate`, y ejecutar las suites en la máquina objetivo. Aquí se han comprobado sintaxis shell y pruebas locales; Caddy/systemd y la red pública requieren validación en el host Linux. Las cuotas configuradas no equivalen a una capacidad probada: medir CPU, cola y ancho de banda antes de elegir MAX_ROOMS. Ver [MULTIPLAYER.md](MULTIPLAYER.md).
+Antes de publicar: comprobar scripts con `bash -n`, unidades con `systemd-analyze verify` en Linux, Caddyfile con `caddy validate`, y ejecutar las suites en la máquina objetivo. La instalación valida Caddy y las unidades systemd en el host Linux; después de cada publicación hay que comprobar también HTTPS y WebSocket públicos. Las cuotas configuradas no equivalen a una capacidad probada: medir CPU, cola y ancho de banda antes de elegir MAX_ROOMS. Ver [MULTIPLAYER.md](MULTIPLAYER.md).
 
 # Producción y despliegue automático
 
@@ -33,7 +43,7 @@ Sitio: https://redhorizon.lat. `www` redirige al dominio principal; Caddy gestio
 1. Abrir o actualizar un PR dirigido a `main` ejecuta `.github/workflows/ci.yml`: ESLint, pruebas unitarias, compilación y prueba de la compilación en Chromium (personaje, recursos, inicio, pausa y continuación).
 2. Al fusionar el PR, el `push` a `main` también solicita CI en GitHub. Los pushes directos a `main` siguen el mismo proceso.
 3. El timer `redhorizon-deploy.timer` consulta `main` cada 60 segundos y descarga el commit exacto que se publicará.
-4. El EC2 ejecuta `npm ci`, `npm run check` y la prueba de producción en Chromium contra un preview local. Todas deben pasar antes de preparar una release. Si `main` cambia durante la validación, espera al siguiente ciclo.
+4. El EC2 ejecuta `npm ci`, `npm run check`, integración online, dos escenarios cooperativos de Chromium y la prueba de producción contra un preview local. Todas deben pasar antes de preparar una release. Si `main` cambia durante la validación, espera al siguiente ciclo.
 5. Se activa la release mediante un cambio atómico de `/srv/redhorizon/current`. Se verifica HTTP interno y HTTPS público; si fallan, se restaura el enlace anterior.
 
 La publicación ocurre después del siguiente ciclo de consulta, más el tiempo de validación. Un PR abierto no reemplaza producción. Un fallo en descarga, instalación, pruebas, compilación o Chromium en el EC2 conserva la versión publicada. El timer vuelve a intentarlo en el siguiente ciclo. No hay alertas externas configuradas: revisar el journal del servicio.
@@ -119,6 +129,8 @@ Para suspender publicaciones y volver a una release anterior (sustituir `RELEASE
 sudo systemctl stop redhorizon-deploy.timer redhorizon-deploy.service
 sudo ln -s /srv/redhorizon/releases/RELEASE_ANTERIOR /srv/redhorizon/rollback
 sudo mv -Tf /srv/redhorizon/rollback /srv/redhorizon/current
+sudo systemctl restart redhorizon-backend
+curl -fsS https://redhorizon.lat/health
 curl -I https://redhorizon.lat
 ```
 

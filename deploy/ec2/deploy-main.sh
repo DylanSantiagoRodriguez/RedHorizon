@@ -51,10 +51,12 @@ fi
 cd "$state/repo"
 git fetch --quiet --depth 1 origin +refs/heads/main:refs/remotes/origin/main
 revision="$(git rev-parse refs/remotes/origin/main)"
-if [ -f "$site/current/deployment.json" ] && node -e '
+if [ -f "$site/current/deployment.json" ] && [ -f "$site/current/runtime/release.json" ] && [ -f "$site/current/runtime/server/main.js" ] && node -e '
   const fs = require("node:fs");
-  process.exit(JSON.parse(fs.readFileSync(process.argv[1])).commit === process.argv[2] ? 0 : 1);
-' "$site/current/deployment.json" "$revision"; then
+  const published = JSON.parse(fs.readFileSync(process.argv[1]));
+  const runtime = JSON.parse(fs.readFileSync(process.argv[3]));
+  process.exit(published.commit === process.argv[2] && runtime.commit === process.argv[2] ? 0 : 1);
+' "$site/current/deployment.json" "$revision" "$site/current/runtime/release.json"; then
   echo "Already deployed: $revision"
   exit 0
 fi
@@ -67,7 +69,7 @@ npm run check
 npm run test:integration
 test -s dist/index.html
 npx --no-install playwright install chromium
-npm run test:online
+npx --no-install playwright test --config /usr/local/lib/redhorizon/playwright.config.mjs
 node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort > "$state/preview.log" 2>&1 &
 preview_pid=$!
 node scripts/smoke-production.mjs
