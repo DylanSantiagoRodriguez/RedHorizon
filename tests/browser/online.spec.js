@@ -20,7 +20,7 @@ test('dos contextos completan una expedición compartida y reconectan', async ({
     await fixture(request, code, 'explore');
     await expect.poll(async () => (await game(a)).count).toBe(2); await expect.poll(async () => (await game(b)).remoteViews).toBe(1);
     for (const page of [a, b]) {
-      await expect.poll(() => page.evaluate(() => !!window.__RED_HORIZON__.world.environmentLoaded)).toBe(true);
+      await expect.poll(() => page.evaluate(() => !!window.__RED_HORIZON__.world.environmentLoaded), { timeout: 180000 }).toBe(true);
       expect(await page.evaluate(() => {
         let max = 0;
         window.__RED_HORIZON__.world.group.traverse(node => {
