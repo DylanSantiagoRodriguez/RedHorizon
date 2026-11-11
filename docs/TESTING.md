@@ -1,3 +1,7 @@
+# Validación integrada de carga y cooperativo
+
+Después de integrar `16da2ce` (pantalla de carga y animación lateral) con el heartbeat tolerante a bloqueos, `npm run check` pasó con **175 pruebas en 36 archivos**, ESLint y compilación correctos. Los dos escenarios online pasaron en **1,3 minutos** usando el perfil de EC2 localmente. La prueba conserva la recuperación automática de identidad antes de cargar modelos, espera la pantalla de carga y verifica después conexión, combate, baliza y victoria. Los registros siguientes corresponden a revisiones anteriores y conservan sus resultados originales.
+
 # Heartbeat y recarga bajo carga gráfica — 11 de noviembre de 2026
 
 La regresión simula un bloqueo del hilo del navegador: el cliente comprueba el enlace al reanudarse y sigue cerrándolo si no recibe respuesta. La prueba cooperativa espera la carga del entorno después de recuperar la identidad y comprueba que los controles han salido de la pausa de mejoras antes de lanzar la baliza. No se cambian los plazos del servidor.
