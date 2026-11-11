@@ -100,7 +100,7 @@ export class OnlineGame {
     const g = this.game;
     if (g.input.take('Escape')) { if (this.paused) this.resume(); else this.pause(); }
     this.accumulator += dt;
-    while (this.accumulator >= this.step) { this.sendInput(this.step, g.state.value === 'playing' && !g.input.rebinding && !g.run.player.dead); this.accumulator -= this.step; }
+    while (this.accumulator >= this.step) { this.sendInput(this.step, g.state.value === 'playing' && !g.loading?.pending && !g.input.rebinding && !g.run.player.dead); this.accumulator -= this.step; }
   }
   interpolate() {
     if (!this.latest || !this.history.length) return;

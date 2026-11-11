@@ -14,14 +14,17 @@ import { UI } from '../ui/UI.js';
 import { SaveSystem } from '../progression/SaveSystem.js';
 import { AudioManager } from '../audio/AudioManager.js';
 import { ParticleSystem } from '../graphics/ParticleSystem.js';
+import { ModelLoadingScreen } from '../ui/ModelLoadingScreen.js';
 import { setModelQuality } from '../graphics/ModelTextures.js';
 export class Game {
   constructor(container) {
     this.view = new Renderer(container); this.models = new Models(); this.input = new InputManager(this.view.renderer.domElement);
     this.state = new StateManager(); this.camera = new CameraController(this.view.camera);
     this.save = new SaveSystem(); this.audio = new AudioManager(); this.particles = new ParticleSystem(this.view.scene, this.models); this.fps = 60;
+    this.loading = new ModelLoadingScreen(container);
     setModelQuality(this.save.data.options.quality);
     this.createRun('ASTER-09'); this.ui = new UI(this, container); this.missionView = new MissionView(this);
+    this.waitForModels();
     this.applyOptions();
     // Recover the tab's session before starting the expensive render loop.
     // Waiting for another menu click can consume the server's 30-second grace.
@@ -42,6 +45,12 @@ export class Game {
     if (meta) this.run.player.stats.maxHp += this.save.data.armor * 5; this.run.player.hp = this.run.player.stats.maxHp;
     if (this.ui) this.missionView = new MissionView(this);
     this.particles.reset(); this.ui?.hud.reset(); this.audio.boss = false;
+    if (this.ui) this.waitForModels();
+  }
+  waitForModels() {
+    this.loading.wait([this.entities.avatarReady, this.world.environmentReady, this.world.wreckReady,
+      this.missionView.beaconReady, this.missionView.helmetReady, this.missionView.auroraReady, this.view.backdrop.ready]);
+    this.input.clear();
   }
   multiplayer() { this.online?.dispose(); this.online = new OnlineGame(this); this.online.open(); }
   start(seed) {
@@ -85,6 +94,7 @@ export class Game {
   }
   update(dt) {
     if (this.online) { this.online.update(dt); return; }
+    if (this.loading.pending) { this.input.clear(); return; }
     if (this.input.rebinding) return;
     if (this.input.take('Escape')) { if (this.state.value === 'paused') this.resume(); else this.pause(); }
     if (this.state.value !== 'playing') return;
@@ -92,6 +102,7 @@ export class Game {
     if (this.run.status !== 'playing') this.change(this.run.status);
   }
   render(dt) {
+    if (this.loading.pending && !this.loading.ready) return;
     this.fps += ((dt > 0 ? 1 / dt : 60) - this.fps) * 0.03;
     this.online?.interpolate();
     this.world.update(this.run.time); this.entities.sync(this.run, (this.online ? this.run.status === 'upgrade' : ['paused', 'upgrade'].includes(this.state.value)) ? 0 : Math.min(dt, 0.1));
@@ -106,8 +117,11 @@ export class Game {
     this.audio.update(dt, this.state.value === 'playing', this.run.mission, this.run, this.camera.yaw);
     const p = this.run.player; this.view.sun.position.set(p.x - 35, 65, p.z - 25); this.view.sun.target.position.set(p.x, 0, p.z);
     this.ui.update(this.run, dt); this.missionView.update(); this.view.draw();
+    // Reveal only after the first complete frame, including GPU texture upload.
+    this.loading.reveal();
   }
   dispose() {
+    this.loading.dispose();
     this.online?.dispose();
     this.ui.cancelBinding?.(); this.missionView.dispose(); this.abort.abort(); this.input.dispose(); this.entities.dispose(); this.world.dispose(); this.particles.dispose(); this.ui.hud.reset(); this.ui.root.remove();
     this.audio.dispose(); this.models.dispose(); this.view.dispose(); this.view.renderer.domElement.remove();

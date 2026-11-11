@@ -1,0 +1,13 @@
+.model-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: #10191d;
+  color: #cfddca;
+  font-size: 18px;
+  letter-spacing: .08em;
+  cursor: progress;
+}
+.model-loading[hidden] { display: none; }

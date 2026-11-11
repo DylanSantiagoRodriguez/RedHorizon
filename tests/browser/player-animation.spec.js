@@ -6,6 +6,7 @@ test('robot Mixamo: clips, texturas, poses y bloqueo de disparo al deslizarse', 
   await page.goto('/?qa');
   await page.evaluate(() => { const g = window.__RED_HORIZON__; g.save.data.options.quality = 'low'; g.applyOptions(); });
   await page.locator('#start').click();
+  await expect(page.locator('.model-loading')).toBeHidden({ timeout: 60000 });
   const info = await page.evaluate(async () => {
     const g = window.__RED_HORIZON__; await g.entities.avatarReady;
     if (!g.entities.avatar) throw new Error('Avatar no disponible');
@@ -40,6 +41,20 @@ test('robot Mixamo: clips, texturas, poses y bloqueo de disparo al deslizarse', 
     return { height: box.max.y - box.min.y, feet: box.min.y };
   });
   expect(pose.height).toBeGreaterThan(2); expect(pose.height).toBeLessThan(2.4); expect(Math.abs(pose.feet)).toBeLessThan(0.1);
+  const strafeSeam = await page.evaluate(() => {
+    const g = window.__RED_HORIZON__, a = g.entities.avatar, p = g.run.player;
+    p.vx = -7; p.vz = 0; p.yaw = 0;
+    for (let i = 0; i < 120; i++) g.entities.sync(g.run, 1 / 60);
+    const action = a.actions.get('strafe_right'), phase = action.time / action.getClip().duration;
+    g.entities.sync(g.run, (.9999 - phase) * 4.8 / 7);
+    const before = a.bones.get('LeftLeg').quaternion.clone();
+    g.entities.sync(g.run, .0002 * 4.8 / 7);
+    const jump = before.angleTo(a.bones.get('LeftLeg').quaternion);
+    p.vx = 0;
+    return { jump, weight: action.getEffectiveWeight() };
+  });
+  expect(strafeSeam.weight).toBeGreaterThan(.99);
+  expect(strafeSeam.jump).toBeLessThan(.005);
   const slide = await page.evaluate(() => {
     const g = window.__RED_HORIZON__, r = g.run;
     r.player.slideTime = 0.4; r.weapon.timer = 0;

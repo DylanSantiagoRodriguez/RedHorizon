@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { loadAnimatedModel } from './AssetLoader.js';
 import { CONFIG } from '../config.js';
+import { closeAnimationLoop } from './AnimationLoop.js';
 import { LOCOMOTION, movementWeights, avatarState } from './PlayerAnimationState.js';
 const UPPER = /(?:Spine|Neck|Head|Shoulder|Arm|ForeArm|Hand)/;
 
@@ -41,7 +42,8 @@ export async function loadPlayerAvatar(parent) {
         point.applyMatrix4(hipInverse).toArray(track.values, i);
       }
     }
-    clips.set(clip.name, clip);
+    // The exported right strafe is an open take (up to 46° at the knee seam).
+    clips.set(clip.name, clip.name === 'strafe_right' ? closeAnimationLoop(clip) : clip);
   }
   asset.mixer.stopAllAction();
   const actions = new Map();
