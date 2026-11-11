@@ -1,0 +1,11 @@
+newmtl tripo_material_ae7afd8b_3f1f_44a1_9e99_bfbfec2a5efe
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd amethyst_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr amethyst_roughness.png
+map_Pm amethyst_metallic.png
+norm amethyst_normal.png
+

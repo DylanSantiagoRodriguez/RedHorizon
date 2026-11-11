@@ -1,0 +1,58 @@
+{
+  "fps": 30,
+  "height": 7,
+  "source_scale_multiplier": 698.1251527122696,
+  "clips": [
+    {
+      "name": "idle",
+      "duration": 2.0,
+      "frames": 60,
+      "loop": true
+    },
+    {
+      "name": "move",
+      "duration": 1.2,
+      "frames": 36,
+      "loop": true
+    },
+    {
+      "eventFrame": 18,
+      "eventTime": 0.6,
+      "event": "contact",
+      "name": "attack_melee",
+      "duration": 1.0,
+      "frames": 30,
+      "loop": false
+    },
+    {
+      "eventFrame": 24,
+      "eventTime": 0.8,
+      "event": "release",
+      "name": "attack_special",
+      "duration": 1.2,
+      "frames": 36,
+      "loop": false
+    },
+    {
+      "eventFrame": 30,
+      "eventTime": 1,
+      "event": "call",
+      "name": "summon",
+      "duration": 1.5,
+      "frames": 45,
+      "loop": false
+    },
+    {
+      "name": "death",
+      "duration": 2.5,
+      "frames": 75,
+      "loop": false
+    },
+    {
+      "name": "reference_pose",
+      "duration": 0.03333333333333333,
+      "frames": 1,
+      "loop": false
+    }
+  ]
+}

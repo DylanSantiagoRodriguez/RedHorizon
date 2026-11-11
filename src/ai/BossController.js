@@ -1,7 +1,15 @@
+import { isAmethyst } from '../data/amethystAnimations.js';
+import { startAmethystAction } from './AmethystActions.js';
+import { isEmerald } from '../data/emeraldAnimations.js';
+import { startEmeraldAction } from './EmeraldActions.js';
+import { isSapphire } from '../data/sapphireAnimations.js';
+import { startSapphireAction } from './SapphireActions.js';
 import { GUARDIANS } from '../data/guardians.js';
 import { CONFIG } from '../config.js';
 import { isDust } from '../data/dustAnimations.js';
 import { startDustAction } from './DustActions.js';
+import { isRuby } from '../data/rubyAnimations.js';
+import { startRubyAction } from './RubyActions.js';
 export class BossController {
   constructor() { this.spawned = false; this.enemy = null; this.guardians = []; this.zones = []; this.nextZone = 1; }
   prepareAltars(run) {
@@ -31,6 +39,7 @@ export class BossController {
     if (!point) return false;
     const boss = run.spawn('titan', point.x, point.z, altar.index < 4 ? 0.35 : 1);
     Object.assign(boss, { name: altar.name, gemColor: altar.color, guardianId: GUARDIANS[altar.index].id, color: altar.color, active: true });
+    if (isRuby(boss)) { boss.yaw = Math.atan2(run.player.x-boss.x,run.player.z-boss.z); startRubyAction(boss,'spawn',run.time); run.emit('guardianEffect',{x:boss.x,y:boss.y,z:boss.z,guardianId:'ruby',color:boss.gemColor}); }
     altar.used = true; this.spawned = true; this.guardians.push(boss); this.enemy = boss;
     run.emit('boss', { name: boss.name }); return true;
   }
@@ -51,22 +60,34 @@ export class BossController {
     if (boss.phase === 1 && boss.hp <= boss.maxHp * CONFIG.bossPhase) {
       boss.phase = 2; boss.abilityTimer = 0.5; run.emit('phase', {});
     }
+    if (isRuby(boss) && (boss.stun > 0 || boss.rubyAction)) return;
+    if (isSapphire(boss) && (boss.stun > 0 || boss.sapphireAction)) return;
+    if (isEmerald(boss) && (boss.stun > 0 || boss.emeraldAction)) return;
+    if (isAmethyst(boss) && (boss.stun > 0 || boss.amethystAction)) return;
     boss.abilityTimer -= dt; boss.summonTimer -= dt;
     if (isDust(boss) && (boss.stun > 0 || boss.dustAction)) return;
     if (boss.abilityTimer <= 0) {
       boss.abilityTimer = boss.phase === 2 ? 3.4 : 5.5;
       if (isDust(boss)) { startDustAction(boss, 'attack_special', run.time); return; }
+      if (isRuby(boss)) { startRubyAction(boss, 'attack_special', run.time); return; }
+      if (isSapphire(boss)) { startSapphireAction(boss, 'attack_special', run.time); return; }
+      if (isAmethyst(boss)) { startAmethystAction(boss, 'attack_special', run.time); return; }
+      if (isEmerald(boss)) { startEmeraldAction(boss, 'attack_special', run.time); return; }
       this.releaseAbility(run, boss);
     }
     if (boss.summonTimer <= 0) {
       boss.summonTimer = boss.phase === 2 ? 10 : 18;
       if (isDust(boss)) { startDustAction(boss, 'summon', run.time); return; }
+      if (isRuby(boss)) { startRubyAction(boss, 'summon', run.time); return; }
+      if (isSapphire(boss)) { startSapphireAction(boss, 'summon', run.time); return; }
+      if (isAmethyst(boss)) { startAmethystAction(boss, 'summon', run.time); return; }
+      if (isEmerald(boss)) { startEmeraldAction(boss, 'summon', run.time); return; }
       this.releaseSummon(run, boss);
     }
   }
-  releaseAbility(run, boss) {
+  releaseAbility(run, boss, origin = boss) {
       boss.lastAbilityAt = run.time;
-      run.emit('guardianEffect', { x: boss.x, y: boss.y, z: boss.z, guardianId: boss.guardianId, color: boss.gemColor });
+      run.emit('guardianEffect', { x: origin.x, y: origin.y, z: origin.z, guardianId: boss.guardianId, color: boss.gemColor });
       const count = boss.phase === 2 ? 3 : 1;
       for (let i = 0; i < count; i++) {
         const x = run.player.x + (i ? run.random.range(-7, 7) : 0), z = run.player.z + (i ? run.random.range(-7, 7) : 0);
@@ -75,9 +96,9 @@ export class BossController {
       const shots = boss.phase === 2 ? 14 : 9;
       for (let i = 0; i < shots; i++) {
         const a = i / shots * Math.PI * 2 + run.time * 0.1;
-        run.combat.spawn({ x: boss.x, y: boss.y - 1.5, z: boss.z, vx: Math.cos(a) * 13, vy: -0.3, vz: Math.sin(a) * 13, damage: 22, life: 5, radius: 0.4, color: boss.gemColor || 0xff6143 });
+        run.combat.spawn({ x: origin.x, y: origin === boss ? boss.y - 1.5 : origin.y, z: origin.z, vx: Math.cos(a) * 13, vy: -0.3, vz: Math.sin(a) * 13, damage: 22, life: 5, radius: 0.4, color: boss.gemColor || 0xff6143 });
       }
-      run.combat.enemyShot(boss);
+      run.combat.enemyShot(boss, origin);
   }
   releaseSummon(run, boss) {
       boss.lastSummonAt = run.time;

@@ -1,3 +1,11 @@
+import { isAmethyst } from '../data/amethystAnimations.js';
+import { loadAmethystAvatar } from './AmethystAvatar.js';
+import { isEmerald } from '../data/emeraldAnimations.js';
+import { loadEmeraldAvatar } from './EmeraldAvatar.js';
+import { isSapphire } from '../data/sapphireAnimations.js';
+import { loadSapphireAvatar } from './SapphireAvatar.js';
+import { isRuby } from '../data/rubyAnimations.js';
+import { loadRubyAvatar } from './RubyAvatar.js';
 import * as THREE from 'three';
 import { loadPlayerAvatar } from './PlayerAvatar.js';
 import { WeaponModels } from './WeaponModels.js';
@@ -6,13 +14,18 @@ import { animateGuardian } from './EnemyModels.js';
 import { CONFIG } from '../config.js';
 import { isDust } from '../data/dustAnimations.js';
 import { loadDustAvatar } from './DustAvatar.js';
+import { loadStalkerAvatar } from './StalkerAvatar.js';
+import { loadBruteAvatar } from './BruteAvatar.js';
+import { loadSpitterAvatar } from './SpitterAvatar.js';
+import { loadDroneAvatar } from './DroneAvatar.js';
+import { loadElteAvatar } from './ElteAvatar.js';
 export class EntityViews {
   constructor(scene, models, emitShotParticles) {
     this.scene = scene; this.models = models; this.enemies = new Map(); this.free = new Map(); this.gems = new Map();
     this.player = models.player(); scene.add(this.player);
     this.weapons = new WeaponModels(models, this.player.userData.gun); this.emitShotParticles = emitShotParticles;
     this.disposed = false;
-    this.dustAvatars = new Map(); this.corpses = new Map(); this.enemyData = new Map();
+    this.amethystAvatars = new Map(); this.emeraldAvatars = new Map(); this.sapphireAvatars = new Map(); this.rubyAvatars = new Map(); this.dustAvatars = new Map(); this.stalkerAvatars = new Map(); this.bruteAvatars = new Map(); this.elteAvatars = new Map(); this.spitterAvatars = new Map(); this.droneAvatars = new Map(); this.corpses = new Map(); this.enemyData = new Map();
     this.avatarReady = loadPlayerAvatar(this.player).then(avatar => {
       if (this.disposed) { avatar.dispose(); return; }
       this.avatar = avatar;
@@ -37,14 +50,26 @@ export class EntityViews {
       if (!run.enemies.some(e => e.id === id && !e.dead)) {
         this.enemies.delete(id);
         const enemy = this.enemyData.get(id); this.enemyData.delete(id);
-        if (enemy?.dead && this.dustAvatars.has(mesh)) { this.corpses.set(mesh, enemy); mesh.visible = true; continue; }
-        mesh.visible = false; this.dustAvatars.get(mesh)?.reset();
+        if (enemy?.dead && (this.animatedAvatar(mesh) || mesh.userData.amethystLoading || isAmethyst(enemy) || mesh.userData.emeraldLoading || mesh.userData.sapphireLoading || mesh.userData.rubyLoading || mesh.userData.stalkerLoading || mesh.userData.bruteLoading || mesh.userData.elteLoading || mesh.userData.spitterLoading || enemy.type === 'drone')) { if (enemy.type === 'drone') enemy.droneDeathAt ??= run.time; if (isAmethyst(enemy)) enemy.amethystDeathAt ??= run.time; this.corpses.set(mesh, enemy); mesh.visible = true; continue; }
+        mesh.visible = false; this.animatedAvatar(mesh)?.reset();
         const type = mesh.userData.modelKey; if (!this.free.has(type)) this.free.set(type, []); this.free.get(type).push(mesh);
       }
     }
     for (const [mesh, enemy] of this.corpses) {
-      if (this.dustAvatars.get(mesh).update(enemy, run.time)) {
-        this.corpses.delete(mesh); this.dustAvatars.get(mesh).dispose(); this.dustAvatars.delete(mesh); this.scene.remove(mesh);
+      const avatar = this.animatedAvatar(mesh);
+      let fallbackDone = false;
+      if ((enemy.type === 'drone' || isAmethyst(enemy)) && !avatar) {
+        const elapsed = Math.max(0, run.time - (isAmethyst(enemy) ? enemy.amethystDeathAt : enemy.droneDeathAt)), ground = run.world.heightAt(enemy.x, enemy.z) + enemy.radius;
+        mesh.position.y = Math.max(ground, enemy.y - 4.905 * elapsed * elapsed);
+        const fallTime = Math.sqrt(Math.max(0, enemy.y - ground) / 4.905);
+        fallbackDone = elapsed >= Math.max(2.2, fallTime + .5);
+      }
+      if ((!avatar && !isAmethyst(enemy) && !mesh.userData.amethystLoading && !mesh.userData.emeraldLoading && !mesh.userData.sapphireLoading && !mesh.userData.rubyLoading && !mesh.userData.stalkerLoading && !mesh.userData.bruteLoading && !mesh.userData.spitterLoading && enemy.type !== 'drone') || fallbackDone || avatar?.update(enemy, run.time, run.world)) {
+        this.corpses.delete(mesh);
+        if (enemy.type === 'stalker' || enemy.type === 'brute' || enemy.type === 'elite' || enemy.type === 'spitter' || enemy.type === 'drone') {
+          avatar?.reset(); mesh.visible = false;
+          const key = mesh.userData.modelKey; if (!this.free.has(key)) this.free.set(key, []); this.free.get(key).push(mesh);
+        } else { avatar?.dispose(); this.amethystAvatars.delete(mesh); this.emeraldAvatars.delete(mesh); this.sapphireAvatars.delete(mesh); this.rubyAvatars.delete(mesh); this.dustAvatars.delete(mesh); this.scene.remove(mesh); }
       }
     }
     for (const e of run.enemies) {
@@ -54,6 +79,101 @@ export class EntityViews {
         const key = enemyModelKey(e);
         mesh = this.free.get(key)?.pop() || this.models.enemy(e); mesh.userData.modelKey = key;
         this.enemies.set(e.id, mesh); this.scene.add(mesh); mesh.visible = true;
+        if (e.type === 'stalker' && !mesh.userData.stalkerLoading && !this.stalkerAvatars.has(mesh)) {
+          mesh.userData.stalkerLoading = true;
+          mesh.userData.stalkerReady = loadStalkerAvatar(mesh).then(avatar => {
+            if (this.disposed) { avatar.dispose(); return; }
+            this.stalkerAvatars.set(mesh, avatar);
+            for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
+            // Remove fallback sway even if the creature died while loading.
+            mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
+          }).catch(error => { console.warn('No se pudo cargar stalker; se mantiene el modelo de respaldo.', error); })
+            .finally(() => { mesh.userData.stalkerLoading = false; });
+        }
+        if (e.type === 'brute' && !mesh.userData.bruteLoading && !this.bruteAvatars.has(mesh)) {
+          mesh.userData.bruteLoading = true;
+          mesh.userData.bruteReady = loadBruteAvatar(mesh).then(avatar => {
+            if (this.disposed) { avatar.dispose(); return; }
+            this.bruteAvatars.set(mesh, avatar);
+            for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
+            // Remove fallback sway even if the creature died while loading.
+            mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
+          }).catch(error => { console.warn('No se pudo cargar brute; se mantiene el modelo de respaldo.', error); })
+            .finally(() => { mesh.userData.bruteLoading = false; });
+        }
+        if (e.type === 'elite' && !mesh.userData.elteLoading && !this.elteAvatars.has(mesh)) {
+          mesh.userData.elteLoading = true;
+          mesh.userData.elteReady = loadElteAvatar(mesh).then(avatar => {
+            if (this.disposed) { avatar.dispose(); return; }
+            this.elteAvatars.set(mesh, avatar);
+            for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
+            // Remove fallback sway even if the creature died while loading.
+            mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
+          }).catch(error => { console.warn('No se pudo cargar elte; se mantiene el modelo de respaldo.', error); })
+            .finally(() => { mesh.userData.elteLoading = false; });
+        }
+        if (e.type === 'spitter' && !mesh.userData.spitterLoading && !this.spitterAvatars.has(mesh)) {
+          mesh.userData.spitterLoading = true;
+          mesh.userData.spitterReady = loadSpitterAvatar(mesh).then(avatar => {
+            if (this.disposed) { avatar.dispose(); return; }
+            this.spitterAvatars.set(mesh, avatar);
+            for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
+            // Remove fallback sway even if the creature died while loading.
+            mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
+          }).catch(error => { console.warn('No se pudo cargar spitter; se mantiene el modelo de respaldo.', error); })
+            .finally(() => { mesh.userData.spitterLoading = false; });
+        }
+        if (e.type === 'drone' && !mesh.userData.droneLoading && !this.droneAvatars.has(mesh)) {
+          mesh.userData.droneLoading = true;
+          mesh.userData.droneReady = loadDroneAvatar(mesh).then(avatar => {
+            if (this.disposed) { avatar.dispose(); return; }
+            this.droneAvatars.set(mesh, avatar);
+            for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
+            // Remove fallback sway even if the creature died while loading.
+            mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
+          }).catch(error => { console.warn('No se pudo cargar drone; se mantiene el modelo de respaldo.', error); })
+            .finally(() => { mesh.userData.droneLoading = false; });
+        }
+        if (isAmethyst(e) && !mesh.userData.amethystLoading && !this.amethystAvatars.has(mesh)) {
+          mesh.userData.amethystLoading = true;
+          mesh.userData.amethystReady = loadAmethystAvatar(mesh).then(avatar => {
+            if (this.disposed || !mesh.parent) { avatar.dispose(); return; }
+            this.amethystAvatars.set(mesh, avatar);
+            for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
+            mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
+          }).catch(error => { console.warn('No se pudo cargar amethyst; se mantiene el modelo de respaldo.', error); })
+            .finally(() => { mesh.userData.amethystLoading = false; });
+        }
+        if (isEmerald(e) && !mesh.userData.emeraldLoading && !this.emeraldAvatars.has(mesh)) {
+          mesh.userData.emeraldLoading = true;
+          mesh.userData.emeraldReady = loadEmeraldAvatar(mesh).then(avatar => {
+            if (this.disposed) { avatar.dispose(); return; }
+            this.emeraldAvatars.set(mesh, avatar);
+            for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
+            mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
+          }).catch(error => { console.warn('No se pudo cargar emerald; se mantiene el modelo de respaldo.', error); })
+            .finally(() => { mesh.userData.emeraldLoading = false; });
+        }
+        if (isSapphire(e) && !mesh.userData.sapphireLoading && !this.sapphireAvatars.has(mesh)) {
+          mesh.userData.sapphireLoading = true;
+          mesh.userData.sapphireReady = loadSapphireAvatar(mesh).then(avatar => {
+            if (this.disposed) { avatar.dispose(); return; }
+            this.sapphireAvatars.set(mesh, avatar);
+            for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
+            mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
+          }).catch(error => { console.warn('No se pudo cargar sapphire; se mantiene el modelo de respaldo.', error); })
+            .finally(() => { mesh.userData.sapphireLoading = false; });
+        }
+        if (isRuby(e) && !mesh.userData.sapphireLoading && !mesh.userData.rubyLoading && !this.rubyAvatars.has(mesh)) {
+          mesh.userData.rubyLoading = true;
+          mesh.userData.rubyReady = loadRubyAvatar(mesh).then(avatar => {
+            if (this.disposed) { avatar.dispose(); return; }
+            this.rubyAvatars.set(mesh, avatar);
+            for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
+            mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
+          }).catch(error => { console.warn('No se pudo cargar ruby; se mantiene el modelo de respaldo.', error); })
+            .finally(() => { mesh.userData.rubyLoading = false; });
+        }
         if (isDust(e) && !mesh.userData.dustLoading && !this.dustAvatars.has(mesh)) {
           mesh.userData.dustLoading = true;
           mesh.userData.dustReady = loadDustAvatar(mesh).then(avatar => {
@@ -65,9 +185,9 @@ export class EntityViews {
         }
       }
       this.enemyData.set(e.id, e);
-      mesh.position.set(e.x, e.y + (e.type === 'drone' ? Math.sin(run.time * 3 + e.id) * 0.2 : 0), e.z); mesh.rotation.y = e.yaw;
-      const avatar = this.dustAvatars.get(mesh);
-      if (avatar) { mesh.rotation.z = 0; avatar.update(e, run.time); }
+      mesh.position.set(e.x, e.y, e.z); mesh.rotation.y = e.yaw;
+      const avatar = this.animatedAvatar(mesh);
+      if (avatar) { mesh.rotation.z = 0; avatar.update(e, run.time, run.world); }
       else {
         if (e.type !== 'drone') { mesh.position.y += Math.sin(run.time * e.speed * 2 + e.id) * 0.045; mesh.rotation.z = Math.sin(run.time * e.speed + e.id) * 0.025; }
         if (e.type === 'titan') animateGuardian(mesh, e, run.time);
@@ -84,11 +204,21 @@ export class EntityViews {
     this.projectiles.count = count; this.projectiles.instanceMatrix.needsUpdate = true;
     if (this.projectiles.instanceColor) this.projectiles.instanceColor.needsUpdate = true;
   }
+  animatedAvatar(mesh) { return this.amethystAvatars.get(mesh) || this.emeraldAvatars.get(mesh) || this.sapphireAvatars.get(mesh) || this.rubyAvatars.get(mesh) || this.elteAvatars.get(mesh) || this.droneAvatars.get(mesh) || this.spitterAvatars.get(mesh) || this.bruteAvatars.get(mesh) || this.stalkerAvatars.get(mesh) || this.dustAvatars.get(mesh); }
   dispose() {
     this.disposed = true; this.avatar?.dispose();
+    for (const avatar of this.amethystAvatars.values()) avatar.dispose();
+    for (const avatar of this.emeraldAvatars.values()) avatar.dispose();
+    for (const avatar of this.sapphireAvatars.values()) avatar.dispose();
+    for (const avatar of this.rubyAvatars.values()) avatar.dispose();
     for (const avatar of this.dustAvatars.values()) avatar.dispose();
+    for (const avatar of this.stalkerAvatars.values()) avatar.dispose();
+    for (const avatar of this.bruteAvatars.values()) avatar.dispose();
+    for (const avatar of this.spitterAvatars.values()) avatar.dispose();
+    for (const avatar of this.droneAvatars.values()) avatar.dispose();
+    for (const avatar of this.elteAvatars.values()) avatar.dispose();
     for (const mesh of this.corpses.keys()) this.scene.remove(mesh);
-    this.dustAvatars.clear(); this.corpses.clear(); this.enemyData.clear();
+    this.amethystAvatars.clear(); this.emeraldAvatars.clear(); this.sapphireAvatars.clear(); this.rubyAvatars.clear(); this.dustAvatars.clear(); this.stalkerAvatars.clear(); this.bruteAvatars.clear(); this.elteAvatars.clear(); this.spitterAvatars.clear(); this.droneAvatars.clear(); this.corpses.clear(); this.enemyData.clear();
     this.scene.remove(this.player, this.projectiles); this.projectiles.dispose(); this.projectileMaterial.dispose();
     for (const mesh of this.enemies.values()) this.scene.remove(mesh);
     for (const meshes of this.free.values()) for (const mesh of meshes) this.scene.remove(mesh);

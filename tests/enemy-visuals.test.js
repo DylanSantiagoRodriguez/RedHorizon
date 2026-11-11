@@ -1,3 +1,7 @@
+import { advanceAmethystAction } from '../src/ai/AmethystActions.js';
+import { advanceEmeraldAction } from '../src/ai/EmeraldActions.js';
+import { advanceSapphireAction } from '../src/ai/SapphireActions.js';
+import { advanceRubyAction } from '../src/ai/RubyActions.js';
 import { expect, it } from 'vitest';
 import * as THREE from 'three';
 import { GUARDIANS, enemyModelKey } from '../src/data/guardians.js';
@@ -13,13 +17,18 @@ it('invoca cinco identidades y conserva su color en proyectiles, áreas y efecto
   for (const altar of run.altars) {
     run.player.x = altar.x; run.player.z = altar.z; expect(run.boss.awaken(run, altar)).toBe(true);
     const boss = run.boss.enemy; boss.abilityTimer = 0;
+    if (boss.guardianId === 'ruby') { run.time += 2; advanceRubyAction(boss, run); }
     run.boss.updateBoss(0.01, run, boss);
+    if (boss.guardianId === 'ruby') { run.time += 1; advanceRubyAction(boss, run); }
+    if (boss.guardianId === 'sapphire') { run.time += 1; advanceSapphireAction(boss, run); }
+    if (boss.guardianId === 'emerald') { run.time += .8; advanceEmeraldAction(boss, run); }
+    if (boss.guardianId === 'amethyst') { run.time += 1; advanceAmethystAction(boss, run); }
     if (boss.guardianId === 'dust') { run.time += DUST_CLIPS.attack_special.eventFrame / 30; advanceDustAction(boss, run); }
     expect(run.boss.zones.at(-1).color).toBe(altar.color);
     expect(run.combat.pool.items.filter(p => p.active).at(-1).color).toBe(altar.color);
   }
   expect(new Set(run.boss.guardians.map(enemyModelKey)).size).toBe(5);
-  expect(events.filter(e => e.type === 'guardianEffect').map(e => e.data.guardianId)).toEqual(GUARDIANS.map(g => g.id));
+  expect(events.filter(e => e.type === 'guardianEffect').map(e => e.data.guardianId)).toEqual(['ruby', ...GUARDIANS.map(g => g.id)]);
 });
 
 it('reutiliza las geometrías sin compartir las transformaciones de efectos entre jefes', () => {

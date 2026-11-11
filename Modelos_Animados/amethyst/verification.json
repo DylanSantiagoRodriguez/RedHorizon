@@ -1,0 +1,48 @@
+{
+  "passed": true,
+  "bones": 33,
+  "clips": [
+    {
+      "clip": "reference_pose",
+      "horizontal_drift": 0.0,
+      "loop_error": 0.0,
+      "last_frame_delta": 0.0
+    },
+    {
+      "clip": "death",
+      "horizontal_drift": 0.0,
+      "loop_error": 0.9167807251214981,
+      "last_frame_delta": 3.5762786865234375e-07
+    },
+    {
+      "clip": "summon",
+      "horizontal_drift": 0.0,
+      "loop_error": 0.0,
+      "last_frame_delta": 0.002997159957885742
+    },
+    {
+      "clip": "attack_special",
+      "horizontal_drift": 0.0,
+      "loop_error": 0.0,
+      "last_frame_delta": 0.003547370433807373
+    },
+    {
+      "clip": "attack_melee",
+      "horizontal_drift": 0.0,
+      "loop_error": 0.0,
+      "last_frame_delta": 0.007451854646205902
+    },
+    {
+      "clip": "move",
+      "horizontal_drift": 0.0,
+      "loop_error": 0.0,
+      "last_frame_delta": 0.028170108795166016
+    },
+    {
+      "clip": "idle",
+      "horizontal_drift": 0.0,
+      "loop_error": 0.0,
+      "last_frame_delta": 0.009379801340401173
+    }
+  ]
+}

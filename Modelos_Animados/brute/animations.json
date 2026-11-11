@@ -1,0 +1,40 @@
+{
+  "fps": 30,
+  "height": 2.4,
+  "source_scale_multiplier": 295.9849339902785,
+  "clips": [
+    {
+      "name": "idle",
+      "duration": 3,
+      "frames": 90,
+      "loop": true
+    },
+    {
+      "name": "move",
+      "duration": 1.2,
+      "frames": 36,
+      "loop": true
+    },
+    {
+      "eventFrame": 18,
+      "eventTime": 0.6,
+      "event": "contact",
+      "name": "attack_melee",
+      "duration": 1.2,
+      "frames": 36,
+      "loop": false
+    },
+    {
+      "name": "death",
+      "duration": 2.5,
+      "frames": 75,
+      "loop": false
+    },
+    {
+      "name": "reference_pose",
+      "duration": 0.03333333333333333,
+      "frames": 1,
+      "loop": false
+    }
+  ]
+}

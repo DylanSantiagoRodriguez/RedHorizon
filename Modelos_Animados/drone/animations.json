@@ -1,0 +1,46 @@
+{
+  "fps": 30,
+  "source": "C:\\Users\\macab\\Downloads\\DRONE\\drone-rig.fbx",
+  "scale": "original",
+  "clips": [
+    {
+      "name": "hover",
+      "frames": 60,
+      "duration": 2.0,
+      "loop": true
+    },
+    {
+      "name": "move_forward",
+      "frames": 30,
+      "duration": 1.0,
+      "loop": true
+    },
+    {
+      "name": "move_backward",
+      "frames": 36,
+      "duration": 1.2,
+      "loop": true
+    },
+    {
+      "name": "attack_ranged",
+      "frames": 30,
+      "duration": 1.0,
+      "loop": false,
+      "eventFrame": 12,
+      "eventTime": 0.4,
+      "event": "release"
+    },
+    {
+      "name": "death",
+      "frames": 66,
+      "duration": 2.2,
+      "loop": false
+    },
+    {
+      "name": "reference_pose",
+      "frames": 1,
+      "duration": 0.03333333333333333,
+      "loop": false
+    }
+  ]
+}
