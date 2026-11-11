@@ -11,13 +11,16 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "test:e2e": "playwright test",
-    "check": "npm run lint && npm test && npm run build"
+    "check": "npm run lint && npm test && npm run build",
+    "server": "node server/main.js",
+    "test:integration": "vitest run tests/online*.test.js"
   },
   "engines": {
     "node": ">=22.12.0"
   },
   "dependencies": {
-    "three": "^0.187.0"
+    "three": "^0.187.0",
+    "ws": "^8.22.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
