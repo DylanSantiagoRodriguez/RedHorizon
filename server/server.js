@@ -67,7 +67,11 @@ export function createServer({ buildId = GAME_VERSION, host = '127.0.0.1', port 
   }, 10000);
   return {
     server, manager, clients,
-    listen: () => new Promise(resolve => server.listen(port, host, () => resolve(server.address()))),
+    listen: () => new Promise((resolve, reject) => {
+      const fail = error => { server.off('error', fail); reject(error); };
+      server.once('error', fail);
+      server.listen(port, host, () => { server.off('error', fail); resolve(server.address()); });
+    }),
     close: async () => {
       if (closing) return; closing = true; clearInterval(timer); clearInterval(heartbeat);
       for (const socket of clients.keys()) send(socket, { type: 'shutdown', message: ERRORS.SHUTDOWN });

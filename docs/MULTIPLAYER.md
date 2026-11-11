@@ -2,7 +2,11 @@
 
 ## Ejecutar y jugar
 
-Node 22.12+ y WebGL2. `npm ci` y `npm run dev:online` inician Vite y el backend persistente. Abrir la URL que imprime Vite (por defecto `http://127.0.0.1:5173`). Si ese puerto ya está ocupado, detener el otro servicio o elegir otro puerto **y** incluir su Origin: `WS_ORIGINS=http://127.0.0.1:5190 npm run dev:online -- --port 5190 --strictPort`. Por separado: `npm run server` y `npm run dev`. Vite reenvía `/ws` y `/health` al backend loopback 8787.
+Node 22.12+ y WebGL2. `npm ci` y `npm run dev` inician Vite y el backend persistente; `npm run dev:online` conserva el mismo comportamiento. Abrir la URL que imprime Vite (por defecto `http://127.0.0.1:5173`). Si ese puerto está ocupado, Vite selecciona otro y el backend autoriza automáticamente el origen realmente utilizado, incluido su equivalente localhost/127.0.0.1. También se puede elegir uno con `npm run dev -- --port 5190 --strictPort`. Una lista explícita WS_ORIGINS se respeta sin ampliarla.
+
+Por separado: `npm run server` y `npm run dev:frontend`. En ese caso configura WS_ORIGINS con el puerto real del frontend si difiere de 5173. Vite reenvía `/ws` y `/health` al backend loopback 8787; RH_BACKEND_PORT permite cambiarlo. El arranque conjunto falla claramente si ese backend ya está ocupado y cierra el frontend que acaba de iniciar, sin detener la otra instancia.
+
+Si aparece `ECONNREFUSED 127.0.0.1:8787`, el backend no está escuchando: reinicia con `npm run dev` o inicia `npm run server` si mantienes un frontend separado. Un fallo antes de recibir identidad se muestra como servidor no disponible y permite reintentar Crear/Unirse en la misma pantalla. Solo una identidad previamente establecida está sujeta al plazo de reconexión de 30 segundos.
 
 Menú → Multijugador → apodo opcional → Crear sala. Compartir el código de seis caracteres y pulsar Listo en cada equipo; el creador inicia con 2–4 conectados y listos. La otra persona usa Unirse con código. Los espacios y minúsculas se normalizan. El código no recupera identidades: solo permite incorporaciones al lobby.
 
@@ -36,7 +40,7 @@ Valores iniciales, **límites de protección, no capacidad medida**:
 | Variable | Predeterminado |
 | --- | --- |
 | PORT (solo 127.0.0.1) | 8787 |
-| WS_ORIGINS | http://127.0.0.1:5173,http://localhost:5173 en desarrollo; obligatorio en producción |
+| WS_ORIGINS | origen real de Vite con npm run dev; localhost/127.0.0.1:5173 con npm run server; obligatorio en producción |
 | TICK_HZ / SNAPSHOT_HZ | 60 / 20 |
 | MAX_ROOMS / MAX_CONNECTIONS | 64 / 256 |
 | MAX_CONNECTIONS_PER_IP | 12 |

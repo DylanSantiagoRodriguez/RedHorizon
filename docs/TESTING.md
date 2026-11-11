@@ -1,3 +1,11 @@
+# Corrección del arranque local y del reintento inicial
+
+Se reprodujo el fallo con Vite en 5174 y sin backend en 8787. `npm run dev` ahora inicia ambos servicios y configura el Origin con el puerto realmente asignado por Vite. `dev:frontend` permite utilizar un backend iniciado por separado. Una conexión que nunca recibió identidad ya no anuncia una sala expirada y se puede reintentar desde la misma pantalla; una identidad recuperada tras recargar conserva su token durante los reintentos.
+
+Validación de esta corrección: `npm run check` correcto (158 pruebas, ESLint y build); `npm run test:integration` correcto (36 pruebas, incluidas en las 158); `npm run test:online` correcto (dos escenarios, expedición cooperativa y reintento tras un fallo inicial). Las regresiones de desarrollo ocupan el puerto solicitado, verifican el fallback de Vite mediante WebSocket real, conservan una lista explícita de Origin y prueban limpieza ante un backend ocupado. También se comprobó creación, unión, preparación e inicio de dos jugadores a través de `http://127.0.0.1:5174`, y la continuidad del proxy tras reiniciar Vite.
+
+Las 27 pruebas individuales indicadas en la sección siguiente pertenecen a la validación previa; no se repitieron para esta corrección de arranque y conexión. No se modificó la simulación ni se desplegó infraestructura.
+
 # Validación del cooperativo — 11 de noviembre de 2026
 
 Resultados locales sobre esta implementación (macOS arm64, Node v26.11.1, Chromium de Playwright):

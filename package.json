@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
+    "dev": "node scripts/dev-online.mjs",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
@@ -15,7 +15,8 @@
     "dev:online": "node scripts/dev-online.mjs",
     "server": "node server/main.js",
     "test:integration": "vitest run tests/online*.test.js",
-    "test:online": "playwright test --config playwright.online.config.js"
+    "test:online": "playwright test --config playwright.online.config.js",
+    "dev:frontend": "vite --host 127.0.0.1"
   },
   "engines": {
     "node": ">=22.12.0"

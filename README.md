@@ -13,7 +13,7 @@ npm install
 npm run dev
 ```
 
-Abre la dirección local que imprime Vite (normalmente http://127.0.0.1:5173). El servidor de desarrollo escucha solamente en localhost. El despliegue de producción en EC2 y la configuración de red se describen en [Despliegue](docs/DEPLOYMENT.md).
+El comando inicia el frontend y el backend multijugador. Abre la dirección local que imprime Vite (normalmente http://127.0.0.1:5173; si está ocupado, usa el siguiente puerto disponible). El backend permite automáticamente ese origen real. Ambos servicios escuchan en loopback por defecto. El despliegue de producción en EC2 y la configuración de red se describen en [Despliegue](docs/DEPLOYMENT.md).
 
 ```sh
 npm run check       # ESLint, Vitest y compilación de producción
@@ -26,10 +26,12 @@ npm run preview    # Comprobar dist localmente
 ## Cooperativo online (2–4 jugadores)
 
 ```sh
-npm run dev:online  # frontend + servidor WebSocket persistente
+npm run dev:online  # alias de npm run dev: frontend + backend
 npm run test:integration
 npm run test:online # dos contextos independientes y servidor real
 ```
+
+Si ya ejecutas el backend por separado con `npm run server`, utiliza `npm run dev:frontend` para iniciar solo Vite.
 
 Abre **Multijugador**, crea una sala y comparte su código. Cada participante pulsa **Listo** y el creador inicia. Sin registro; reconexión durante 30 segundos mediante identidad temporal por pestaña. Combate, enemigos, misión y XP son compartidos; vida, armas y mejoras son individuales. Online comienza con estadísticas base y no modifica fragmentos ni blindaje individual. Escape abre un menú local sin detener al equipo.
 

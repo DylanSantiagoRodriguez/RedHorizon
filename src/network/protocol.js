@@ -5,6 +5,7 @@ export const normalizeCode = code => typeof code === 'string' ? code.replace(/\s
 export const HELD = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'Space', 'Mouse0'];
 export const ACTIONS = ['Space', 'ControlLeft', 'KeyQ', 'KeyE', 'KeyF', 'Digit1', 'Digit2', 'Digit3'];
 export const ERRORS = {
+  UNAVAILABLE: 'No se pudo conectar con el servidor multijugador. Comprueba que esté iniciado y vuelve a intentar crear o unirte a una sala.',
   INVALID_CODE: 'Código inválido: usa seis caracteres sin I, O, 0 ni 1.', NOT_FOUND: 'La sala no existe o ha caducado.', FULL: 'La sala está llena (máximo 4 jugadores).',
   STARTED: 'La partida ya comenzó. Solo pueden reconectar sus participantes.', VERSION: 'Versión incompatible. Actualiza la página.', OFFLINE: 'Servidor desconectado. Intentando recuperar la conexión…',
   TOKEN: 'La reconexión no es válida o ha expirado.', ACTIVE: 'Este jugador ya tiene una conexión activa.', PERMISSION: 'Solo el creador puede iniciar con 2–4 jugadores conectados y listos.',
