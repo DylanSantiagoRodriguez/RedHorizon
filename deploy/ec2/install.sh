@@ -20,6 +20,7 @@ install -d -m 755 /usr/local/lib/redhorizon /srv/redhorizon/releases
 install -d -o redhorizon-deploy -g redhorizon-deploy -m 750 /var/lib/redhorizon-deploy /var/cache/redhorizon-deploy
 chown -R redhorizon-deploy:redhorizon-deploy /srv/redhorizon
 install -m 755 deploy-main.sh validate-backend.sh /usr/local/lib/redhorizon/
+install -m 644 playwright.config.mjs /usr/local/lib/redhorizon/
 if ! id redhorizon-backend >/dev/null 2>&1; then
   useradd --system --no-create-home --shell /usr/sbin/nologin redhorizon-backend
 fi
@@ -35,8 +36,8 @@ cp /etc/caddy/Caddyfile "/etc/caddy/Caddyfile.before-automation-$(date -u +%Y%m%
 install -m 644 Caddyfile /etc/caddy/Caddyfile
 systemctl reload caddy
 systemctl daemon-reload
-systemd-analyze verify /etc/systemd/system/redhorizon-deploy.service /etc/systemd/system/redhorizon-deploy.timer
-systemctl enable redhorizon-backend.service
+systemd-analyze verify /etc/systemd/system/redhorizon-deploy.service /etc/systemd/system/redhorizon-deploy.timer /etc/systemd/system/redhorizon-backend.service /etc/systemd/system/redhorizon-backend-restart.service /etc/systemd/system/redhorizon-backend-restart.path
+systemctl enable --now redhorizon-backend.service
 systemctl enable --now redhorizon-backend-restart.path
 systemctl enable --now redhorizon-deploy.timer
 systemctl start redhorizon-deploy.service
