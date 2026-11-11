@@ -16,6 +16,11 @@
 		Referrer-Policy strict-origin-when-cross-origin
 		X-Frame-Options SAMEORIGIN
 	}
+	# Runtime modules/dependencies are never public static content.
+	@runtime path /runtime /runtime/*
+	respond @runtime 404
+	@backend path /ws /health
+	reverse_proxy @backend 127.0.0.1:8787
 	file_server
 }
 
