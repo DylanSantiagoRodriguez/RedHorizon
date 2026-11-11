@@ -14,7 +14,7 @@ Environment=npm_config_cache=/var/cache/redhorizon-deploy
 Environment=PLAYWRIGHT_BROWSERS_PATH=/var/cache/redhorizon-deploy/browsers
 Environment=GIT_TERMINAL_PROMPT=0
 ExecStart=/usr/local/lib/redhorizon/deploy-main.sh
-TimeoutStartSec=15min
+TimeoutStartSec=20min
 UMask=0022
 Nice=10
 CPUQuota=150%
