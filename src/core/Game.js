@@ -76,7 +76,7 @@ export class Game {
   }
   render(dt) {
     this.fps += ((dt > 0 ? 1 / dt : 60) - this.fps) * 0.03;
-    this.world.update(this.run.time); this.entities.sync(this.run);
+    this.world.update(this.run.time); this.entities.sync(this.run, ['paused', 'upgrade'].includes(this.state.value) ? 0 : Math.min(dt, 0.1));
     if (this.state.value === 'menu') { this.view.camera.position.set(8, 4.6, 10); this.view.camera.lookAt(-4, 1.8, -11); }
     else this.camera.update(dt, this.input, this.run.player, this.world);
     if (this.state.value === 'playing' && this.run.mission.phase !== 'cinematic') {

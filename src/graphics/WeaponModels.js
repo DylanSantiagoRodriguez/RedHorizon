@@ -62,10 +62,11 @@ export class WeaponModels {
     }
     this.muzzle = new THREE.Vector3(); this.direction = new THREE.Vector3();
   }
-  update(run, emitParticles) {
+  update(run, emitParticles, avatar) {
     const w = run.weapon, aim = w.aim;
     this.mount.position.set(0.48, run.player.slideTime > 0 ? 0.65 : 1.21, 0.3 - w.recoil * 0.12);
     if (aim) this.mount.rotation.set(-Math.asin(THREE.MathUtils.clamp(aim.y, -1, 1)), Math.atan2(aim.x, aim.z) - run.player.yaw, 0, 'YXZ');
+    avatar?.attachWeapon(this.mount, run);
     for (const [kind, v] of Object.entries(this.variants)) {
       v.root.visible = kind === w.equipped;
       const age = run.time - (w.lastShot?.time ?? -100);

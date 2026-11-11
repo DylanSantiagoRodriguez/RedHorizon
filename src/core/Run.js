@@ -30,12 +30,13 @@ export class Run {
   }
   interact() {
     const target = this.interaction; if (!target || target.used) return false;
-    if (target.type === 'altar') return this.boss.awaken(this, target);
+    if (target.type === 'altar') { const summoned = this.boss.awaken(this, target); if (summoned) this.player.interactSerial++; return summoned; }
     if (target.type === 'launch') {
       if (this.mission.phase !== 'ready') return false;
-      target.used = true; this.mission.phase = 'countdown'; this.emit('launch', {}); return true;
+      target.used = true; this.player.interactSerial++; this.mission.phase = 'countdown'; this.emit('launch', {}); return true;
     }
     target.used = true;
+    this.player.interactSerial++;
     if (target.type) { this.relays++; this.salvage += 15; this.experience.add(35); this.player.hp = Math.min(this.player.stats.maxHp, this.player.hp + 30); this.emit('relay', {}); }
     else { this.player.hp = Math.min(this.player.stats.maxHp, this.player.hp + 45); this.salvage += 3; this.emit('upgrade', {}); }
     return true;

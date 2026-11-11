@@ -20,7 +20,7 @@ export class EntityViews {
     this.projectiles.instanceMatrix.setUsage(THREE.DynamicDrawUsage); this.projectiles.frustumCulled = false; scene.add(this.projectiles);
     this.dummy = new THREE.Object3D(); this.color = new THREE.Color();
   }
-  sync(run) {
+  sync(run, dt = 0) {
     for (const g of run.gems) {
       let mesh = this.gems.get(g.id);
       if (!mesh) { mesh = this.models.part(this.scene, 'rock', g.color, [g.x, 0, g.z], [0.55, 0.95, 0.55], true); this.gems.set(g.id, mesh); }
@@ -28,8 +28,8 @@ export class EntityViews {
       mesh.position.y = run.world.heightAt(g.x, g.z) + 1 + Math.sin(run.time * 3) * 0.2;
     }
     this.models.animatePlayer(this.player, run.player);
-    this.avatar?.update(run.player, run.time);
-    this.weapons.update(run, this.emitShotParticles);
+    this.avatar?.update(run, dt);
+    this.weapons.update(run, this.emitShotParticles, this.avatar);
     for (const [id, mesh] of this.enemies) {
       if (!run.enemies.some(e => e.id === id && !e.dead)) {
         mesh.visible = false; this.enemies.delete(id);

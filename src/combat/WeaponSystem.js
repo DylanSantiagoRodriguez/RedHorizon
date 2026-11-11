@@ -3,7 +3,7 @@ export class WeaponSystem {
   constructor() { this.equipped = 'plasma'; this.timer = 0; this.recoil = 0; this.shotId = 0; this.lastShot = null; this.aim = null; }
   update(dt) { this.timer = Math.max(0, this.timer - dt); this.recoil = Math.max(0, this.recoil - dt * 5); }
   fire(run, direction) {
-    if (this.timer > 0) return false;
+    if (this.timer > 0 || run.player.slideTime > 0 || run.player.dead) return false;
     this.aim = { ...direction }; this.shotId++; this.lastShot = { kind: this.equipped, time: run.time };
     const w = WEAPONS[this.equipped], p = run.player;
     this.timer = w.interval / p.stats.fireRate; this.recoil = 1;

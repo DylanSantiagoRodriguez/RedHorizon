@@ -1,0 +1,42 @@
+JUGADOR IMPORTADO — ROBOT / MIXAMO
+
+player.glb: malla riggeada, material PBR y 19 clips. Aproximadamente 3,4 MB.
+animation-manifest.json: nombres, duración y fotogramas de cada clip a 30 FPS.
+animations/: copias de los 19 FBX recibidos; sus originales externos no se modifican.
+source/: OBJ, MTL y texturas recibidas para conservar los recursos de autoría.
+source/player_animated.blend: archivo de Blender consolidado, editable, con los clips.
+player-legacy.glb: personaje anterior, conservado como referencia.
+
+El personaje usa la malla con pesos de idle_rifle.fbx (el OBJ no tiene rig).
+Todos los FBX se verifican contra el mismo esqueleto y pose de referencia.
+Las cuatro texturas se conectan como color, metal, rugosidad y normales.
+El GLB contiene mapas optimizados a 1024; las imágenes originales se conservan.
+
+Nombres normalizados:
+Rifle Jump.fbx -> jump
+fire_gun.fbx -> fire (compartido por las tres armas)
+Los otros 17 clips mantienen sus nombres originales.
+
+Integración:
+- Marcha, carrera, retroceso y desplazamientos laterales se mezclan según
+  la velocidad y dirección local, sin modificar la orientación del ratón.
+- El movimiento horizontal de las caderas se elimina al cargar los clips.
+- La física controla la altura del salto; el clip único jump sigue sus fases.
+- slide sigue el progreso del deslizamiento de 0,8 segundos, sin reproducir
+  por separado el desplazamiento global incluido en el FBX.
+- Durante slide no se puede disparar, incluso con disparo automático.
+- fire, hit_react e interact se mezclan sobre torso y brazos.
+- weapon_lower y weapon_raise se reproducen de forma breve al cambiar de arma.
+- El pulso de habilidad mantiene sus efectos sin animación del personaje.
+- El apuntado vertical se reparte por la columna sin requerir aim_up/aim_down.
+- RightHand sirve como anclaje del arma separada del cuerpo.
+- La mano izquierda se ajusta al apoyo delantero del arma por cinemática inversa.
+- death se reproduce una vez y conserva su pose final.
+- final_exhausted se usa estando quieto en los últimos 15 segundos de la cuenta.
+- final_collapse se muestra al comenzar la extinción, antes del plano del casco.
+- Pausa y selección de aumentos congelan las animaciones.
+
+Regeneración del GLB desde las copias FBX:
+Ejecutar Blender en segundo plano con --factory-startup --python-exit-code 1
+--python scripts/build-player-animations.py desde la raíz del repositorio.
+El script conserva las fuentes y reemplaza player.glb y animation-manifest.json.
