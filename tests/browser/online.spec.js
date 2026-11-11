@@ -51,7 +51,13 @@ test('dos contextos completan una expedición compartida y reconectan', async ({
     await fixture(request, code, 'launch-position'); await expect.poll(async () => (await game(b)).phase).toBe('ready');
     // The second player may launch the team's beacon.
     if ((await game(b)).state === 'paused') await b.locator('#resume').click();
-    await expect.poll(async () => (await game(b)).state).toBe('playing');
+    // 'ready' may already be visible before the fixture moves the team. Wait
+    // for its authoritative position and the end of queued upgrade transitions
+    // before sending the one-shot interaction.
+    await expect.poll(() => b.evaluate(() => {
+      const g = window.__RED_HORIZON__;
+      return g.state.value === 'playing' && g.online.connected && g.run.player.z > 6 && g.run.interaction?.id === g.run.launchBeacon.id;
+    })).toBe(true);
     await b.keyboard.press('KeyE'); await expect.poll(async () => (await game(a)).phase).toBe('countdown');
     await fixture(request, code, 'finale'); await expect.poll(async () => (await game(a)).phase).toBe('cinematic'); await fixture(request, code, 'epilogue');
     await expect.poll(async () => (await game(a)).state).toBe('victory'); await expect.poll(async () => (await game(b)).state).toBe('victory');

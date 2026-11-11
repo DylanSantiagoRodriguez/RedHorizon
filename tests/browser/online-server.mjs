@@ -3,6 +3,12 @@
 import http from 'node:http';
 import { createServer } from '../../server/server.js';
 const app = createServer({ port: 18787, origins: ['http://127.0.0.1:5179'] }); await app.listen();
+// Test diagnostics deliberately omit identities, room tokens and input data.
+const welcome = app.manager.welcome.bind(app.manager);
+app.manager.welcome = (room, member) => {
+  member.socket.once('close', (code, reason) => console.warn('QA socket closed', JSON.stringify({ code, reason: reason.toString(), time: room.run?.time })));
+  welcome(room, member);
+};
 // Browser readiness is not simulation time. Keep the setup deterministic on
 // software-rendered CI: encounters begin explicitly at the combat fixture.
 const startRoom = app.manager.start.bind(app.manager);
