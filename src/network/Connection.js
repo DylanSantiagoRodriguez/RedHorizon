@@ -9,7 +9,20 @@ export class Connection {
     else { this.save(null); this.lostAt = null; }
     const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`); this.socket = socket;
     this.status('Conectando…');
-    socket.onopen = () => { this.send({ ...request, version: PROTOCOL_VERSION, gameVersion: GAME_VERSION }); this.lastMessage = performance.now(); this.heartbeat = setInterval(() => { if (performance.now() - this.lastMessage > 15000) socket.close(); else this.send({ type: 'ping', at: performance.now() }); }, 5000); };
+    socket.onopen = () => {
+      this.send({ ...request, version: PROTOCOL_VERSION, gameVersion: GAME_VERSION });
+      this.lastMessage = this.lastHeartbeat = performance.now(); this.heartbeatGraceUntil = 0;
+      this.heartbeat = setInterval(() => {
+        const now = performance.now();
+        // A stalled render/event loop also delays delivery of queued messages.
+        // Probe the link after a stall before judging it dead. Server-side input
+        // expiry, vulnerability and the 30-second identity deadline still apply.
+        if (now - this.lastHeartbeat > 10000) this.heartbeatGraceUntil = now + 15000;
+        this.lastHeartbeat = now;
+        if (now - this.lastMessage > 15000 && now >= this.heartbeatGraceUntil) socket.close();
+        else this.send({ type: 'ping', at: now });
+      }, 5000);
+    };
     socket.onmessage = e => {
       let m; try { m = JSON.parse(e.data); } catch { return; } this.lastMessage = performance.now();
       if (m.type === 'welcome' && (m.version !== PROTOCOL_VERSION || m.gameVersion !== GAME_VERSION)) { this.closed = true; this.save(null); this.status(ERRORS.VERSION); socket.close(); return; }

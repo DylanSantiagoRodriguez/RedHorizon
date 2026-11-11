@@ -1,3 +1,9 @@
+# Heartbeat y recarga bajo carga gráfica — 11 de noviembre de 2026
+
+La regresión simula un bloqueo del hilo del navegador: el cliente comprueba el enlace al reanudarse y sigue cerrándolo si no recibe respuesta. La prueba cooperativa espera la carga del entorno después de recuperar la identidad y comprueba que los controles han salido de la pausa de mejoras antes de lanzar la baliza. No se cambian los plazos del servidor.
+
+Resultado local: `npm run check` correcto (172 pruebas, 35 archivos, ESLint y build); dos escenarios Playwright con backend real correctos en 1,6 minutos. El smoke de la compilación individual también pasó con calidad alta, sin errores ni recursos fallidos, en la revisión anterior a este cambio de heartbeat. El despliegue repite las comprobaciones en EC2 antes de activar.
+
 # Corrección del consumo de memoria durante el despliegue — 11 de noviembre de 2026
 
 La integración del entorno añadió texturas de 4096×4096. En EC2, dos contextos de Chromium superaron los límites del trabajador de 2 GiB y posteriormente 5 GiB (`oom-kill` en el journal). La calidad baja ahora limita las texturas GLB a 1024 píxeles al cargarlas, comparte la imagen reducida entre materiales y cierra el bitmap original. Conserva geometría, reglas físicas y resolución original en calidad alta.

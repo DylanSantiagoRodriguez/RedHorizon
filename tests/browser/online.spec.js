@@ -45,10 +45,14 @@ test('dos contextos completan una expedición compartida y reconectan', async ({
     await a.reload({ waitUntil: 'domcontentloaded' }); await expect.poll(async () => (await game(a)).count).toBe(2); expect((await game(a)).playerId).toBe(id);
     // Reconnection precedes model loading; controls stay neutral until the scene is ready.
     await expect(a.locator('.model-loading')).toBeHidden({ timeout: 180000 });
+    await expect.poll(() => a.evaluate(() => !!window.__RED_HORIZON__.world.environmentLoaded), { timeout: 180000 }).toBe(true);
+    await expect.poll(async () => (await game(a)).connected).toBe(true);
     await fixture(request, code, 'mission'); await a.keyboard.press('KeyQ'); await expect.poll(async () => (await game(b)).gems).toBe(5);
     await fixture(request, code, 'launch-position'); await expect.poll(async () => (await game(b)).phase).toBe('ready');
     // The second player may launch the team's beacon.
-    if ((await game(b)).state === 'paused') await b.locator('#resume').click(); await b.keyboard.press('KeyE'); await expect.poll(async () => (await game(a)).phase).toBe('countdown');
+    if ((await game(b)).state === 'paused') await b.locator('#resume').click();
+    await expect.poll(async () => (await game(b)).state).toBe('playing');
+    await b.keyboard.press('KeyE'); await expect.poll(async () => (await game(a)).phase).toBe('countdown');
     await fixture(request, code, 'finale'); await expect.poll(async () => (await game(a)).phase).toBe('cinematic'); await fixture(request, code, 'epilogue');
     await expect.poll(async () => (await game(a)).state).toBe('victory'); await expect.poll(async () => (await game(b)).state).toBe('victory');
     expect(await a.evaluate(() => ({ armor: window.__RED_HORIZON__.save.data.armor, salvage: window.__RED_HORIZON__.save.data.salvage }))).toEqual({ armor: 5, salvage: 99 });

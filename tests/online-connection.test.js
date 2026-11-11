@@ -37,3 +37,15 @@ it('aplica el plazo solo a una identidad existente y cancela reintentos al salir
   connection.connect({ type: 'reconnect', code: 'ABC234', token: 'c'.repeat(64) }); connection.socket.close(); connection.dispose(); vi.advanceTimersByTime(10000);
   expect(vi.getTimerCount()).toBe(0);
 });
+it('comprueba el enlace después de un bloqueo del navegador y sigue cerrando enlaces sin respuesta', () => {
+  const now = vi.spyOn(performance, 'now').mockReturnValue(0);
+  connection.connect({ type: 'create' }); const socket = connection.socket; socket.open();
+  const send = vi.spyOn(socket, 'send');
+  // Only one timer callback runs after the simulated main-thread stall.
+  now.mockReturnValue(20000); vi.advanceTimersByTime(5000);
+  expect(socket.readyState).toBe(FakeSocket.OPEN);
+  expect(JSON.parse(send.mock.calls.at(-1)[0]).type).toBe('ping');
+  for (const time of [25000, 30000]) { now.mockReturnValue(time); vi.advanceTimersByTime(5000); expect(socket.readyState).toBe(FakeSocket.OPEN); }
+  now.mockReturnValue(35000); vi.advanceTimersByTime(5000);
+  expect(socket.readyState).toBe(3); expect(vi.getTimerCount()).toBe(0);
+});
