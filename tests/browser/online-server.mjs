@@ -3,6 +3,10 @@
 import http from 'node:http';
 import { createServer } from '../../server/server.js';
 const app = createServer({ port: 18787, origins: ['http://127.0.0.1:5179'] }); await app.listen();
+// Browser readiness is not simulation time. Keep the setup deterministic on
+// software-rendered CI: encounters begin explicitly at the combat fixture.
+const startRoom = app.manager.start.bind(app.manager);
+app.manager.start = (room, member) => { startRoom(room, member); room.run.director.timer = 100000; };
 const control = http.createServer(async (req, res) => {
   if (req.headers['x-test-fixture'] !== 'redhorizon-playwright' || req.method !== 'POST') { res.writeHead(403).end(); return; }
   try {

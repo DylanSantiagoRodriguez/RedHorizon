@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 const game = page => page.evaluate(() => {
   const g = window.__RED_HORIZON__, o = g.online;
-  return { state: g.state.value, time: g.run.time, status: g.run.status, playerId: o?.playerId, count: o?.players.size, remoteViews: g.entities.remotePlayers.size, players: o ? [...o.players].map(([id, m]) => ({ id, x: m.player.x, z: m.player.z, hp: m.player.hp })) : [], enemies: g.run.enemies.map(e => ({ id: e.id, hp: e.hp, dead: e.dead })), phase: g.run.mission.phase, kills: g.run.kills, gems: g.run.gems.length, connected: o?.connected };
+  return { state: g.state.value, time: g.run.time, status: g.run.status, playerId: o?.playerId, count: o?.players.size, remoteViews: g.entities.remotePlayers.size, players: o ? [...o.players].map(([id, m]) => ({ id, x: m.player.x, z: m.player.z, hp: m.player.hp, maxHp: m.player.stats.maxHp })) : [], enemies: g.run.enemies.map(e => ({ id: e.id, hp: e.hp, dead: e.dead })), phase: g.run.mission.phase, kills: g.run.kills, gems: g.run.gems.length, connected: o?.connected };
 });
 async function fixture(request, code, action) { const response = await request.post(`http://127.0.0.1:18788/${action}?code=${code}`, { headers: { 'x-test-fixture': 'redhorizon-playwright' } }); expect(response.ok(), await response.text()).toBeTruthy(); }
 test('dos contextos completan una expedición compartida y reconectan', async ({ browser, request }) => {
@@ -17,7 +17,7 @@ test('dos contextos completan una expedición compartida y reconectan', async ({
     await expect(a.locator('#lobby-players li')).toHaveCount(2); await expect(b.locator('#lobby-players')).toContainText('<Beta>');
     await a.getByRole('button', { name: 'Listo', exact: true }).click(); await b.getByRole('button', { name: 'Listo', exact: true }).click(); await expect(a.locator('#start-room')).toBeEnabled(); await a.locator('#start-room').click();
     await expect.poll(async () => (await game(a)).count).toBe(2); await expect.poll(async () => (await game(b)).remoteViews).toBe(1);
-    const initial = await game(a), id = initial.playerId; expect(initial.players.find(p => p.id === id).hp).toBe(120);
+    const initial = await game(a), id = initial.playerId; expect(initial.players.find(p => p.id === id).maxHp).toBe(120);
     await a.keyboard.down('KeyW'); await expect.poll(async () => (await game(b)).players.find(p => p.id === id)?.z).toBeLessThan(-1); await a.keyboard.up('KeyW');
     await a.keyboard.press('Escape'); await expect.poll(async () => (await game(a)).state).toBe('paused'); const before = (await game(b)).time; await expect.poll(async () => (await game(b)).time).toBeGreaterThan(before + .5);
     await a.locator('#resume').click(); await fixture(request, code, 'combat');
