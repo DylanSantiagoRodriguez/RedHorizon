@@ -18,9 +18,9 @@ TimeoutStartSec=20min
 UMask=0022
 Nice=10
 CPUQuota=150%
-# Chromium with two real WebGL contexts exceeded the previous 2 GiB cap.
-# On the 8 GiB / 2 vCPU host, leave capacity for the backend, Caddy and OS.
-MemoryMax=5G
+# Two software-rendered contexts and a reload reached 5 GiB and reclaimed
+# memory during network checks. Reserve 2 GiB for backend, Caddy and OS.
+MemoryMax=6G
 NoNewPrivileges=true
 PrivateTmp=true
 PrivateDevices=true
