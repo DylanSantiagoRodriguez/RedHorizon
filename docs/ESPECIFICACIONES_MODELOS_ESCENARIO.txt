@@ -1,0 +1,139 @@
+ESPECIFICACIONES DE IMÁGENES Y MODELOS — RED HORIZON
+Rocas, casco cinematográfico, baliza de lanzamiento y nave Aurora
+
+OBJETIVO
+Primero generar y aprobar imágenes de referencia; después convertirlas a 3D y terminar los modelos en Blender. Los presupuestos de polígonos son objetivos propuestos. Aquí «baliza» significa la del inicio, que recibe las cinco gemas y se lanza hacia Aurora.
+
+1. REGLAS COMUNES PARA LAS IMÁGENES
+
+- Un solo objeto por imagen, completo, centrado y con margen alrededor.
+- Fondo gris claro uniforme, iluminación neutra y sombras suaves.
+- Vista de tres cuartos, perspectiva suave y sin desenfoque.
+- Resolución: 2048 x 2048. Para Aurora, formato horizontal de alta resolución.
+- Sin personajes, escenarios, pedestales de exposición, textos ni marcas de agua.
+- Sin humo, llamas, rayos, halos ni partículas: se crearán en el juego.
+- Vistas adicionales opcionales: frontal, lateral y posterior, como imágenes separadas del MISMO diseño. No mezclar variantes incompatibles.
+
+2. ROCAS DEL ESCENARIO
+
+Identidad: basalto rojizo, mineral oxidado, erosión y polvo. Deben funcionar como obstáculos y mantener una silueta clara.
+
+Generar cuatro objetos independientes:
+- rock_a.glb: bloque compacto y redondeado.
+- rock_b.glb: roca vertical, angular e irregular.
+- rock_c.glb: losa ancha y baja.
+- rock_d.glb: bloque fracturado con grietas profundas.
+
+PROMPT BASE
+Roca extraterrestre individual para un videojuego, bloque compacto de basalto rojizo y mineral oxidado, superficie erosionada por arena, fracturas naturales y bordes desgastados, tonos marrón oscuro, terracota y óxido, silueta claramente reconocible, detalle concentrado en grandes planos y grietas. Objeto completo y aislado, vista de tres cuartos, iluminación de estudio neutra, fondo gris claro uniforme. Sin cristales, vegetación, metal, resplandores ni elementos alrededor.
+
+Cambiar «bloque compacto» por la forma correspondiente en cada variante.
+
+ESPECIFICACIONES 3D
+- 1.000–3.000 triángulos por variante.
+- Texturas de 1K; materiales compartidos entre variantes cuando sea posible.
+- Base cerrada y ligeramente plana, apta para enterrarla parcialmente.
+- Pivote en el centro de la base.
+- Sin rig ni animaciones.
+- Evitar arcos y agujeros transitables: la colisión actual aproxima cada roca con un círculo.
+- El juego ajustará el tamaño. Actualmente usa radios de 0,8–3,3 m y parámetros de altura de 1,5–5 m.
+
+3. CASCO DE LA CINEMÁTICA
+
+Identidad: casco vacío del protagonista, desgastado y abandonado. Se ve en primer plano.
+IMPORTANTE: usar una captura del casco del personaje actual como referencia principal. Debe conservar su diseño, no inventar otro casco.
+
+PROMPT
+Casco vacío del protagonista de un videojuego de ciencia ficción industrial, respetando exactamente la silueta, visor y materiales de la referencia adjunta. Casco separado del cuerpo, blindaje metálico desgastado, arañazos finos, polvo rojizo acumulado en juntas, pequeñas abolladuras y visor oscuro reflectante. Abertura inferior del cuello con interior oscuro y borde de protección definido. Objeto completo, erguido, vista de tres cuartos, iluminación neutra, fondo gris claro. Sin cabeza, cuerpo, sangre, pedestal, humo ni efectos luminosos.
+
+ESPECIFICACIONES 3D
+- Archivo: cinematic_helmet.glb.
+- 8.000–15.000 triángulos.
+- Texturas de 2K.
+- Objetos o materiales separados: helmet_shell, helmet_visor, helmet_inner.
+- Visor opaco reflectante para evitar problemas de transparencias.
+- Pivote centrado en la abertura inferior del cuello.
+- Sin rig: el juego lo coloca e inclina sobre el suelo.
+- Escala coherente con el personaje. Referencia inicial: unos 0,4 m de alto, ajustable al encuadre cinematográfico.
+- Modelar el borde inferior y un interior oscuro suficiente para que no se vea como una cáscara sin grosor.
+
+4. BALIZA DE LANZAMIENTO
+
+Identidad: dispositivo de misión, blanco y metálico, que recibe las cinco gemas y lanza una cápsula hacia Aurora.
+Necesita dos piezas: plataforma fija y cápsula desmontable. Los cinco receptáculos viajan con la cápsula.
+
+PROMPT
+Baliza de lanzamiento de ciencia ficción industrial con detalles mecánicos retrofuturistas. Plataforma circular estable y cápsula vertical desmontable, claramente separadas por una junta de acoplamiento. Cápsula de metal blanco envejecido, acero oscuro y pequeños detalles de latón, punta protegida, antenas compactas y cinco receptáculos vacíos distribuidos alrededor de su anillo inferior. Motor central orientado hacia abajo. Diseño robusto, funcional y reconocible desde lejos. Objeto completo, vista de tres cuartos, fondo gris neutro. Sin gemas insertadas, llamas, humo, rayos, texto ni resplandores externos.
+
+ESPECIFICACIONES 3D
+- Archivo: launch_beacon.glb.
+- Objetos independientes: beacon_base y beacon_capsule.
+- Plataforma de referencia: 4 m de diámetro.
+- Altura total de referencia: unos 5 m.
+- 8.000–18.000 triángulos en total.
+- Texturas de 2K.
+- Pivote del conjunto a nivel del suelo.
+- Pivote de la cápsula en su acoplamiento con la plataforma.
+- Los receptáculos y sus sockets deben pertenecer a la cápsula.
+- El juego controla el recorrido del lanzamiento; no hornearlo en una animación.
+- Si hay compuertas o abrazaderas móviles, entregarlas como piezas separadas.
+
+SOCKETS REQUERIDOS
+- gem_socket_ruby
+- gem_socket_sapphire
+- gem_socket_emerald
+- gem_socket_amethyst
+- gem_socket_dust
+- engine_socket
+
+Los sockets son objetos vacíos de Blender, no geometría visible. engine_socket debe quedar en la salida inferior del motor; orientar su eje local +Z hacia abajo, en la dirección del escape.
+
+5. NAVE NODRIZA AURORA
+
+Identidad: arca de refugio y transporte, pesada y protectora; no un caza. La cinemática actual usa una representación de aproximadamente 20 unidades de ancho. Esa escala de presentación puede ajustarse.
+
+PROMPT
+Nave nodriza Aurora para un videojuego de ciencia ficción industrial retrofuturista, gran arca espacial de evacuación y supervivencia. Silueta horizontal alargada y reconocible, casco central blindado, módulos habitacionales integrados, puente elevado, antenas compactas, bahía de recepción frontal y dos motores posteriores grandes. Acero azul grisáceo, paneles claros desgastados y detalles discretos de latón; ventanas pequeñas y emisores cian sin halo. Diseño coherente y funcional, sensación de nave pesada y protectora. Nave completa, vista de tres cuartos desde arriba mostrando proa y lateral, perspectiva suave, fondo gris uniforme. Sin planeta, estrellas, otras naves, estelas, llamas ni texto.
+
+ESPECIFICACIONES 3D
+- Archivo: aurora.glb.
+- 20.000–40.000 triángulos.
+- Texturas de 2K; 4K solo si el plano final lo necesita.
+- Pivote en el centro del casco.
+- En GLB: proa hacia +Z y parte superior hacia +Y.
+- Casco, ventanas y motores con materiales separados.
+- Bahía y antenas móviles como objetos separados, si se desean animar.
+- No necesita interior completo: una bahía poco profunda y oscura es suficiente.
+- Sin rig para la versión estática; el juego controla su posición.
+
+SOCKETS REQUERIDOS
+- engine_socket_l
+- engine_socket_r
+- receiver_socket
+
+Los sockets de motores deben situarse en sus salidas y apuntar con +Z local hacia el escape. receiver_socket debe señalar el punto de recepción de la cápsula o de su señal.
+
+6. FORMATO DE ENTREGA Y LIMPIEZA
+
+INSTRUCCIÓN PARA EL PROCESO DE MODELADO
+Exportar GLB con texturas PBR embebidas: color base, rugosidad, metalicidad y normal cuando corresponda. Conservar el archivo Blender editable. Usar metros, escala aplicada, normales correctas y geometría sin piezas flotantes accidentales. No incluir luces, cámaras ni efectos en el GLB. Separar las piezas móviles indicadas y conservar sus nombres.
+
+ENTREGABLES
+- rock_a.glb, rock_b.glb, rock_c.glb, rock_d.glb.
+- cinematic_helmet.glb.
+- launch_beacon.glb.
+- aurora.glb.
+- Archivos .blend editables correspondientes.
+- Imágenes aprobadas y texturas fuente.
+
+COMPROBACIONES EN BLENDER
+- Revisar proporciones, silueta y correspondencia con las imágenes.
+- Corregir UV, normales, agujeros y caras internas innecesarias.
+- Reducir polígonos conservando la silueta.
+- Aplicar escala y comprobar pivotes.
+- Crear y nombrar sockets; no confiar en que el generador los produzca.
+- Separar plataforma/cápsula y cualquier pieza móvil.
+- Exportar y reimportar el GLB para comprobar texturas, orientación y jerarquía.
+- Verificar el modelo en el juego antes de considerarlo terminado.
+
+La conversión desde imagen es un punto de partida. La preparación de pivotes, sockets, colisiones, materiales y piezas móviles se termina en Blender y durante la integración.

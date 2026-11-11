@@ -1,3 +1,4 @@
+import { softenEnemyMaterials } from './EnemyAppearance.js';
 import { isAmethyst } from '../data/amethystAnimations.js';
 import { loadAmethystAvatar } from './AmethystAvatar.js';
 import { isEmerald } from '../data/emeraldAnimations.js';
@@ -84,6 +85,7 @@ export class EntityViews {
           mesh.userData.stalkerReady = loadStalkerAvatar(mesh).then(avatar => {
             if (this.disposed) { avatar.dispose(); return; }
             this.stalkerAvatars.set(mesh, avatar);
+            softenEnemyMaterials(avatar.root);
             for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
             // Remove fallback sway even if the creature died while loading.
             mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
@@ -95,6 +97,7 @@ export class EntityViews {
           mesh.userData.bruteReady = loadBruteAvatar(mesh).then(avatar => {
             if (this.disposed) { avatar.dispose(); return; }
             this.bruteAvatars.set(mesh, avatar);
+            softenEnemyMaterials(avatar.root);
             for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
             // Remove fallback sway even if the creature died while loading.
             mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
@@ -106,6 +109,7 @@ export class EntityViews {
           mesh.userData.elteReady = loadElteAvatar(mesh).then(avatar => {
             if (this.disposed) { avatar.dispose(); return; }
             this.elteAvatars.set(mesh, avatar);
+            softenEnemyMaterials(avatar.root);
             for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
             // Remove fallback sway even if the creature died while loading.
             mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
@@ -117,6 +121,7 @@ export class EntityViews {
           mesh.userData.spitterReady = loadSpitterAvatar(mesh).then(avatar => {
             if (this.disposed) { avatar.dispose(); return; }
             this.spitterAvatars.set(mesh, avatar);
+            softenEnemyMaterials(avatar.root);
             for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
             // Remove fallback sway even if the creature died while loading.
             mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
@@ -128,6 +133,7 @@ export class EntityViews {
           mesh.userData.droneReady = loadDroneAvatar(mesh).then(avatar => {
             if (this.disposed) { avatar.dispose(); return; }
             this.droneAvatars.set(mesh, avatar);
+            softenEnemyMaterials(avatar.root);
             for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
             // Remove fallback sway even if the creature died while loading.
             mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
@@ -139,6 +145,7 @@ export class EntityViews {
           mesh.userData.amethystReady = loadAmethystAvatar(mesh).then(avatar => {
             if (this.disposed || !mesh.parent) { avatar.dispose(); return; }
             this.amethystAvatars.set(mesh, avatar);
+            softenEnemyMaterials(avatar.root);
             for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
             mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
           }).catch(error => { console.warn('No se pudo cargar amethyst; se mantiene el modelo de respaldo.', error); })
@@ -149,6 +156,7 @@ export class EntityViews {
           mesh.userData.emeraldReady = loadEmeraldAvatar(mesh).then(avatar => {
             if (this.disposed) { avatar.dispose(); return; }
             this.emeraldAvatars.set(mesh, avatar);
+            softenEnemyMaterials(avatar.root);
             for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
             mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
           }).catch(error => { console.warn('No se pudo cargar emerald; se mantiene el modelo de respaldo.', error); })
@@ -159,6 +167,7 @@ export class EntityViews {
           mesh.userData.sapphireReady = loadSapphireAvatar(mesh).then(avatar => {
             if (this.disposed) { avatar.dispose(); return; }
             this.sapphireAvatars.set(mesh, avatar);
+            softenEnemyMaterials(avatar.root);
             for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
             mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
           }).catch(error => { console.warn('No se pudo cargar sapphire; se mantiene el modelo de respaldo.', error); })
@@ -169,6 +178,7 @@ export class EntityViews {
           mesh.userData.rubyReady = loadRubyAvatar(mesh).then(avatar => {
             if (this.disposed) { avatar.dispose(); return; }
             this.rubyAvatars.set(mesh, avatar);
+            softenEnemyMaterials(avatar.root);
             for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
             mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
           }).catch(error => { console.warn('No se pudo cargar ruby; se mantiene el modelo de respaldo.', error); })
@@ -179,6 +189,7 @@ export class EntityViews {
           mesh.userData.dustReady = loadDustAvatar(mesh).then(avatar => {
             if (this.disposed) { avatar.dispose(); return; }
             this.dustAvatars.set(mesh, avatar);
+            softenEnemyMaterials(avatar.root);
             for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
           }).catch(error => { console.warn('No se pudo cargar dust; se mantiene el modelo de respaldo.', error); })
             .finally(() => { mesh.userData.dustLoading = false; });

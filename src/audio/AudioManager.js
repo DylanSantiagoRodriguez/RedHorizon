@@ -1,8 +1,12 @@
+import { CinematicNarration } from './CinematicNarration.js';
+import { SceneAudio } from './SceneAudio.js';
 export class AudioManager {
   constructor() { this.context = null; this.volume = 0.35; this.active = false; this.boss = false; this.beat = 0; this.last = {}; }
   async unlock() {
     if (!this.context) {
       this.context = new AudioContext(); this.master = this.context.createGain(); this.master.gain.value = this.volume; this.master.connect(this.context.destination);
+      this.narration = new CinematicNarration(this.context, this.master);
+      this.sceneAudio = new SceneAudio(this.context, this.master);
       const buffer = this.context.createBuffer(1, this.context.sampleRate * 3, this.context.sampleRate), data = buffer.getChannelData(0);
       let value = 0; for (let i = 0; i < data.length; i++) { value = (value + (Math.random() * 2 - 1) * 0.02) / 1.02; data[i] = value * 3; }
       this.wind = this.context.createBufferSource(); this.wind.buffer = buffer; this.wind.loop = true;
@@ -18,10 +22,10 @@ export class AudioManager {
     amp.gain.setValueAtTime(0, t); amp.gain.linearRampToValueAtTime(gain, t + 0.005); amp.gain.exponentialRampToValueAtTime(0.001, t + duration);
     osc.connect(amp); amp.connect(this.master); osc.start(t); osc.stop(t + duration + 0.02); osc.onended = () => { osc.disconnect(); amp.disconnect(); };
   }
-  play(type, data = {}) {
+  play(type, data = {}, clock = 0) {
     const now = this.context?.currentTime || 0;
     if (now - (this.last[type] ?? -10) < (type === 'hit' ? 0.08 : 0.035)) return; this.last[type] = now;
-    if (type === 'launch') { this.tone(70, 450, 3, 'sawtooth', 0.07); for (const [i, f] of [220, 330, 440].entries()) this.tone(f, f, 1.2, 'sine', 0.06, i * 0.4); }
+    if (type === 'launch') this.sceneAudio?.trigger('beacon_launch', clock);
     if (type === 'extinction') { this.boss = false; this.tone(100, 20, 4, 'sawtooth', 0.1); }
     if (type === 'shot') {
       if (data.kind === 'plasma') { this.tone(950, 240, 0.12, 'sawtooth', 0.045); this.tone(1450, 600, 0.07, 'sine', 0.025); }
@@ -33,12 +37,16 @@ export class AudioManager {
     if (type === 'hurt') this.tone(95, 38, 0.3, 'square', 0.075);
     if (type === 'explosion' || type === 'ability') this.tone(90, 22, 0.65, 'sawtooth', 0.13);
     if (['level', 'upgrade', 'relay', 'victory'].includes(type)) for (const [i, f] of [440, 554, 660, 880].entries()) this.tone(f, f, 0.25, 'sine', 0.09, i * 0.08);
-    if (type === 'boss' || type === 'phase') { this.boss = true; this.tone(60, 30, 1.5, 'sawtooth', 0.1); }
+    if (type === 'boss') { this.boss = true; this.sceneAudio?.trigger('altar_boss', clock); }
+    if (type === 'phase') { this.boss = true; this.tone(60, 30, 1.5, 'sawtooth', 0.1); }
   }
-  update(dt, active) {
+  update(dt, active, mission, run, yaw) {
     if (!this.context) return;
+    this.narration.sync(mission, active);
+    this.sceneAudio.update(active, run, yaw, !!this.narration.source);
+    active = active && mission?.phase !== 'cinematic';
     if (this.active !== active) { this.active = active; this.windGain.gain.setTargetAtTime(active ? 0.16 : 0, this.context.currentTime, 0.3); }
     if (this.boss && active) { this.beat -= dt; if (this.beat <= 0) { this.beat = 0.55; this.tone(55, 28, 0.22, 'sine', 0.12); } }
   }
-  dispose() { this.wind?.stop(); this.context?.close(); }
+  dispose() { this.narration?.dispose(); this.sceneAudio?.dispose(); this.wind?.stop(); this.context?.close(); }
 }

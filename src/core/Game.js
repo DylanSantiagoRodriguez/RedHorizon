@@ -27,6 +27,8 @@ export class Game {
     document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement) this.pause(); }, options);
   }
   createRun(seed) {
+    this.audio.narration?.stop();
+    this.audio.sceneAudio?.reset(); this.audio.last = {};
     this.missionView?.dispose(); this.entities?.dispose(); this.world?.dispose();
     this.world = new WorldManager(this.view.scene, this.models, seed);
     this.run = new Run(this.world, seed, (event, data) => this.onEvent(event, data)); this.entities = new EntityViews(this.view.scene, this.models, data => this.particles.shot(data)); this.camera.ready = false;
@@ -41,7 +43,7 @@ export class Game {
   }
   applyOptions() { const o = this.save.data.options; this.input.bindings = { ...o.bindings }; this.camera.sensitivity = o.sensitivity; this.camera.distance = o.distance; this.view.quality(o.quality); this.audio.setVolume(o.volume); }
   onEvent(event, data) {
-    this.audio.play(event, data);
+    this.audio.play(event, data, this.run.time + this.run.mission.cinematic);
     if (event === 'guardianEffect') this.particles.guardian(data);
     if (event === 'hit') this.ui?.hud.hit(data);
     if (event === 'hurt') this.ui?.hud.hurt(data);
@@ -51,11 +53,14 @@ export class Game {
     if (event === 'beaconReady') this.ui?.hud.toast('5 GEMAS RECUPERADAS · Vuelve a la baliza blanca del punto de partida');
     if (event === 'launch') this.ui?.hud.toast('BALIZA LANZADA · Aurora espera tu señal. Extinción en 60 segundos.');
     if (event === 'extinction') this.input.clear();
+    if (event === 'plush') this.ui?.hud.toast(data.power ? 'LAS CINCO HERMANAS · Daño ×4, cadencia ×1,5, +500 vida, +300 escudo y regeneración' : ('PELUCHE ENCONTRADO · ' + data.count + '/5'));
     if (event === 'relay') this.ui?.hud.toast('Relé conectado · +35 XP · +30 vida');
   }
   change(state) {
     if (!this.state.set(state)) return;
     this.run.status = state; this.input.active = state === 'playing'; this.input.clear();
+    if (state !== 'playing') this.audio.narration?.stop();
+    if (state !== 'playing') this.audio.sceneAudio?.pause();
     if (state === 'victory' || state === 'defeat') this.save.finish(this.run);
     if (state !== 'playing' && document.pointerLockElement) document.exitPointerLock();
     this.ui.show(state);
@@ -84,7 +89,7 @@ export class Game {
       this.entities.player.rotation.y = this.run.player.yaw;
     }
     this.particles.update(this.state.value === 'playing' ? dt : 0, this.run);
-    this.audio.update(dt, this.state.value === 'playing');
+    this.audio.update(dt, this.state.value === 'playing', this.run.mission, this.run, this.camera.yaw);
     const p = this.run.player; this.view.sun.position.set(p.x - 35, 65, p.z - 25); this.view.sun.target.position.set(p.x, 0, p.z);
     this.ui.update(this.run, dt); this.missionView.update(); this.view.draw();
   }
