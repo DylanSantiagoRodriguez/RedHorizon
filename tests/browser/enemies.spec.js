@@ -15,6 +15,8 @@ test('guardianes y enemigos: modelos distintos, efectos y reutilización', async
       r.boss.updateBoss(0.01, r, boss);
     }
     g.entities.sync(r); g.pause();
+    await Promise.all([...g.entities.enemies.values()].map(mesh => mesh.userData.dustReady));
+    g.entities.sync(r);
     // Neutral inspection stage: these are the meshes produced by actual altar summons.
     document.querySelector('#interface').hidden = true;
     g.world.group.visible = false; g.missionView.group.visible = false; g.view.sky.visible = false;
