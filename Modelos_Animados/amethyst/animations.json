@@ -1,0 +1,58 @@
+{
+  "fps": 30,
+  "source": "C:\\Users\\macab\\Downloads\\amethyst-rigged.fbx",
+  "scale": "original",
+  "clips": [
+    {
+      "name": "idle",
+      "frames": 60,
+      "duration": 2.0,
+      "loop": true
+    },
+    {
+      "name": "move",
+      "frames": 36,
+      "duration": 1.2,
+      "loop": true
+    },
+    {
+      "name": "attack_melee",
+      "frames": 30,
+      "duration": 1.0,
+      "loop": false,
+      "eventFrame": 18,
+      "eventTime": 0.6,
+      "event": "contact"
+    },
+    {
+      "name": "attack_special",
+      "frames": 45,
+      "duration": 1.5,
+      "loop": false,
+      "eventFrame": 30,
+      "eventTime": 1,
+      "event": "release"
+    },
+    {
+      "name": "summon",
+      "frames": 45,
+      "duration": 1.5,
+      "loop": false,
+      "eventFrame": 30,
+      "eventTime": 1,
+      "event": "call"
+    },
+    {
+      "name": "death",
+      "frames": 75,
+      "duration": 2.5,
+      "loop": false
+    },
+    {
+      "name": "reference_pose",
+      "frames": 1,
+      "duration": 0.03333333333333333,
+      "loop": false
+    }
+  ]
+}

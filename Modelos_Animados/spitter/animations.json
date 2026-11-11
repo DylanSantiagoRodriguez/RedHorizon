@@ -1,0 +1,46 @@
+{
+  "fps": 30,
+  "height": 1.8,
+  "source_scale_multiplier": 239.17281614795695,
+  "clips": [
+    {
+      "name": "idle",
+      "duration": 3.0,
+      "frames": 90,
+      "loop": true
+    },
+    {
+      "name": "move_forward",
+      "duration": 1.0,
+      "frames": 30,
+      "loop": true
+    },
+    {
+      "name": "move_backward",
+      "duration": 1.2,
+      "frames": 36,
+      "loop": true
+    },
+    {
+      "eventFrame": 15,
+      "eventTime": 0.5,
+      "event": "release",
+      "name": "attack_ranged",
+      "duration": 1.0,
+      "frames": 30,
+      "loop": false
+    },
+    {
+      "name": "death",
+      "duration": 2.5,
+      "frames": 75,
+      "loop": false
+    },
+    {
+      "name": "reference_pose",
+      "duration": 0.03333333333333333,
+      "frames": 1,
+      "loop": false
+    }
+  ]
+}

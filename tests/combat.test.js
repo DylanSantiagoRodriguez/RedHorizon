@@ -3,6 +3,7 @@ import { calculateDamage, damageEntity } from '../src/combat/DamageSystem.js';
 import { baseStats } from '../src/entities/Player.js';
 import { Run } from '../src/core/Run.js';
 import { updateEnemy } from '../src/ai/EnemyAI.js';
+import { difficultyAt } from '../src/world/DifficultyDirector.js';
 const world = { heightAt: () => 0, obstacles: [] };
 it('escala el daño recibido con tiempo y nivel y comunica las pérdidas reales', () => {
   const events = [], run = new Run(world, 'scaled', (type, data) => { if (type === 'hurt') events.push(data); });
@@ -16,8 +17,12 @@ it('suma ataques cuerpo a cuerpo de dos enemigos en la misma actualización', ()
   const run = new Run(world, 'combined-melee');
   const a = run.spawn('stalker', 0, 1), b = run.spawn('brute', 0, -1);
   a.attackTimer = 0; b.attackTimer = 0;
+  updateEnemy(b, 1 / 60, run); // Brute starts .2 s before stalker so contacts coincide.
+  expect(run.player.hp).toBe(120);
+  run.time = .2; updateEnemy(a, 1 / 60, run);
+  run.time = 18 / 30;
   updateEnemy(a, 1 / 60, run); updateEnemy(b, 1 / 60, run);
-  expect(run.player.hp).toBe(120 - a.damage - b.damage);
+  expect(run.player.hp).toBeCloseTo(120 - (a.damage + b.damage) * difficultyAt(run.time, run.level).damageMultiplier);
 });
 it('suma proyectiles simultáneos y consume cada impacto una sola vez', () => {
   const run = new Run(world, 'combined-projectiles');

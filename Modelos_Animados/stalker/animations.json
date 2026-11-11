@@ -1,0 +1,56 @@
+{
+  "fps": 30,
+  "source": "C:\\Users\\macab\\Downloads\\studio-model.glb",
+  "forward_axis": "+X",
+  "clips": [
+    {
+      "name": "idle",
+      "duration": 2.0,
+      "loop": true,
+      "frames": [
+        0,
+        60
+      ]
+    },
+    {
+      "name": "move",
+      "duration": 0.8,
+      "loop": true,
+      "frames": [
+        0,
+        24
+      ]
+    },
+    {
+      "name": "attack_melee",
+      "duration": 1.0,
+      "loop": false,
+      "frames": [
+        0,
+        30
+      ],
+      "hit_frame": 12,
+      "hit_time": 0.4
+    },
+    {
+      "name": "death",
+      "duration": 2.4,
+      "loop": false,
+      "frames": [
+        0,
+        72
+      ],
+      "hold_final_pose": true,
+      "stable_from_frame": 51
+    },
+    {
+      "name": "reference_pose",
+      "duration": 0.03333333333333333,
+      "loop": false,
+      "frames": [
+        0,
+        1
+      ]
+    }
+  ]
+}

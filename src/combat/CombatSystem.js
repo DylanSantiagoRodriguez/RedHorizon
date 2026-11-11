@@ -8,9 +8,9 @@ export class CombatSystem {
     const p = this.pool.acquire(); if (!p) return;
     p.hits.clear(); Object.assign(p, { pierce: 0, bounce: 0, blast: 0, radius: 0.22, color: 0xc4ed71, friendly: false, kind: null }, data);
   }
-  enemyShot(enemy) {
-    const p = this.run.player, dx = p.x - enemy.x, dy = p.y + 1 - enemy.y, dz = p.z - enemy.z, d = Math.hypot(dx, dy, dz) || 1, speed = enemy.type === 'spitter' ? 13 : 18;
-    this.spawn({ x: enemy.x, y: enemy.y, z: enemy.z, vx: dx / d * speed, vy: dy / d * speed, vz: dz / d * speed, damage: enemy.damage, life: 4, color: enemy.gemColor || (enemy.type === 'spitter' ? 0x73df94 : enemy.type === 'drone' ? 0x67dfea : 0xff6852) });
+  enemyShot(enemy, origin = enemy) {
+    const p = this.run.player, dx = p.x - origin.x, dy = p.y + 1 - origin.y, dz = p.z - origin.z, d = Math.hypot(dx, dy, dz) || 1, speed = enemy.type === 'spitter' ? 13 : 18;
+    this.spawn({ x: origin.x, y: origin.y, z: origin.z, vx: dx / d * speed, vy: dy / d * speed, vz: dz / d * speed, damage: enemy.damage, life: 4, color: enemy.gemColor || (enemy.type === 'spitter' ? 0x73df94 : enemy.type === 'drone' ? 0x67dfea : 0xff6852) });
   }
   hit(enemy, damage, chain = true) {
     if (enemy.dead) return;

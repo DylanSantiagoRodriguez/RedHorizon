@@ -1,0 +1,62 @@
+{
+  "passed": true,
+  "bones": 33,
+  "clips": [
+    {
+      "clip": "reference_pose",
+      "ground_min": 9.238759730578749e-07,
+      "horizontal_drift": 0.0,
+      "loop_error": 0.0,
+      "last_frame_delta": 0.0
+    },
+    {
+      "clip": "spawn",
+      "ground_min": -3.207099723567808e-07,
+      "horizontal_drift": 4.116445779800415e-07,
+      "loop_error": 1.2479722499847412e-06,
+      "last_frame_delta": 0.010344535112380981
+    },
+    {
+      "clip": "death",
+      "ground_min": -2.253589173051296e-06,
+      "horizontal_drift": 4.919111481395851e-07,
+      "loop_error": 1.8726479411125183,
+      "last_frame_delta": 5.364418029785156e-07
+    },
+    {
+      "clip": "summon",
+      "ground_min": -2.1233140614640433e-06,
+      "horizontal_drift": 4.12469720322534e-07,
+      "loop_error": 4.172325134277344e-06,
+      "last_frame_delta": 0.0387478768825531
+    },
+    {
+      "clip": "attack_special",
+      "ground_min": 3.842042133328505e-07,
+      "horizontal_drift": 1.061717946882871e-07,
+      "loop_error": 0.010328054428100586,
+      "last_frame_delta": 0.1824449598789215
+    },
+    {
+      "clip": "attack_melee",
+      "ground_min": -2.3496082235396898e-07,
+      "horizontal_drift": 2.253800630569458e-07,
+      "loop_error": 1.4424324035644531e-05,
+      "last_frame_delta": 0.23039589822292328
+    },
+    {
+      "clip": "move",
+      "ground_min": -9.081130087906786e-07,
+      "horizontal_drift": 4.440758547242165e-07,
+      "loop_error": 5.364418029785156e-07,
+      "last_frame_delta": 0.026137173175811768
+    },
+    {
+      "clip": "idle",
+      "ground_min": 1.2261926940482226e-06,
+      "horizontal_drift": 1.30385160446167e-08,
+      "loop_error": 7.152557373046875e-07,
+      "last_frame_delta": 3.7342309951782227e-05
+    }
+  ]
+}

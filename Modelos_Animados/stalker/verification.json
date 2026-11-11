@@ -1,0 +1,42 @@
+{
+  "passed": true,
+  "bones": 38,
+  "embeddedTextures": 3,
+  "clips": [
+    {
+      "name": "idle",
+      "duration": 2,
+      "loopError": 0,
+      "rootError": 0,
+      "stableError": 0
+    },
+    {
+      "name": "move",
+      "duration": 0.800000011920929,
+      "loopError": 0,
+      "rootError": 0,
+      "stableError": 0
+    },
+    {
+      "name": "attack_melee",
+      "duration": 1,
+      "loopError": 0,
+      "rootError": 0,
+      "stableError": 0
+    },
+    {
+      "name": "death",
+      "duration": 2.4000000953674316,
+      "loopError": 0,
+      "rootError": 0,
+      "stableError": 0
+    },
+    {
+      "name": "reference_pose",
+      "duration": 0.03333333507180214,
+      "loopError": 0,
+      "rootError": 0,
+      "stableError": 0
+    }
+  ]
+}

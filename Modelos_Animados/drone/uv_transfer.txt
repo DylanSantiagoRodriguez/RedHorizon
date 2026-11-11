@@ -1,0 +1,18 @@
+# Restore UVs from the original matching triangulated surface (FBX duplicated triangle vertices).
+from mathutils.kdtree import KDTree
+before=set(bpy.data.objects);bpy.ops.import_scene.gltf(filepath=str(SRC/'drone.glb'));imported=set(bpy.data.objects)-before;source=next(o for o in imported if o.type=='MESH')
+source.data.calc_loop_triangles();triangles=list(source.data.loop_triangles)
+choices=[]
+for angle in [math.pi/2,-math.pi/2]:
+ rotation=Matrix.Rotation(angle,4,'Z');kd=KDTree(len(triangles))
+ for i,tri in enumerate(triangles):kd.insert(sum((rotation@source.matrix_world@source.data.vertices[k].co for k in tri.vertices),Vector())/3,i)
+ kd.balance();error=sum(kd.find(mesh.matrix_world@p.center)[2] for p in mesh.data.polygons)/len(mesh.data.polygons);choices.append((error,rotation,kd))
+error,rotation,kd=min(choices,key=lambda x:x[0]);assert error<.0001,error
+for face in mesh.data.polygons:
+ _,i,d=kd.find(mesh.matrix_world@face.center);assert d<.0001
+ tri=triangles[i]
+ for li in face.loop_indices:
+  point=mesh.matrix_world@mesh.data.vertices[mesh.data.loops[li].vertex_index].co
+  sl=min(tri.loops,key=lambda k:(rotation@source.matrix_world@source.data.vertices[source.data.loops[k].vertex_index].co-point).length)
+  mesh.data.uv_layers.active.data[li].uv=source.data.uv_layers.active.data[sl].uv
+for o in imported:bpy.data.objects.remove(o,do_unlink=True)

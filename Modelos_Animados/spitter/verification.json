@@ -1,0 +1,48 @@
+{
+  "passed": true,
+  "bones": 33,
+  "clips": [
+    {
+      "clip": "reference_pose",
+      "ground_min": 2.575466737653187e-07,
+      "horizontal_drift": 0.0,
+      "loop_error": 0.0,
+      "last_frame_delta": 0.0
+    },
+    {
+      "clip": "death",
+      "ground_min": -6.854751518403646e-06,
+      "horizontal_drift": 2.086162567138672e-07,
+      "loop_error": 1.890378475189209,
+      "last_frame_delta": 6.556510925292969e-07
+    },
+    {
+      "clip": "attack_ranged",
+      "ground_min": 6.950455372134456e-06,
+      "horizontal_drift": 3.0719530773294423e-08,
+      "loop_error": 0.000538170337677002,
+      "last_frame_delta": 0.0034792423248291016
+    },
+    {
+      "clip": "move_backward",
+      "ground_min": -2.891796953008452e-07,
+      "horizontal_drift": 7.487740830422111e-08,
+      "loop_error": 9.238719940185547e-07,
+      "last_frame_delta": 0.010740518569946289
+    },
+    {
+      "clip": "move_forward",
+      "ground_min": -1.0149510671908502e-06,
+      "horizontal_drift": 6.006850114687196e-08,
+      "loop_error": 5.960464477539062e-07,
+      "last_frame_delta": 0.015198618173599243
+    },
+    {
+      "clip": "idle",
+      "ground_min": 5.1589751137726125e-08,
+      "horizontal_drift": 3.0719530773294423e-08,
+      "loop_error": 4.76837158203125e-07,
+      "last_frame_delta": 0.0005615800619125366
+    }
+  ]
+}

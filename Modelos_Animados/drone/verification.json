@@ -1,0 +1,42 @@
+{
+  "passed": true,
+  "bones": 33,
+  "clips": [
+    {
+      "clip": "reference_pose",
+      "horizontal_drift": 0.0,
+      "loop_error": 0.0,
+      "last_frame_delta": 0.0
+    },
+    {
+      "clip": "death",
+      "horizontal_drift": 0.0,
+      "loop_error": 0.9167809635400772,
+      "last_frame_delta": 3.5762786865234375e-07
+    },
+    {
+      "clip": "attack_ranged",
+      "horizontal_drift": 0.0,
+      "loop_error": 0.0,
+      "last_frame_delta": 0.004355251789093018
+    },
+    {
+      "clip": "move_backward",
+      "horizontal_drift": 0.0,
+      "loop_error": 0.0,
+      "last_frame_delta": 0.02941322047263384
+    },
+    {
+      "clip": "move_forward",
+      "horizontal_drift": 0.0,
+      "loop_error": 0.0,
+      "last_frame_delta": 0.03347232937812805
+    },
+    {
+      "clip": "hover",
+      "horizontal_drift": 0.0,
+      "loop_error": 0.0,
+      "last_frame_delta": 0.009379486553370953
+    }
+  ]
+}

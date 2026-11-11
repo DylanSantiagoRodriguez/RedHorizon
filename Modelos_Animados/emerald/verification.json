@@ -1,0 +1,55 @@
+{
+  "passed": true,
+  "bones": 33,
+  "clips": [
+    {
+      "clip": "reference_pose",
+      "ground_min": -4.085918021701218e-07,
+      "horizontal_drift": 0.0,
+      "loop_error": 0.0,
+      "last_frame_delta": 0.0
+    },
+    {
+      "clip": "death",
+      "ground_min": -1.1324645129207056e-05,
+      "horizontal_drift": 6.407499635497126e-07,
+      "loop_error": 1.930688202381134,
+      "last_frame_delta": 5.364418029785156e-07
+    },
+    {
+      "clip": "summon",
+      "ground_min": -7.125873253244208e-06,
+      "horizontal_drift": 2.8433270249789667e-07,
+      "loop_error": 0.0001404881477355957,
+      "last_frame_delta": 0.07158827781677246
+    },
+    {
+      "clip": "attack_special",
+      "ground_min": -3.6940298286936013e-06,
+      "horizontal_drift": 2.0862258902168512e-07,
+      "loop_error": 0.0,
+      "last_frame_delta": 0.0181901752948761
+    },
+    {
+      "clip": "attack_melee",
+      "ground_min": -6.035653314029332e-06,
+      "horizontal_drift": 2.3096799850463867e-07,
+      "loop_error": 0.01855584979057312,
+      "last_frame_delta": 0.05103623867034912
+    },
+    {
+      "clip": "move",
+      "ground_min": -1.1679876479320228e-06,
+      "horizontal_drift": 7.97238636672576e-07,
+      "loop_error": 6.258487701416016e-07,
+      "last_frame_delta": 0.009791694581508636
+    },
+    {
+      "clip": "idle",
+      "ground_min": 1.1720057955244556e-06,
+      "horizontal_drift": 2.2586914359878602e-08,
+      "loop_error": 6.258487701416016e-07,
+      "last_frame_delta": 3.068707883358002e-05
+    }
+  ]
+}
