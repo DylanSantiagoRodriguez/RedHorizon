@@ -1,0 +1,14 @@
+{
+  "height": 5,
+  "capsuleBase": 1.0022507905960083,
+  "gemHeight": 2.2206018567085266,
+  "gemRadius": 1.1735562518616969,
+  "fixed": [
+    "tripo_part_0"
+  ],
+  "moving": [
+    "tripo_part_1",
+    "tripo_part_2",
+    "tripo_part_3"
+  ]
+}

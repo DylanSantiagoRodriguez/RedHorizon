@@ -11,9 +11,9 @@ function decision({ runtime, entry = false } = {}) {
   writeFileSync(join(site, 'current/deployment.json'), JSON.stringify({ commit: 'revision' }));
   if (runtime) writeFileSync(join(site, 'current/runtime/release.json'), JSON.stringify({ commit: runtime }));
   if (entry) writeFileSync(join(site, 'current/runtime/server/main.js'), '');
-  const script = readFileSync('deploy/ec2/deploy-main.sh', 'utf8');
+  const script = readFileSync('deploy/ec2/deploy-main.sh', 'utf8').replace(/\r\n/g, '\n');
   const condition = script.slice(script.indexOf('if [ -f "$site/current/deployment.json"'), script.indexOf('  echo "Already deployed:'));
-  return execFileSync('bash', ['-c', `${condition}echo skip; else echo build; fi`], { env: { ...process.env, site, revision: 'revision' }, encoding: 'utf8' }).trim();
+  return execFileSync('bash', ['-c', `${condition}echo skip; else echo build; fi`], { env: { ...process.env, site: site.replace(/\\/g, '/'), revision: 'revision' }, encoding: 'utf8' }).trim();
 }
 it('reconstruye una release estática aunque ya tenga el commit solicitado', () => { expect(decision()).toBe('build'); });
 it('solo omite una release con manifiestos coincidentes y backend presente', () => { expect(decision({ runtime: 'revision', entry: true })).toBe('skip'); });

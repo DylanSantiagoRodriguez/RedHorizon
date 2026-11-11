@@ -14,6 +14,21 @@ function fixture() {
   const dto = () => JSON.parse(JSON.stringify(snapshot(room, 1000)));
   return { authoritative, room, client, game, events, dto };
 }
+it('sincroniza los cinco peluches y concede una sola mejora al equipo vivo', () => {
+  const { authoritative: r, client, game, dto } = fixture();
+  expect(r.world.plushies).toHaveLength(5);
+  expect(r.world.plushies.map(p => [p.id, p.x, p.z])).toEqual(game.world.plushies.map(p => [p.id, p.x, p.z]));
+  for (const [i, plush] of r.world.plushies.entries()) r.withPlayer(i % 2 ? 'a' : 'b', () => {
+    Object.assign(r.player, { x: plush.x, y: plush.y, z: plush.z }); r.interaction = plush;
+    expect(r.interact()).toBe(true); expect(r.interact()).toBe(false);
+  });
+  expect(r.plushCount).toBe(5);
+  for (const m of r.members.values()) expect(m.player.stats.damage).toBe(4);
+  const data = dto(); client.snapshot(data); client.snapshot(data);
+  expect(game.run.plushPower).toBe(true); expect(game.run.plushCount).toBe(5);
+  expect(game.world.plushies.every(p => p.used)).toBe(true);
+  expect(game.run.player.stats.damage).toBe(4);
+});
 it('reconcilia movimiento desde ack y reproduce solo entradas pendientes, sin acumular correcciones', () => {
   const { room, client, game, dto } = fixture();
   const command = { seq: 2, enabled: true, held: ['KeyW'], actions: ['Space'], yaw: 0, aim: { x: 0, y: 0, z: -1 }, dt: 1 / 60 };

@@ -48,7 +48,7 @@ test('sapphire loads from its GLB, transitions, pauses and completes death befor
     boss.dead = true; r.enemies = r.enemies.filter(e => e !== boss); g.entities.sync(r); names.push(avatar.clip);
     const retained = g.entities.corpses.size === 1 && mesh.visible;
     r.time += 2.4; g.entities.sync(r); const finalVisible = mesh.visible && g.entities.corpses.size === 1 && avatar.coreIntensity === 0;
-    r.time += 0.6; g.entities.sync(r);
+    r.time += 0.61; g.entities.sync(r); // Cross the disposal boundary despite floating-point rounding.
     return { socketError, lit, names, frozen, retained, finalVisible, removed: mesh.parent === null && !g.entities.sapphireAvatars.has(mesh) };
   });
   expect(transitions.socketError).toBeLessThan(.001); expect(transitions.lit).toBe(true);

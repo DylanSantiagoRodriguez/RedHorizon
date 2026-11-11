@@ -4,6 +4,6 @@ export default defineConfig({
   use: { baseURL: 'http://127.0.0.1:5179', viewport: { width: 1280, height: 800 }, headless: true, launchOptions: { args: ['--enable-webgl', '--enable-unsafe-swiftshader'] }, screenshot: 'only-on-failure', trace: 'retain-on-failure' },
   webServer: [
     { command: 'node tests/browser/online-server.mjs', url: 'http://127.0.0.1:18787/health', reuseExistingServer: false },
-    { command: 'RH_BACKEND_PORT=18787 npm run dev:frontend -- --port 5179 --strictPort', url: 'http://127.0.0.1:5179', reuseExistingServer: false },
+    { command: 'npm run dev:frontend -- --port 5179 --strictPort', env: { RH_BACKEND_PORT: '18787' }, url: 'http://127.0.0.1:5179', reuseExistingServer: false },
   ],
 });

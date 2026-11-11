@@ -1,12 +1,16 @@
+import { loadEnvironment } from './EnvironmentAssets.js';
+import { loadBurningWreck } from '../graphics/BurningWreck.js';
 import * as THREE from 'three';
 import { WorldModel } from './WorldModel.js';
 import { Random } from '../utils/Random.js';
 export class WorldManager {
   constructor(scene, models, seed) {
-    this.scene = scene; this.models = models; this.group = new THREE.Group(); scene.add(this.group);
+    this.scene = scene; this.models = models; this.seed = seed; this.group = new THREE.Group(); scene.add(this.group);
     this.model = new WorldModel(seed); this.terrain = this.model.terrain; this.random = new Random(`${seed}-decoration`);
-    this.obstacles = this.model.obstacles; this.cameraColliders = []; this.owned = []; this.beacons = []; this.rewards = [];
+    this.rockViews = []; this.obstacles = this.model.obstacles; this.cameraColliders = []; this.owned = []; this.beacons = []; this.rewards = [];
     this.buildTerrain(); this.buildRocks(); this.buildHorizon(); this.buildSites(); this.buildDetails(); this.batchStatic();
+    this.plushies = this.model.plushies.map(p => ({ ...p }));
+    this.environmentReady = loadEnvironment(this);
     this.group.updateMatrixWorld(true);
   }
   heightAt(x, z) { return this.terrain.heightAt(x, z); }
@@ -19,12 +23,12 @@ export class WorldManager {
     }
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3)); geo.computeVertexNormals();
     const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, flatShading: true });
-    const mesh = new THREE.Mesh(geo, mat); mesh.receiveShadow = true; this.group.add(mesh); this.owned.push(geo, mat);
+    const mesh = new THREE.Mesh(geo, mat); this.terrainMesh=mesh; mesh.receiveShadow = true; this.group.add(mesh); this.owned.push(geo, mat);
   }
   buildRocks() {
     for (const rock of this.terrain.rocks) {
       const mesh = this.models.part(this.group, 'rock', this.random.pick([0x5b3b32, 0x6f4435, 0x814c37]), [rock.x, this.heightAt(rock.x, rock.z) + rock.height * 0.34, rock.z], [rock.radius, rock.height * 0.65, rock.radius]);
-      mesh.rotation.y = rock.rotation; this.cameraColliders.push(mesh);
+      this.rockViews.push(mesh); mesh.rotation.y = rock.rotation; this.cameraColliders.push(mesh);
     }
   }
   buildHorizon() {
@@ -60,9 +64,19 @@ export class WorldManager {
         }
         this.models.part(this.group, 'box', 0x514856, [x, h + 8.2, z - 3], [10, 1.5, 2.6]);
       } else {
-        const hull = this.solid('cylinder', 0x899a95, x + 4, h + 1.5, z - 4, 2.2, 7, 2.2, 4); hull.rotation.z = 1.15;
-        const wing = this.solid('box', 0x3a4c4c, x - 4, h + 0.6, z - 4, 5, 0.5, 3, 3); wing.rotation.z = -0.15;
-        this.models.part(this.group, 'cone', 0xcf6b3f, [x + 7, h + 1.5, z - 4], [2, 4, 2]).rotation.z = -Math.PI / 2;
+        this.wreckFallback = new THREE.Group(); this.group.add(this.wreckFallback);
+        const hull = this.models.part(this.wreckFallback, 'cylinder', 0x899a95, [x + 4, h + 1.5, z - 4], [2.2, 7, 2.2]); hull.rotation.z = 1.15;
+        const wing = this.models.part(this.wreckFallback, 'box', 0x3a4c4c, [x - 4, h + .6, z - 4], [5, .5, 3]); wing.rotation.z = -.15;
+        this.models.part(this.wreckFallback, 'cone', 0xcf6b3f, [x + 7, h + 1.5, z - 4], [2, 4, 2]).rotation.z = -Math.PI / 2;
+        this.cameraColliders.push(hull, wing);
+        // A chain follows the long hull while leaving the site interaction beacon accessible.
+        this.wreckReady = loadBurningWreck(this.group, site, (px, pz) => this.heightAt(px, pz), this.seed).then(wreck => {
+          if (this.disposed) { wreck.dispose(); return; }
+          this.wreck = wreck; this.wreckFallback.visible = false;
+          this.cameraColliders = this.cameraColliders.filter(mesh => mesh !== hull && mesh !== wing);
+          wreck.root.traverse(mesh => { if (mesh.isMesh) this.cameraColliders.push(mesh); });
+          wreck.update(this.time || 0);
+        }).catch(error => console.warn('No se pudo cargar la nave estrellada; se mantiene el respaldo.', error));
       }
       const beacon = new THREE.Group(); beacon.position.set(x, h, z + 3); this.group.add(beacon);
       this.models.part(beacon, 'cylinder', 0x263d40, [0, 0.35, 0], [0.8, 0.7, 0.8]);
@@ -92,13 +106,15 @@ export class WorldManager {
     }
   }
   update(time) {
+    this.time = time; this.wreck?.update(time);
+    for(const p of this.plushies || []) if(p.mesh)p.mesh.visible=!p.used;
     for (const b of this.beacons) { b.crystal.rotation.y = time; b.crystal.position.y = 1.3 + Math.sin(time * 2) * 0.12; b.crystal.visible = !b.used; }
     for (const box of this.rewards) box.mesh.visible = !box.used;
   }
   batchStatic() {
     const batches = new Map(), dynamic = new Set(this.rewards.map(r => r.mesh));
     for (const mesh of [...this.group.children]) {
-      if (!mesh.isMesh || mesh.isInstancedMesh || dynamic.has(mesh) || mesh.children.length) continue;
+      if (!mesh.isMesh || mesh.isInstancedMesh || dynamic.has(mesh) || this.rockViews.includes(mesh) || mesh.children.length) continue;
       const key = `${mesh.geometry.uuid}:${mesh.material.uuid}:${mesh.castShadow}`;
       if (!batches.has(key)) batches.set(key, []); batches.get(key).push(mesh);
     }
@@ -110,5 +126,5 @@ export class WorldManager {
       instances.computeBoundingSphere(); this.group.add(instances);
     }
   }
-  dispose() { this.scene.remove(this.group); this.group.traverse(node => { if (node.isInstancedMesh) node.dispose(); }); this.owned.forEach(r => r.dispose()); }
+  dispose() { this.disposed=true; this.wreck?.dispose(); this.disposeEnvironment?.(); this.scene.remove(this.group); this.group.traverse(node => { if (node.isInstancedMesh) node.dispose(); }); this.owned.forEach(r => r.dispose()); }
 }

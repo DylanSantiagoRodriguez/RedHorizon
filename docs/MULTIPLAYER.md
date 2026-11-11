@@ -27,7 +27,7 @@ Escape, pérdida de foco o de captura del ratón abren un menú **local**: el mu
 
 Entradas secuenciadas: el servidor consume como máximo una entrada de cada jugador por paso fijo, confirma `ack` y mantiene el estado continuo hasta 250 ms sin entradas. Las acciones de un mensaje consumido no se vuelven a ejecutar. Una elección se identifica por ronda y solo se acepta una opción ofrecida una vez. El navegador no decide dt, posición, HP, daño, XP, recompensas, lanzamiento ni resultado. Predice únicamente el estado local mediante la física compartida y vuelve al snapshot antes de reproducir entradas pendientes. Los enemigos y los otros jugadores se interpolan; los proyectiles se presentan desde snapshots. Eventos con ID creciente impiden repetir audio/partículas; al reconectar se descartan efectos históricos. Un snapshot completo reconstruye misión, jugadores, enemigos, proyectiles e interactuables.
 
-`PROTOCOL_VERSION=1`, `GAME_VERSION=coop-1`: incrementar la versión correspondiente cuando cambie el contrato o las reglas físicas que deben compartir cliente/servidor. Un cliente antiguo recibe un error antes de entrar. No se admite mezclar versiones dentro de una sala.
+`PROTOCOL_VERSION=1`, `GAME_VERSION=coop-2`: incrementar la versión correspondiente cuando cambie el contrato o las reglas físicas que deben compartir cliente/servidor. Un cliente antiguo recibe un error antes de entrar. No se admite mezclar versiones dentro de una sala. La versión coop-2 incorpora las alturas de las arenas importadas, las colisiones de Aurora y la colección compartida de peluches.
 
 ## Balance y límites configurables
 

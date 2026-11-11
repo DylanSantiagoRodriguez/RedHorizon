@@ -89,7 +89,7 @@ export class HUD {
     if (run.mission.phase === 'countdown') n['boss-arrival'].textContent = 'EXTINCIÓN EN ' + clock(Math.ceil(run.mission.countdown));
     n['boss-bar'].hidden = !run.boss.enemy || run.boss.enemy.dead;
     if (run.boss.enemy) { n['boss-bar'].querySelector('span').textContent = run.boss.enemy.name; n['boss-fill'].style.width = `${run.boss.enemy.hp / run.boss.enemy.maxHp * 100}%`; n['boss-phase'].textContent = `FASE ${run.boss.enemy.phase === 1 ? 'I' : 'II · SOBRECARGA'}`; }
-    n.interaction.hidden = !run.interaction; if (run.interaction) n.interaction.innerHTML = `<kbd>${key('KeyE')}</kbd> ${run.interaction.type === 'altar' ? 'INVOCAR ' + run.interaction.name.toUpperCase() : run.interaction.type === 'launch' ? (run.mission.phase === 'ready' ? 'INSERTAR 5 GEMAS Y LANZAR BALIZA' : 'BALIZA · NECESITAS LAS 5 GEMAS') : run.interaction.type ? 'CONECTAR ' + run.interaction.name.toUpperCase() : 'RECOGER SUMINISTROS · +45 VIDA'}`;
+    n.interaction.hidden = !run.interaction; if (run.interaction) n.interaction.innerHTML = `<kbd>${key('KeyE')}</kbd> ${run.interaction.type === 'plush' ? 'RECOGER PELUCHE' : run.interaction.type === 'altar' ? 'INVOCAR ' + run.interaction.name.toUpperCase() : run.interaction.type === 'launch' ? (run.mission.phase === 'ready' ? 'INSERTAR 5 GEMAS Y LANZAR BALIZA' : 'BALIZA · NECESITAS LAS 5 GEMAS') : run.interaction.type ? 'CONECTAR ' + run.interaction.name.toUpperCase() : 'RECOGER SUMINISTROS · +45 VIDA'}`;
     n.bearing.textContent = `${((this.game.camera.yaw * 180 / Math.PI % 360 + 360) % 360).toFixed(0)}°`;
     n.coordinates.textContent = `${p.x.toFixed(1)} / ${p.z.toFixed(1)}`; n.fps.textContent = `${Math.round(this.game.fps || 60)} FPS`; this.drawRadar(run);
   }

@@ -1,3 +1,4 @@
+import { softenEnemyMaterials } from './EnemyAppearance.js';
 import * as THREE from 'three';
 import { enemyModelKey } from '../data/guardians.js';
 import { buildEnemyArmor, addGuardianEffects } from './EnemyModels.js';
@@ -79,6 +80,7 @@ export class Models {
       if (!this.materials.has(key)) this.materials.set(key, i ? new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false }) : new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.48, metalness: 0.65, flatShading: true }));
       const mesh = new THREE.Mesh(geometry, this.materials.get(key)); mesh.castShadow = !i; mesh.receiveShadow = !i; compact.add(mesh);
     }
+    softenEnemyMaterials(compact);
     return compact;
   }
   dispose() { this.geometries.forEach(g => g.dispose()); this.materials.forEach(m => m.dispose()); }

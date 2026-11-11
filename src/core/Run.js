@@ -1,3 +1,4 @@
+import { collectPlush } from '../world/Plushies.js';
 import { Random } from '../utils/Random.js';
 import { Player } from '../entities/Player.js';
 import { createEnemy } from '../entities/Enemy.js';
@@ -30,6 +31,7 @@ export class Run {
   }
   interact() {
     const target = this.interaction; if (!target || target.used) return false;
+    if (target.type === 'plush') return collectPlush(this,target);
     if (target.type === 'altar') { const summoned = this.boss.awaken(this, target); if (summoned) this.player.interactSerial++; return summoned; }
     if (target.type === 'launch') {
       if (this.mission.phase !== 'ready') return false;
@@ -103,7 +105,7 @@ export class Run {
     for (const [key, weapon] of [['Digit1', 'plasma'], ['Digit2', 'scatter'], ['Digit3', 'nova']]) if (input.take(key)) this.weapon.equipped = weapon;
     if (input.take('KeyF')) this.autoFire = !this.autoFire;
     if (input.take('KeyQ')) this.ability.activate(this);
-    this.interaction = [this.launchBeacon, ...this.altars, ...(this.world.beacons || []), ...(this.world.rewards || [])].find(o => !o.used && Math.hypot(this.player.x - o.x, this.player.z - o.z) < 3.5) || null;
+    this.interaction = [...(this.world.plushies || []).filter(o => Math.hypot(this.player.x-o.x,this.player.z-o.z)<1.25 && Math.abs(this.player.y-o.y)<.9), this.launchBeacon, ...this.altars, ...(this.world.beacons || []), ...(this.world.rewards || [])].find(o => !o.used && Math.hypot(this.player.x - o.x, this.player.z - o.z) < 3.5) || null;
     if (input.take('KeyE')) this.interact();
     if ((input.down ? input.down('Mouse0') : input.buttons.has(0)) || this.autoFire) { this.weapon.fire(this, aim); }
   }

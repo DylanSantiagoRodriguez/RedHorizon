@@ -1,5 +1,5 @@
 export const PROTOCOL_VERSION = 1;
-export const GAME_VERSION = 'coop-1';
+export const GAME_VERSION = 'coop-2';
 export const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const normalizeCode = code => typeof code === 'string' ? code.replace(/\s/g, '').toUpperCase() : '';
 export const HELD = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'Space', 'Mouse0'];

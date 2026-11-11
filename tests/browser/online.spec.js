@@ -9,6 +9,7 @@ test('dos contextos completan una expedición compartida y reconectan', async ({
   for (const p of [a, b]) p.on('pageerror', e => errors.push(e.message));
   try {
     await Promise.all([a.goto('/?qa'), b.goto('/?qa')]);
+    for (const p of [a, b]) await p.evaluate(() => { const g = window.__RED_HORIZON__; g.save.data.options.quality = 'low'; g.save.write(); g.applyOptions(); });
     await a.evaluate(() => { const g = window.__RED_HORIZON__; g.save.data.armor = 5; g.save.data.salvage = 99; g.save.write(); });
     for (const p of [a, b]) await p.getByRole('button', { name: 'Multijugador', exact: true }).click();
     await a.locator('#online-name').fill('Alfa'); await a.getByRole('button', { name: 'Crear sala', exact: true }).click();
@@ -16,6 +17,7 @@ test('dos contextos completan una expedición compartida y reconectan', async ({
     await b.locator('#online-name').fill('<Beta>'); await b.locator('#room-code').fill(` ${code.toLowerCase().slice(0, 3)} ${code.toLowerCase().slice(3)} `); await b.getByRole('button', { name: 'Unirse con código', exact: true }).click();
     await expect(a.locator('#lobby-players li')).toHaveCount(2); await expect(b.locator('#lobby-players')).toContainText('<Beta>');
     await a.getByRole('button', { name: 'Listo', exact: true }).click(); await b.getByRole('button', { name: 'Listo', exact: true }).click(); await expect(a.locator('#start-room')).toBeEnabled(); await a.locator('#start-room').click();
+    await fixture(request, code, 'explore');
     await expect.poll(async () => (await game(a)).count).toBe(2); await expect.poll(async () => (await game(b)).remoteViews).toBe(1);
     const initial = await game(a), id = initial.playerId; expect(initial.players.find(p => p.id === id).maxHp).toBe(120);
     await a.keyboard.down('KeyW'); await expect.poll(async () => (await game(b)).players.find(p => p.id === id)?.z).toBeLessThan(-1); await a.keyboard.up('KeyW');

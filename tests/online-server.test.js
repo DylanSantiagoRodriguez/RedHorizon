@@ -18,6 +18,7 @@ it('WebSocket real: aislamiento, versión, autoridad y salud', async () => {
   send(a, { type: 'ready', ready: true }); send(b, { type: 'ready', ready: true }); await expect.poll(() => app.manager.find(wa.code).members.get(wb.playerId).ready).toBe(true); send(a, { type: 'start' });
   await message(a, 'snapshot'); await message(b, 'snapshot'); expect(c.messages.some(m => m.type === 'snapshot')).toBe(false);
   const bad = await connect(url); send(bad, { ...hello('create'), version: 999 }); expect((await message(bad, 'error')).code).toBe('VERSION');
+  const oldWorld = await connect(url); send(oldWorld, { ...hello('create'), gameVersion: 'coop-1' }); expect((await message(oldWorld, 'error')).code).toBe('VERSION');
   send(a, { type: 'input', playerId: wb.playerId, x: 999 }); expect((await message(a, 'error')).code).toBe('INVALID');
   const health = await fetch(`http://127.0.0.1:${port}/health`).then(r => r.json()); expect(health.protocol).toBe(PROTOCOL_VERSION);
 });

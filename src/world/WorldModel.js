@@ -1,5 +1,6 @@
 import { TerrainGenerator } from './TerrainGenerator.js';
 import { Random } from '../utils/Random.js';
+import { hiddenPlushies } from './Plushies.js';
 
 // Physics has its own random stream. Rendering cannot change collision or loot.
 export class WorldModel {
@@ -8,9 +9,10 @@ export class WorldModel {
     this.obstacles = this.terrain.rocks.map((rock, i) => ({ ...rock, id: `rock-${i}` }));
     this.beacons = this.terrain.pois.map((site, i) => ({ ...site, id: `site-${i}`, z: site.z + 3, used: false }));
     for (const { x, z, type } of this.terrain.pois) {
-      const solids = type === 'relay' ? [[-5, 0, 3.9], [3, -3, 0.6]] : type === 'ruin' ? [[-4, -3, 1.4], [4, -3, 1.4]] : [[4, -4, 4], [-4, -4, 3]];
+      const solids = type === 'relay' ? [[-5, 0, 3.9], [3, -3, 0.6]] : type === 'ruin' ? [[-4, -3, 1.4], [4, -3, 1.4]] : [-6, -3, 0, 3, 6].map(dx => [dx, -6, 3.4]);
       for (const [dx, dz, radius] of solids) this.obstacles.push({ id: `solid-${this.obstacles.length}`, x: x + dx, z: z + dz, radius });
     }
+    this.plushies = hiddenPlushies(this.terrain, this.obstacles, seed);
     this.rewards = []; const random = new Random(`${seed}-supplies`);
     for (let i = 0; i < 7; i++) {
       const a = random.range(0, Math.PI * 2), d = random.range(14, 65), x = Math.cos(a) * d, z = Math.sin(a) * d;

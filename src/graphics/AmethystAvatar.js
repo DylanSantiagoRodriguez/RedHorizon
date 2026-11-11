@@ -50,9 +50,9 @@ export async function loadAmethystAvatar(parent) {
         asset.update(0);
       }
       const power = enemy.dead ? Math.max(0,1-(time-deathAt)/1.5) : 1;
-      const pulse = name === 'attack_special' ? 1+2*Math.exp(-Math.pow((current.time-1)/.18,2)) : 1+.12*Math.sin(time*3);
-      coreMaterial.emissiveIntensity = 3*power*pulse; light.intensity = 8*power*pulse;
-      for (const mat of metals) mat.emissiveIntensity = .13*power*pulse;
+      const pulse = name === 'attack_special' ? 1+.65*Math.exp(-Math.pow((current.time-1)/.18,2)) : 1+.12*Math.sin(time*3);
+      coreMaterial.emissiveIntensity = 0.8*power*pulse; light.intensity = 1.5*power*pulse;
+      for (const mat of metals) mat.emissiveIntensity = .025*power*pulse;
       if (enemy.dead) {
         const elapsed = Math.max(0,time-deathAt);
         parent.position.y = enemy.y - 4.905*elapsed*elapsed;

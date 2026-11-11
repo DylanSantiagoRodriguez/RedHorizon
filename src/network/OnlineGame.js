@@ -47,7 +47,7 @@ export class OnlineGame {
     if (this.latest && s.tick < this.latest.tick) return;
     this.latest = s; this.receivedAt = performance.now(); this.history.push({ snapshot: s, at: this.receivedAt }); if (this.history.length > 8) this.history.shift();
     const r = g.run;
-    Object.assign(r, { status: s.status, time: s.time, kills: s.kills, salvage: 0, mission: { ...s.mission }, gems: s.gems });
+    Object.assign(r, { status: s.status, time: s.time, kills: s.kills, salvage: 0, mission: { ...s.mission }, gems: s.gems, plushCount: s.plushCount || 0, plushPower: !!s.plushPower });
     Object.assign(r.experience, { level: s.experience.level, xp: s.experience.xp, pending: s.experience.pending });
     for (const p of s.players) {
       let member = this.players.get(p.id); if (!member) { member = { player: new Player() }; this.players.set(p.id, member); }
@@ -56,8 +56,8 @@ export class OnlineGame {
     const local = this.players.get(this.playerId), authoritative = s.players.find(p => p.id === this.playerId); if (!local) return;
     r.player = local.player; r.weapon = local.weapon; Object.assign(r.ability, local.ability); r.upgrades = local.upgrades; r.autoFire = authoritative.autoFire;
     for (const a of r.altars) Object.assign(a, s.altars.find(o => o.id === a.id));
-    for (const o of [r.launchBeacon, ...g.world.beacons, ...g.world.rewards]) Object.assign(o, s.interactables.find(i => i.id === o.id));
-    r.interaction = [r.launchBeacon, ...r.altars, ...g.world.beacons, ...g.world.rewards].find(o => o.id === authoritative.interactionId) || null;
+    for (const o of [r.launchBeacon, ...g.world.beacons, ...g.world.rewards, ...(g.world.plushies || [])]) Object.assign(o, s.interactables.find(i => i.id === o.id));
+    r.interaction = [r.launchBeacon, ...r.altars, ...g.world.beacons, ...g.world.rewards, ...(g.world.plushies || [])].find(o => o.id === authoritative.interactionId) || null;
     const enemies = new Map(r.enemies.map(e => [e.id, e]));
     for (const e of r.enemies) if (!s.enemies.some(n => n.id === e.id)) e.dead = true;
     r.enemies = s.enemies.map(data => { const e = enemies.get(data.id) || {}; for (const key of Object.keys(e)) if (!(key in data)) delete e[key]; return Object.assign(e, data); });
@@ -76,6 +76,7 @@ export class OnlineGame {
   }
   show(state) {
     const g = this.game; g.state.value = state; g.input.active = state === 'playing'; g.input.clear();
+    if (state !== 'playing') { g.audio.narration?.stop(); g.audio.sceneAudio?.pause(); }
     if (state !== 'playing' && document.pointerLockElement) document.exitPointerLock();
     g.ui.show(state);
     if (state === 'paused') { const p = g.ui.overlay.querySelector('p'); if (p) p.textContent = 'Menú local. El equipo y los enemigos siguen jugando; tu personaje permanece vulnerable.'; }

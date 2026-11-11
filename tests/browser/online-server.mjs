@@ -12,7 +12,10 @@ const control = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://localhost'), room = app.manager.find(url.searchParams.get('code')), r = room.run;
     if (!r) throw new Error('Partida no iniciada');
-    if (url.pathname === '/combat') {
+    if (url.pathname === '/explore') {
+      // Network/menus are checked before combat; browser rendering time must not kill the fixture players.
+      r.enemies.length = 0; r.director.timer = 100000;
+    } else if (url.pathname === '/combat') {
       r.enemies.length = 0; r.director.timer = 100000;
       for (const [i, m] of [...r.members.values()].entries()) { Object.assign(m.player, { x: i * 1.5, z: 0, y: 0, hp: 120, dead: false, vx: 0, vz: 0 }); m.weapon.timer = 0; m.player.stats.crit = 0; }
       const e = r.spawn('brute', 0, -6); e.hp = 100; e.stun = 10000;
