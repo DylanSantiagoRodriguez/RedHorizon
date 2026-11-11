@@ -4,12 +4,15 @@ import { WeaponModels } from './WeaponModels.js';
 import { enemyModelKey } from '../data/guardians.js';
 import { animateGuardian } from './EnemyModels.js';
 import { CONFIG } from '../config.js';
+import { isDust } from '../data/dustAnimations.js';
+import { loadDustAvatar } from './DustAvatar.js';
 export class EntityViews {
   constructor(scene, models, emitShotParticles) {
     this.scene = scene; this.models = models; this.enemies = new Map(); this.free = new Map(); this.gems = new Map();
     this.player = models.player(); scene.add(this.player);
     this.weapons = new WeaponModels(models, this.player.userData.gun); this.emitShotParticles = emitShotParticles;
     this.disposed = false;
+    this.dustAvatars = new Map(); this.corpses = new Map(); this.enemyData = new Map();
     this.avatarReady = loadPlayerAvatar(this.player).then(avatar => {
       if (this.disposed) { avatar.dispose(); return; }
       this.avatar = avatar;
@@ -32,8 +35,16 @@ export class EntityViews {
     this.weapons.update(run, this.emitShotParticles, this.avatar);
     for (const [id, mesh] of this.enemies) {
       if (!run.enemies.some(e => e.id === id && !e.dead)) {
-        mesh.visible = false; this.enemies.delete(id);
+        this.enemies.delete(id);
+        const enemy = this.enemyData.get(id); this.enemyData.delete(id);
+        if (enemy?.dead && this.dustAvatars.has(mesh)) { this.corpses.set(mesh, enemy); mesh.visible = true; continue; }
+        mesh.visible = false; this.dustAvatars.get(mesh)?.reset();
         const type = mesh.userData.modelKey; if (!this.free.has(type)) this.free.set(type, []); this.free.get(type).push(mesh);
+      }
+    }
+    for (const [mesh, enemy] of this.corpses) {
+      if (this.dustAvatars.get(mesh).update(enemy, run.time)) {
+        this.corpses.delete(mesh); this.dustAvatars.get(mesh).dispose(); this.dustAvatars.delete(mesh); this.scene.remove(mesh);
       }
     }
     for (const e of run.enemies) {
@@ -43,10 +54,24 @@ export class EntityViews {
         const key = enemyModelKey(e);
         mesh = this.free.get(key)?.pop() || this.models.enemy(e); mesh.userData.modelKey = key;
         this.enemies.set(e.id, mesh); this.scene.add(mesh); mesh.visible = true;
+        if (isDust(e) && !mesh.userData.dustLoading && !this.dustAvatars.has(mesh)) {
+          mesh.userData.dustLoading = true;
+          mesh.userData.dustReady = loadDustAvatar(mesh).then(avatar => {
+            if (this.disposed) { avatar.dispose(); return; }
+            this.dustAvatars.set(mesh, avatar);
+            for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
+          }).catch(error => { console.warn('No se pudo cargar dust; se mantiene el modelo de respaldo.', error); })
+            .finally(() => { mesh.userData.dustLoading = false; });
+        }
       }
+      this.enemyData.set(e.id, e);
       mesh.position.set(e.x, e.y + (e.type === 'drone' ? Math.sin(run.time * 3 + e.id) * 0.2 : 0), e.z); mesh.rotation.y = e.yaw;
-      if (e.type !== 'drone') { mesh.position.y += Math.sin(run.time * e.speed * 2 + e.id) * 0.045; mesh.rotation.z = Math.sin(run.time * e.speed + e.id) * 0.025; }
-      if (e.type === 'titan') animateGuardian(mesh, e, run.time);
+      const avatar = this.dustAvatars.get(mesh);
+      if (avatar) { mesh.rotation.z = 0; avatar.update(e, run.time); }
+      else {
+        if (e.type !== 'drone') { mesh.position.y += Math.sin(run.time * e.speed * 2 + e.id) * 0.045; mesh.rotation.z = Math.sin(run.time * e.speed + e.id) * 0.025; }
+        if (e.type === 'titan') animateGuardian(mesh, e, run.time);
+      }
       mesh.visible = e.flash <= 0 || Math.floor(run.time * 35) % 2 === 0;
     }
     let count = 0;
@@ -61,6 +86,9 @@ export class EntityViews {
   }
   dispose() {
     this.disposed = true; this.avatar?.dispose();
+    for (const avatar of this.dustAvatars.values()) avatar.dispose();
+    for (const mesh of this.corpses.keys()) this.scene.remove(mesh);
+    this.dustAvatars.clear(); this.corpses.clear(); this.enemyData.clear();
     this.scene.remove(this.player, this.projectiles); this.projectiles.dispose(); this.projectileMaterial.dispose();
     for (const mesh of this.enemies.values()) this.scene.remove(mesh);
     for (const meshes of this.free.values()) for (const mesh of meshes) this.scene.remove(mesh);

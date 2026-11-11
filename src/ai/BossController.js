@@ -1,5 +1,7 @@
 import { GUARDIANS } from '../data/guardians.js';
 import { CONFIG } from '../config.js';
+import { isDust } from '../data/dustAnimations.js';
+import { startDustAction } from './DustActions.js';
 export class BossController {
   constructor() { this.spawned = false; this.enemy = null; this.guardians = []; this.zones = []; this.nextZone = 1; }
   prepareAltars(run) {
@@ -50,8 +52,19 @@ export class BossController {
       boss.phase = 2; boss.abilityTimer = 0.5; run.emit('phase', {});
     }
     boss.abilityTimer -= dt; boss.summonTimer -= dt;
+    if (isDust(boss) && (boss.stun > 0 || boss.dustAction)) return;
     if (boss.abilityTimer <= 0) {
       boss.abilityTimer = boss.phase === 2 ? 3.4 : 5.5;
+      if (isDust(boss)) { startDustAction(boss, 'attack_special', run.time); return; }
+      this.releaseAbility(run, boss);
+    }
+    if (boss.summonTimer <= 0) {
+      boss.summonTimer = boss.phase === 2 ? 10 : 18;
+      if (isDust(boss)) { startDustAction(boss, 'summon', run.time); return; }
+      this.releaseSummon(run, boss);
+    }
+  }
+  releaseAbility(run, boss) {
       boss.lastAbilityAt = run.time;
       run.emit('guardianEffect', { x: boss.x, y: boss.y, z: boss.z, guardianId: boss.guardianId, color: boss.gemColor });
       const count = boss.phase === 2 ? 3 : 1;
@@ -65,13 +78,12 @@ export class BossController {
         run.combat.spawn({ x: boss.x, y: boss.y - 1.5, z: boss.z, vx: Math.cos(a) * 13, vy: -0.3, vz: Math.sin(a) * 13, damage: 22, life: 5, radius: 0.4, color: boss.gemColor || 0xff6143 });
       }
       run.combat.enemyShot(boss);
-    }
-    if (boss.summonTimer <= 0) {
-      boss.summonTimer = boss.phase === 2 ? 10 : 18;
+  }
+  releaseSummon(run, boss) {
+      boss.lastSummonAt = run.time;
       for (let i = 0; i < (boss.phase === 2 ? 5 : 3); i++) {
         if (run.enemies.filter(e => !e.dead).length >= CONFIG.enemyLimit - (5 - this.guardians.length)) break;
         const p = run.director.spawnPoint(run, 16, 25); if (p) run.spawn(i % 2 ? 'stalker' : 'drone', p.x, p.z);
       }
-    }
   }
 }
