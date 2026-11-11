@@ -4,7 +4,8 @@ export function movementWeights(player) {
   const speed = Math.hypot(player.vx, player.vz);
   if (speed < 0.25) return { idle_rifle: 1 };
   const forward = player.vx * Math.sin(player.yaw) + player.vz * Math.cos(player.yaw);
-  const side = player.vx * Math.cos(player.yaw) - player.vz * Math.sin(player.yaw);
+  // The avatar faces local +Z: its right side is local -X (camera-relative D).
+  const side = -player.vx * Math.cos(player.yaw) + player.vz * Math.sin(player.yaw);
   const total = Math.abs(forward) + Math.abs(side) || 1;
   const running = Math.max(0, Math.min(1, (speed - 7 * player.stats.speed) / (3.5 * player.stats.speed)));
   return {

@@ -43,16 +43,16 @@ export class EntityViews {
       let view = this.remotePlayers.get(id);
       if (!view) {
         const mesh = this.models.player(); this.scene.add(mesh);
-        view = { mesh, weapons: new WeaponModels(this.models, mesh.userData.gun) }; this.remotePlayers.set(id, view); view.weapons.seenShot = member.weapon.shotId;
+        view = { mesh, loading: true, weapons: new WeaponModels(this.models, mesh.userData.gun) }; this.remotePlayers.set(id, view); view.weapons.seenShot = member.weapon.shotId;
         loadPlayerAvatar(mesh).then(avatar => {
           if (this.disposed || !this.remotePlayers.has(id)) { avatar.dispose(); return; }
           view.avatar = avatar;
           for (const child of mesh.children) if (child !== avatar.root && child !== mesh.userData.gun) child.visible = false;
-        }).catch(() => {});
+        }).catch(() => {}).finally(() => { view.loading = false; });
       }
       const context = { ...run, player: member.player, weapon: member.weapon, ability: member.ability };
       this.models.animatePlayer(view.mesh, member.player); view.avatar?.update(context, dt); view.weapons.update(context, this.emitShotParticles, view.avatar);
-      view.mesh.visible = run.mission.phase !== 'cinematic' || run.mission.cinematic < 4;
+      view.mesh.visible = !view.loading && (run.mission.phase !== 'cinematic' || run.mission.cinematic < 4);
     }
     for (const [id, view] of this.remotePlayers) if (!players.has(id)) { view.avatar?.dispose(); this.scene.remove(view.mesh); this.remotePlayers.delete(id); }
   }
@@ -212,6 +212,19 @@ export class EntityViews {
             for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
           }).catch(error => { console.warn('No se pudo cargar dust; se mantiene el modelo de respaldo.', error); })
             .finally(() => { mesh.userData.dustLoading = false; });
+        }
+      }
+      // Fallback geometry is for a failed download, never a loading placeholder.
+      // Hide children rather than the parent: flashing/death/pooling control it.
+      if (!this.animatedAvatar(mesh)) {
+        const ready = Object.entries(mesh.userData).filter(([key]) => key.endsWith('Ready')).map(([, value]) => value);
+        if (ready.length && mesh.userData.fallbackPending !== ready[0]) {
+          mesh.userData.fallbackPending = ready[0];
+          const fallback = mesh.children.map(child => [child, child.visible]);
+          for (const [child] of fallback) child.visible = false;
+          Promise.allSettled(ready).then(() => {
+            if (!this.disposed && !this.animatedAvatar(mesh)) for (const [child, visible] of fallback) child.visible = visible;
+          });
         }
       }
       this.enemyData.set(e.id, e);
