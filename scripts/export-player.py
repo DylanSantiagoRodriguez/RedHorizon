@@ -7,5 +7,6 @@ for obj in bpy.context.view_layer.objects:
 for obj in bpy.data.objects:
     if obj.type == 'ARMATURE' or (obj.type == 'MESH' and any(m.type == 'ARMATURE' for m in obj.modifiers)):
         obj.select_set(True)
-output = Path(__file__).resolve().parents[1] / 'public' / 'models' / 'player.glb'
+output = Path(__file__).resolve().parents[1] / 'public' / 'models' / 'player' / 'player-legacy.glb'
+output.parent.mkdir(parents=True, exist_ok=True)
 bpy.ops.export_scene.gltf(filepath=str(output), export_format='GLB', use_selection=True, export_animations=False)

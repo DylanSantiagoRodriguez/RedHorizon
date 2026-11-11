@@ -73,7 +73,7 @@ export class HUD {
     });
     n['ability-button'].style.setProperty('--charge', Math.max(0, 1 - run.ability.timer / (14 * p.stats.cooldown)) * 360 + 'deg');
     n['ability-button'].setAttribute('aria-label', run.ability.timer > 0 ? 'Pulso recargando: ' + run.ability.timer.toFixed(1) + ' segundos' : 'Activar pulso de resonancia');
-    n['weapon-status'].textContent = run.autoFire ? 'AUTO / ACTIVO' : 'MANUAL / EN LÍNEA';
+    n['weapon-status'].textContent = p.slideTime > 0 ? 'DESLIZANDO / BLOQUEADO' : run.autoFire ? 'AUTO / ACTIVO' : 'MANUAL / EN LÍNEA';
     n.health.innerHTML = `${Math.ceil(p.hp)} <small>/ ${p.stats.maxHp}</small>`; n['hp-fill'].style.width = `${p.hp / p.stats.maxHp * 100}%`;
     n.shield.textContent = Math.ceil(p.shield); n['shield-fill'].style.width = `${p.shield / Math.max(1, p.stats.shield + (run.ability.shieldTime > 0 ? 30 : 0)) * 100}%`;
     n.level.textContent = `NIVEL ${run.level.toString().padStart(2, '0')}`; n.xp.textContent = `${run.experience.xp} / ${run.experience.threshold}`; n['xp-fill'].style.width = `${run.experience.xp / run.experience.threshold * 100}%`;

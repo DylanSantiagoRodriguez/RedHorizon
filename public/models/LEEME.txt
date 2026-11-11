@@ -1,0 +1,34 @@
+RED HORIZON — MODELOS Y ANIMACIONES
+
+Una carpeta por personaje:
+player   = Jugador / último soldado
+stalker  = Stalker
+brute    = Brute
+drone    = Drone
+spitter  = Spitter
+elite    = Elite
+ruby     = Guardián rubí
+sapphire = Guardián zafiro
+emerald  = Guardián esmeralda
+amethyst = Guardián amatista
+dust     = Titán del polvo
+
+Comenzamos por player:
+  player/player.glb   Modelo que utiliza actualmente el juego.
+  player/animations/ Animaciones separadas, por ejemplo FBX de Mixamo.
+  player/textures/   Texturas externas, si el modelo las necesita.
+
+Para entregar el nuevo personaje sin sustituir todavía el que funciona,
+coloca su archivo como player/player_nuevo.fbx o player/player_nuevo.glb.
+También puedes entregar el modelo con todos los clips incluidos en un GLB.
+Mantén todas las animaciones del jugador sobre el mismo esqueleto.
+
+Cada carpeta de enemigo tiene animations/ y textures/ con la misma finalidad.
+Coloca su modelo dentro de la carpeta correspondiente, junto a esas subcarpetas.
+Los archivos .gitkeep solo permiten conservar las carpetas vacías en Git.
+
+Copiar archivos aquí no los integra automáticamente. Habrá que validar el
+esqueleto, convertir los archivos cuando corresponda y conectar los clips.
+Los enemigos siguen usando sus modelos procedurales hasta esa integración.
+
+Lista completa de clips: docs/ANIMACIONES_POR_PERSONAJE.txt, en la raíz del repo.

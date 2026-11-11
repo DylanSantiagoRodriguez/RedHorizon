@@ -1,0 +1,100 @@
+{
+  "fps": 30,
+  "clips": [
+    {
+      "clip": "idle_rifle",
+      "frames": 320,
+      "seconds": 10.633
+    },
+    {
+      "clip": "death",
+      "frames": 115,
+      "seconds": 3.8
+    },
+    {
+      "clip": "final_collapse",
+      "frames": 118,
+      "seconds": 3.9
+    },
+    {
+      "clip": "final_exhausted",
+      "frames": 85,
+      "seconds": 2.8
+    },
+    {
+      "clip": "fire",
+      "frames": 7,
+      "seconds": 0.2
+    },
+    {
+      "clip": "hit_react",
+      "frames": 14,
+      "seconds": 0.433
+    },
+    {
+      "clip": "interact",
+      "frames": 98,
+      "seconds": 3.233
+    },
+    {
+      "clip": "jump",
+      "frames": 19,
+      "seconds": 0.6
+    },
+    {
+      "clip": "run_backward",
+      "frames": 17,
+      "seconds": 0.533
+    },
+    {
+      "clip": "run_forward",
+      "frames": 16,
+      "seconds": 0.5
+    },
+    {
+      "clip": "run_strafe_left",
+      "frames": 16,
+      "seconds": 0.5
+    },
+    {
+      "clip": "run_strafe_right",
+      "frames": 19,
+      "seconds": 0.6
+    },
+    {
+      "clip": "slide",
+      "frames": 47,
+      "seconds": 1.533
+    },
+    {
+      "clip": "strafe_left",
+      "frames": 32,
+      "seconds": 1.033
+    },
+    {
+      "clip": "strafe_right",
+      "frames": 47,
+      "seconds": 1.533
+    },
+    {
+      "clip": "walk_backward",
+      "frames": 43,
+      "seconds": 1.4
+    },
+    {
+      "clip": "walk_forward",
+      "frames": 31,
+      "seconds": 1.0
+    },
+    {
+      "clip": "weapon_lower",
+      "frames": 70,
+      "seconds": 2.3
+    },
+    {
+      "clip": "weapon_raise",
+      "frames": 62,
+      "seconds": 2.033
+    }
+  ]
+}

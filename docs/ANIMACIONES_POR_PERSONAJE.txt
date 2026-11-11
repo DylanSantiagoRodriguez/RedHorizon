@@ -1,0 +1,277 @@
+RED HORIZON — LISTA DE ANIMACIONES PARA LOS 11 PERSONAJES
+Guía de producción para rigging, animación y entrega
+
+Esta lista corresponde al jugador, cinco enemigos normales y cinco jefes.
+Los nombres indicados son nombres propuestos para los clips exportados,
+no nombres que debas encontrar literalmente en Mixamo.
+La conexión de estos clips con el juego se realizará al integrar tus archivos.
+
+LEYENDA
+[BASE] Necesaria para cubrir los estados principales del juego.
+[ACABADO] Recomendada para transiciones, respuesta visual y presentación.
+[OPCIONAL] Puede resolverse por código o prepararse más adelante.
+BUCLE: se repite sin salto visible entre el último y el primer fotograma.
+UNA VEZ: termina y vuelve a otro estado. La muerte conserva la última pose.
+POSE: postura estática para mezclar con otras animaciones.
+
+1. JUGADOR / ÚLTIMO SOLDADO — player
+
+Mantener postura de arma a dos manos. La orientación sigue al ratón:
+al retroceder o desplazarse lateralmente, el personaje NO se da vuelta.
+
+[BASE] idle_rifle             | BUCLE   | Reposo sosteniendo el arma.
+[BASE] walk_forward           | BUCLE   | Avanzar mirando al frente.
+[BASE] walk_backward          | BUCLE   | Retroceder mirando al frente.
+[BASE] strafe_left            | BUCLE   | Desplazamiento lateral izquierdo.
+[BASE] strafe_right           | BUCLE   | Desplazamiento lateral derecho.
+[BASE] run_forward            | BUCLE   | Correr hacia delante.
+[BASE] run_backward           | BUCLE   | Retroceder rápido sin girarse.
+[BASE] run_strafe_left        | BUCLE   | Desplazamiento lateral rápido izquierdo.
+[BASE] run_strafe_right       | BUCLE   | Desplazamiento lateral rápido derecho.
+[BASE] jump_start             | UNA VEZ| Impulso de salto; breve flexión y despegue.
+[BASE] jump_air               | BUCLE   | Postura durante el ascenso.
+[BASE] fall_loop              | BUCLE   | Postura durante el descenso.
+[BASE] land                   | UNA VEZ| Aterrizaje corto, sin bloquear movimiento.
+[BASE] slide_loop             | BUCLE   | Postura baja de deslizamiento con arma.
+[BASE] fire_plasma            | UNA VEZ| Retroceso ligero de rifle, principalmente torso/brazos.
+[BASE] fire_scatter           | UNA VEZ| Retroceso fuerte de escopeta.
+[BASE] fire_nova              | UNA VEZ| Disparo pesado del lanzador.
+[BASE] death                  | UNA VEZ| Caída y pose final de derrota.
+[ACABADO] slide_enter         | UNA VEZ| Bajar desde carrera hasta deslizamiento.
+[ACABADO] slide_exit          | UNA VEZ| Recuperar postura normal.
+[ACABADO] hit_react           | UNA VEZ| Reacción breve al daño, principalmente torso.
+[ACABADO] ability_pulse       | UNA VEZ| Gesto de liberar el pulso de resonancia.
+[ACABADO] interact            | UNA VEZ| Activar altar o manipular la baliza.
+[ACABADO] aim_up              | POSE    | Apuntar hacia arriba con torso y brazos.
+[ACABADO] aim_down            | POSE    | Apuntar hacia abajo con torso y brazos.
+[OPCIONAL] weapon_lower       | UNA VEZ| Bajar el arma durante el cambio.
+[OPCIONAL] weapon_raise       | UNA VEZ| Preparar el arma recién equipada.
+[OPCIONAL] final_exhausted     | BUCLE   | Respiración y agotamiento para el desenlace.
+[OPCIONAL] final_collapse      | UNA VEZ| Caída final para ampliar la cinemática.
+
+Notas del jugador:
+- Las diagonales pueden obtenerse mezclando los ciclos existentes.
+- El bunnyhop reutiliza salto/aire/caída/aterrizaje; no necesita un clip aparte.
+- El aterrizaje debe poder interrumpirse inmediatamente con otro salto.
+- El salto desde el deslizamiento reutiliza jump_start con una transición.
+- Disparar debe poder mezclarse con caminar, saltar y deslizarse.
+- hit_react no debe cancelar controles ni introducir invulnerabilidad.
+- aim_up/aim_down son referencias para mezcla; el seguimiento fino se ajustará
+  por código. No necesitas animar cada ángulo del ratón.
+- Una misma locomoción puede servir a las tres armas. Si el lanzador exige
+  otra postura de manos, añade idle_nova y poses de apuntado específicas.
+- No hace falta recarga: actualmente no hay cargadores ni munición limitada.
+- No hace falta un ataque cuerpo a cuerpo del jugador: no existe esa acción.
+
+2. STALKER — stalker
+Enemigo ligero que persigue y ataca cuerpo a cuerpo.
+
+[BASE] idle                   | BUCLE   | Quieto, alerta; respiración o mecanismos.
+[BASE] move                   | BUCLE   | Carrera o desplazamiento de persecución.
+[BASE] attack_melee           | UNA VEZ| Mordida, zarpazo o golpe corto hacia delante.
+[BASE] stunned                | BUCLE   | Aturdido por el pulso del jugador.
+[BASE] death                  | UNA VEZ| Caída o colapso definitivo.
+[ACABADO] hit_react           | UNA VEZ| Reacción breve al impacto.
+
+3. BRUTE — brute
+Enemigo pesado y resistente; movimientos lentos con sensación de peso.
+
+[BASE] idle                   | BUCLE   | Reposo pesado con pistones/respiración.
+[BASE] move                   | BUCLE   | Avance pesado hacia el jugador.
+[BASE] attack_melee           | UNA VEZ| Puñetazo, martillazo o golpe pesado cercano.
+[BASE] stunned                | BUCLE   | Tambaleo o bloqueo de mecanismos.
+[BASE] death                  | UNA VEZ| Colapso pesado, sin desplazamiento de la raíz.
+[ACABADO] hit_react           | UNA VEZ| Reacción contenida al impacto.
+
+4. DRONE — drone
+Enemigo volador a distancia. Permanece orientado hacia el jugador al retirarse.
+
+[BASE] hover                  | BUCLE   | Vuelo estacionario.
+[BASE] move_forward           | BUCLE   | Inclinación para aproximarse.
+[BASE] move_backward          | BUCLE   | Retirada sin girarse de espaldas.
+[BASE] attack_ranged          | UNA VEZ| Apertura del cañón y disparo.
+[BASE] stunned                | BUCLE   | Oscilación o fallo temporal de motores.
+[BASE] death                  | UNA VEZ| Apagado y colapso del cuerpo.
+[ACABADO] hit_react           | UNA VEZ| Sacudida breve por impacto.
+
+La caída hasta el suelo se resolverá en la integración para adaptarla a la
+altura real. No fijes en el clip un recorrido de caída de varios metros.
+
+5. SPITTER — spitter
+Atacante a distancia con depósitos y conductos de energía verde.
+
+[BASE] idle                   | BUCLE   | Reposo, presión o respiración del depósito.
+[BASE] move_forward           | BUCLE   | Avance hacia distancia de ataque.
+[BASE] move_backward          | BUCLE   | Retirada manteniendo la cara hacia el objetivo.
+[BASE] attack_ranged          | UNA VEZ| Preparación y expulsión de un proyectil.
+[BASE] stunned                | BUCLE   | Contracción o fallo temporal.
+[BASE] death                  | UNA VEZ| Colapso del cuerpo y depósitos.
+[ACABADO] hit_react           | UNA VEZ| Reacción breve al impacto.
+
+6. ELITE / SOBRECARGA — elite
+Enemigo de persecución rápida con ataque cuerpo a cuerpo.
+
+[BASE] idle                   | BUCLE   | Reposo tenso, listo para atacar.
+[BASE] move                   | BUCLE   | Carrera rápida y agresiva.
+[BASE] attack_melee           | UNA VEZ| Corte o golpe rápido de sus armas naturales.
+[BASE] stunned                | BUCLE   | Desestabilización de la energía interna.
+[BASE] death                  | UNA VEZ| Colapso y desactivación.
+[ACABADO] hit_react           | UNA VEZ| Reacción breve al impacto.
+[OPCIONAL] attack_melee_alt    | UNA VEZ| Segundo golpe visual para alternar.
+
+IMPORTANTE PARA LOS CINCO JEFES
+Actualmente comparten estas acciones de combate: acercarse, atacar de cerca,
+lanzar una habilidad con proyectiles radiales, disparo dirigido y zonas de
+impacto, invocar refuerzos y entrar en una segunda fase.
+Los gestos descritos abajo dan identidad visual a esas acciones existentes.
+No implican nuevas mecánicas de agarre, teletransporte o destrucción del terreno.
+En fase dos podemos acelerar move y los ataques: no es obligatorio duplicarlos.
+
+7. GUARDIÁN RUBÍ — ruby
+Identidad: horno, chimeneas, brasas y metal caliente.
+
+[BASE] idle                   | BUCLE   | Horno activo y mecanismos respirando.
+[BASE] move                   | BUCLE   | Marcha pesada hacia el jugador.
+[BASE] attack_melee           | UNA VEZ| Golpe pesado de puño o brazo.
+[BASE] attack_special         | UNA VEZ| Abrir horno y liberar descarga de presión.
+[BASE] summon                 | UNA VEZ| Gesto de ordenar o emitir la invocación.
+[BASE] stunned                | BUCLE   | Bloqueo breve de los mecanismos.
+[BASE] death                  | UNA VEZ| Colapso y apagado del horno.
+[ACABADO] spawn               | UNA VEZ| Activarse al ser invocado desde su altar.
+[ACABADO] phase_transition    | UNA VEZ| Sobrecalentamiento al entrar en fase dos.
+[ACABADO] hit_react           | UNA VEZ| Sacudida leve de la armadura.
+
+8. GUARDIÁN ZAFIRO — sapphire
+Identidad: electricidad azul, bobinas y giroscopios.
+
+[BASE] idle                   | BUCLE   | Reposo con bobinas o aros en movimiento.
+[BASE] move                   | BUCLE   | Avance estable, caminando o flotando según modelo.
+[BASE] attack_melee           | UNA VEZ| Golpe cercano con extremidad o núcleo.
+[BASE] attack_special         | UNA VEZ| Alinear bobinas y descargar energía.
+[BASE] summon                 | UNA VEZ| Canalizar señal de invocación.
+[BASE] stunned                | BUCLE   | Oscilación irregular de los giroscopios.
+[BASE] death                  | UNA VEZ| Pérdida de energía y colapso.
+[ACABADO] spawn               | UNA VEZ| Encender núcleo y estabilizarse tras aparecer.
+[ACABADO] phase_transition    | UNA VEZ| Abrir o acelerar sus mecanismos.
+[ACABADO] hit_react           | UNA VEZ| Sacudida breve del cuerpo.
+
+9. GUARDIÁN ESMERALDA — emerald
+Identidad: criatura mecánica con patas, calderas y vapor verde.
+
+[BASE] idle                   | BUCLE   | Bombear depósitos y ajustar las patas.
+[BASE] move                   | BUCLE   | Desplazamiento coordinado de todas las patas.
+[BASE] attack_melee           | UNA VEZ| Golpe de pata, pinza o cuerpo.
+[BASE] attack_special         | UNA VEZ| Presurizar tanques y abrir válvulas de descarga.
+[BASE] summon                 | UNA VEZ| Gesto de llamar refuerzos desde sus conductos.
+[BASE] stunned                | BUCLE   | Patas temblando o mecanismos trabados.
+[BASE] death                  | UNA VEZ| Plegar patas y derrumbar las calderas.
+[ACABADO] spawn               | UNA VEZ| Desplegar patas y levantar el cuerpo.
+[ACABADO] phase_transition    | UNA VEZ| Sobrecargar bombas y abrir conductos.
+[ACABADO] hit_react           | UNA VEZ| Reacción breve del cuerpo.
+
+10. GUARDIÁN AMATISTA — amethyst
+Identidad: núcleo cristalino, fragmentos violetas y estructura flotante.
+
+[BASE] idle                   | BUCLE   | Levitación y movimiento suave del núcleo.
+[BASE] move                   | BUCLE   | Inclinarse/desplazarse hacia el jugador.
+[BASE] attack_melee           | UNA VEZ| Golpe cercano con estructura o cristal.
+[BASE] attack_special         | UNA VEZ| Separar/alinear cristales y liberar energía.
+[BASE] summon                 | UNA VEZ| Canalizar energía para llamar refuerzos.
+[BASE] stunned                | BUCLE   | Levitación inestable o pérdida de alineación.
+[BASE] death                  | UNA VEZ| Colapso del núcleo y de su estructura.
+[ACABADO] spawn               | UNA VEZ| Ensamblarse o elevarse desde pose recogida.
+[ACABADO] phase_transition    | UNA VEZ| Expandir cristales o abrir la estructura.
+[ACABADO] hit_react           | UNA VEZ| Vibración breve del núcleo.
+
+11. TITÁN DEL POLVO — dust
+Identidad: maquinaria pesada, engranajes, taladros y energía dorada.
+
+[BASE] idle                   | BUCLE   | Motor pesado funcionando en reposo.
+[BASE] move                   | BUCLE   | Marcha de gran peso.
+[BASE] attack_melee           | UNA VEZ| Golpe cercano de brazo o taladro.
+[BASE] attack_special         | UNA VEZ| Activar taladros y descargar la onda de energía.
+[BASE] summon                 | UNA VEZ| Gesto de mando o activación de refuerzos.
+[BASE] stunned                | BUCLE   | Frenado o atasco breve de los mecanismos.
+[BASE] death                  | UNA VEZ| Colapso pesado y apagado del motor.
+[ACABADO] spawn               | UNA VEZ| Arrancar motor y enderezarse al ser invocado.
+[ACABADO] phase_transition    | UNA VEZ| Acelerar engranajes y adoptar postura agresiva.
+[ACABADO] hit_react           | UNA VEZ| Reacción contenida de la armadura.
+
+REGLAS PARA ANIMAR Y EXPORTAR
+
+1) Mantén el mismo esqueleto, nombres de huesos, escala y pose de referencia
+   entre todas las animaciones de UN personaje. Los 11 personajes no necesitan
+   compartir el mismo esqueleto. Entrega también su pose de referencia T o A;
+   para criaturas no humanoides, una pose de reposo clara y simétrica.
+
+2) Haz la locomoción IN PLACE: la raíz no avanza ni gira con el clip.
+   El juego mueve y orienta al personaje. Sí puedes mover articulaciones,
+   balancear el cuerpo y comprimir las piernas. En salto, caída y vuelo no
+   animes el recorrido global del personaje: lo determina la física.
+
+3) Exporta a 30 FPS como referencia. Son aceptables otros FPS si se indica
+   la duración real. Hornea las restricciones/IK a los huesos de deformación
+   cuando el formato de entrega lo requiera. Verifica el archivo exportado.
+
+4) Cada animación debe quedar como un clip/acción independiente con el nombre
+   de esta lista. Guarda el .blend original, si trabajas en Blender.
+   Formato final preferido: un .glb por personaje con modelo, materiales,
+   texturas, esqueleto y todos sus clips incluidos. También aceptamos FBX:
+   modelo con esqueleto y animaciones separadas sobre exactamente ese rig.
+
+5) El arma del jugador debe ser un objeto separado del cuerpo. Añade un punto
+   de anclaje en la mano derecha (weapon_socket) y, si puedes, una referencia
+   para la mano izquierda (support_hand). Podemos adaptar nombres existentes.
+   En enemigos que disparen, señala el punto de salida del proyectil
+   (muzzle_socket). Para el jefe puedes señalar un núcleo (core_socket).
+
+6) No necesitas incluir humo, partículas, fogonazos, proyectiles, luces ni
+   explosiones dentro del archivo animado. Se crean en el juego y se colocan
+   sobre los puntos indicados. Sí puedes animar válvulas, aros, pistones,
+   mandíbula, alas, antenas y piezas físicas del modelo.
+
+7) En una nota junto a cada ataque indica el fotograma del golpe o disparo.
+   Ejemplo: attack_melee, 30 FPS, contacto en fotograma 12, termina en 24.
+   Para attack_special marca la descarga; para summon, la llamada; para
+   interact, el contacto con el dispositivo. Esto permite sincronizar efectos
+   y daño al integrar, sin que dependan del número de imágenes por segundo.
+
+8) Duraciones orientativas, ajustables al integrar:
+   - Reposo: 1 a 3 segundos; movimiento: 0,6 a 1,2 segundos por ciclo.
+   - Reacción al golpe: 0,1 a 0,25 segundos, interrumpible.
+   - Despegue/aterrizaje: 0,1 a 0,2 segundos, interrumpibles para bunnyhop.
+   - Entrar/salir del deslizamiento: aproximadamente 0,15 segundos.
+   - Disparo: retroceso breve; plasma especialmente corto y reiniciable.
+   - Ataques normales: alrededor de 0,4 a 1 segundo según el enemigo.
+   - Especial/invocación de jefe: alrededor de 0,8 a 1,5 segundos.
+   - Muerte: 1 a 2,5 segundos, conservando una pose final estable.
+   No fijes la cadencia de disparo o la velocidad de movimiento en el clip:
+   el juego las modifica y ajustaremos la reproducción a esas mecánicas.
+
+9) Si cambia el diseño anatómico de alguno de tus modelos, conserva la
+   intención de la acción. Un jefe sin brazos puede atacar con cuerpo,
+   mandíbula, cristal o apéndice. No necesitas copiar nuestros modelos actuales.
+
+10) Las animaciones de muerte, aparición, reacción y cambio de fase requerirán
+    transiciones de integración. No supongas que quedan conectadas solo por
+    ponerles estos nombres. Los efectos de color seguirán ligados a cada gema.
+
+ENTREGA SUGERIDA
+
+Modelos_Animados/
+  player/
+  stalker/
+  brute/
+  drone/
+  spitter/
+  elite/
+  ruby/
+  sapphire/
+  emerald/
+  amethyst/
+  dust/
+
+En cada carpeta: modelo, animaciones, texturas externas si hay y una nota con
+altura aproximada, orientación frontal, FPS y fotogramas de impacto/disparo.
+Conserva los archivos fuente. Puedes entregar primero los clips [BASE] y
+añadir [ACABADO] y [OPCIONAL] después.

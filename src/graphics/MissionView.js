@@ -45,7 +45,7 @@ export class MissionView {
     this.rocket.visible = !cinema && elapsed < 20; this.flame.visible = launched;
     this.sockets.forEach((mesh, i) => { mesh.position.y = this.game.world.heightAt(0, 7) + 0.9 + (launched ? elapsed * elapsed * 0.8 : 0); mesh.visible = !cinema && elapsed < 20 && (launched || run.gems.some(g => g.color === [0xff5060, 0x509dff, 0x50e090, 0xb580ff, 0xffd050][i] && g.collected)); });
     this.wave.visible = cinema && mission.cinematic < 5; this.helmet.visible = cinema && mission.cinematic < 15; this.ark.visible = cinema && mission.cinematic >= 15;
-    entities.player.visible = !cinema && !run.player.dead;
+    entities.player.visible = entities.avatar ? (!cinema || mission.cinematic < 4) : !cinema && !run.player.dead;
     this.game.world.group.visible = !cinema || mission.cinematic < 15;
     if (!cinema) return;
     const t = mission.cinematic, p = run.player;

@@ -66,9 +66,15 @@ Documentación:
 - [Pruebas y evidencias](docs/TESTING.md)
 - [Limitaciones y próximos pasos](docs/ROADMAP.md)
 
-Las versiones exactas están fijadas por `package-lock.json`. Three.js y Vite se usan conforme a sus [documentaciones oficiales](https://threejs.org/docs/pages/WebGLRenderer) y [guía de Vite](https://vite.dev/guide/). No hay recursos artísticos externos ni rutas de modelos ficticias.
+Las versiones exactas están fijadas por `package-lock.json`. Three.js y Vite se usan conforme a sus [documentaciones oficiales](https://threejs.org/docs/pages/WebGLRenderer) y [guía de Vite](https://vite.dev/guide/). Los recursos del personaje se incluyen localmente en public/models/player.
 
-## Arte del menú y aumentos
+## Personaje y animaciones
+
+El jugador usa el robot y los 19 clips Mixamo proporcionados por el usuario, consolidados en `public/models/player/player.glb`. Las copias de los FBX están en `animations/` y el modelo de autoría, texturas y `.blend` editable en `source/`. `scripts/build-player-animations.py` reconstruye el GLB con Blender. Los originales externos permanecen intactos.
+
+La locomoción mezcla avance, retroceso y desplazamientos laterales sin cambiar la orientación del ratón. El salto mantiene la física y el bunnyhop; durante el deslizamiento se bloquean todos los disparos, incluido el automático. Disparo, reacción al daño, interacción y cambios de arma se mezclan en el torso. El apuntado vertical y el apoyo de la mano izquierda se ajustan por código. Las animaciones se congelan al pausar o elegir aumentos. Las notas y duraciones de los clips están en `public/models/player/INTEGRACION.txt` y `animation-manifest.json`.
+
+## Arte del menú, aumentos y enemigos
 
 Los enemigos usan modelos procedurales de metal oscuro, cobre y latón. Cada altar invoca una identidad visual distinta: rubí (horno y brasas), zafiro (bobinas, giroscopios y descargas), esmeralda (araña de calderas y vapor), amatista (cristales orbitales y fragmentos) y polvo (taladros, engranaje y onda dorada). Sus proyectiles y avisos de impacto comparten el color de su gema. La armadura se combina en dos buffers por modelo, con mecanismos animados independientes para los jefes y recursos reutilizados entre invocaciones.
 

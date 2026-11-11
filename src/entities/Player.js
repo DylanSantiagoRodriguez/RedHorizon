@@ -6,7 +6,7 @@ export function baseStats() {
 export class Player {
   constructor(height = 0) {
     Object.assign(this, { x: 0, y: height, z: 0, vx: 0, vy: 0, vz: 0, radius: CONFIG.playerRadius, grounded: true, hp: 120, shield: 0, shieldDelay: 0, dead: false, yaw: Math.PI, steps: 0 });
-    this.stats = baseStats(); this.groundTime = 1; this.hasJumped = false; this.jumpBuffer = 0; this.slideTime = 0; this.slideCooldown = 0; this.hopChain = 0;
+    this.stats = baseStats(); this.groundTime = 1; this.hasJumped = false; this.jumpBuffer = 0; this.slideTime = 0; this.slideCooldown = 0; this.hopChain = 0; this.hitSerial = 0; this.interactSerial = 0;
   }
   update(dt, input, yaw, world) {
     const f = Number(input.down('KeyW')) - Number(input.down('KeyS'));
@@ -61,6 +61,7 @@ export class Player {
   }
   hurt(amount) {
     if (this.dead) return false;
+    this.hitSerial++;
     const absorbed = Math.min(this.shield, amount); this.shield -= absorbed;
     this.hp = Math.max(0, this.hp - (amount - absorbed));
     this.shieldDelay = 6;

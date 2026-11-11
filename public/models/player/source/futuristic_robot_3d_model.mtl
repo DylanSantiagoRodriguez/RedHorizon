@@ -1,0 +1,11 @@
+newmtl tripo_material_c3577086_aa76_4161_97b7_be684340e027
+Kd 1.000000000 1.000000000 1.000000000
+d 1.000000000
+illum 2
+map_Kd futuristic_robot_3d_model_basecolor.jpg
+Pr 1.000000000
+Pm 1.000000000
+map_Pr futuristic_robot_3d_model_roughness.png
+map_Pm futuristic_robot_3d_model_metallic.png
+norm futuristic_robot_3d_model_normal.png
+
