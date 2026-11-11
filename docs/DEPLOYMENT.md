@@ -5,16 +5,18 @@ Sitio: https://redhorizon.lat. `www` redirige al dominio principal; Caddy gestio
 ## Flujo de un PR
 
 1. Abrir o actualizar un PR dirigido a `main` ejecuta `.github/workflows/ci.yml`: ESLint, pruebas unitarias, compilación y prueba de la compilación en Chromium (personaje, recursos, inicio, pausa y continuación).
-2. Al fusionar el PR, el `push` a `main` vuelve a ejecutar CI sobre el commit exacto que se publicará. Los pushes directos a `main` siguen el mismo proceso.
-3. El timer `redhorizon-deploy.timer` consulta `main` cada 60 segundos. Solo acepta un resultado exitoso del workflow `ci.yml`, evento `push`, para ese commit y esa rama.
-4. El EC2 descarga el commit, ejecuta nuevamente `npm ci` y `npm run check`, y prepara una nueva release. Si `main` cambia durante la compilación, espera al siguiente ciclo.
+2. Al fusionar el PR, el `push` a `main` también solicita CI en GitHub. Los pushes directos a `main` siguen el mismo proceso.
+3. El timer `redhorizon-deploy.timer` consulta `main` cada 60 segundos y descarga el commit exacto que se publicará.
+4. El EC2 ejecuta `npm ci`, `npm run check` y la prueba de producción en Chromium contra un preview local. Todas deben pasar antes de preparar una release. Si `main` cambia durante la validación, espera al siguiente ciclo.
 5. Se activa la release mediante un cambio atómico de `/srv/redhorizon/current`. Se verifica HTTP interno y HTTPS público; si fallan, se restaura el enlace anterior.
 
-La publicación ocurre normalmente en el siguiente minuto después de CI, más el tiempo de compilación. Un PR abierto no reemplaza producción. Un fallo en CI, instalación o compilación conserva la versión publicada; los errores de GitHub/red también impiden publicar. El timer vuelve a intentarlo en el siguiente ciclo. No hay alertas externas configuradas: revisar GitHub Actions y el journal del servicio.
+La publicación ocurre después del siguiente ciclo de consulta, más el tiempo de validación. Un PR abierto no reemplaza producción. Un fallo en descarga, instalación, pruebas, compilación o Chromium en el EC2 conserva la versión publicada. El timer vuelve a intentarlo en el siguiente ciclo. No hay alertas externas configuradas: revisar el journal del servicio.
+
+La comprobación inicial de GitHub Actions fue rechazada antes de iniciar por un bloqueo de facturación de la cuenta: [ejecución](https://github.com/DylanSantiagoRodriguez/RedHorizon/actions/runs/42973008466). El despliegue no depende de Actions: ejecuta las mismas validaciones en el EC2. El workflow queda preparado para los PR y pushes cuando se resuelva la facturación. Un resultado de Actions no sustituye las comprobaciones obligatorias del servidor.
 
 La automatización usa un usuario Linux sin sudo (`redhorizon-deploy`) y el repositorio público con acceso de lectura. No requiere secretos de GitHub, webhooks, runners dentro de producción ni puertos adicionales. No depende de que el equipo local esté encendido. El servicio solo escribe en sus directorios de compilación, caché y releases.
 
-Las reglas de protección de la rama no se modifican: CI aparece en los PR, pero hacer obligatorio ese check para permitir el merge requiere configurarlo en GitHub. La publicación sí espera a que CI termine correctamente aunque se haya permitido fusionar antes.
+Las reglas de protección de la rama no se modifican: hacer obligatorio el check de GitHub para permitir un merge requiere configurarlo en GitHub después de resolver el bloqueo de Actions. La publicación siempre exige que las comprobaciones del EC2 terminen correctamente.
 
 ## Infraestructura
 
@@ -49,7 +51,7 @@ Fuentes: [reglas de AWS](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/sec
 
 ## Instalación o actualización de la infraestructura
 
-El servidor debe tener `caddy`, `git`, `curl`, `nodejs` (22.12 o superior) y `npm`. La llave está fuera del repositorio y nunca se copia al servidor.
+El servidor debe tener `caddy`, `git`, `curl`, `nodejs` (22.12 o superior), `npm` y las dependencias de sistema de Chromium. Estas últimas se instalan una vez mediante `playwright install-deps chromium` desde una instalación de confianza de las dependencias del proyecto. El servicio descarga el navegador en `/var/cache/redhorizon-deploy/browsers`. La llave está fuera del repositorio y nunca se copia al servidor.
 
 Desde una copia de confianza del repositorio:
 
@@ -65,7 +67,7 @@ Para cambiar la llave o el destino:
 DEPLOY_HOST=ubuntu@NUEVA_IP DEPLOY_KEY=/ruta/redhorizon.pem bash scripts/configure-ec2.sh
 ```
 
-Para solicitar una comprobación inmediata, respetando el requisito de CI:
+Para solicitar una comprobación y publicación inmediata, con las mismas validaciones:
 
 ```sh
 bash scripts/deploy-ec2.sh
@@ -83,7 +85,7 @@ sudo systemctl status caddy
 curl -fsS https://redhorizon.lat/deployment.json
 ```
 
-El servicio es `oneshot`: es normal verlo `inactive` después de completar una ejecución; el timer debe permanecer `active`. `/deployment.json` muestra el commit publicado y la fecha UTC. Un commit con CI fallida no llegará a ese archivo.
+El servicio es `oneshot`: es normal verlo `inactive` después de completar una ejecución; el timer debe permanecer `active`. `/deployment.json` muestra el commit publicado y la fecha UTC. Un commit que falle las validaciones del EC2 no llegará a ese archivo.
 
 Para suspender publicaciones y volver a una release anterior (sustituir `RELEASE_ANTERIOR` por un directorio existente):
 

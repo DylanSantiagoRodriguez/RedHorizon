@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Request the same checked deployment used by the automatic timer.
+# Request the same locally validated deployment used by the automatic timer.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 deployment_host="${DEPLOY_HOST:-ubuntu@3.138.154.61}"

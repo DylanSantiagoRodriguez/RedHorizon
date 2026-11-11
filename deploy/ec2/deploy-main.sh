@@ -12,9 +12,14 @@ flock -n 9 || exit 0
 previous=''
 activated=false
 staging=''
+preview_pid=''
 on_failure() {
   local status="$1"
   trap - ERR INT TERM
+  if [ -n "$preview_pid" ]; then
+    kill "$preview_pid" 2>/dev/null || true
+    wait "$preview_pid" 2>/dev/null || true
+  fi
   if "$activated" && [ -n "$previous" ]; then
     ln -s "$previous" "$site/rollback-$$"
     mv -Tf "$site/rollback-$$" "$site/current"
@@ -41,31 +46,19 @@ if [ -f "$site/current/deployment.json" ] && node -e '
   exit 0
 fi
 
-# Public repository: read only the push workflow for this exact main revision.
-# API failures or missing/failed checks leave the current site untouched.
-checks="$(curl --fail --silent --show-error --max-time 20 \
-  -H 'Accept: application/vnd.github+json' \
-  "https://api.github.com/repos/DylanSantiagoRodriguez/RedHorizon/actions/workflows/ci.yml/runs?head_sha=$revision&event=push&per_page=10")"
-if ! printf '%s' "$checks" | node -e '
-  let body = "";
-  process.stdin.on("data", chunk => body += chunk);
-  process.stdin.on("end", () => {
-    const runs = JSON.parse(body).workflow_runs
-      .filter(run => run.head_sha === process.argv[1] && run.event === "push" && run.head_branch === "main")
-      .sort((a, b) => b.id - a.id);
-    process.exit(runs[0]?.status === "completed" && runs[0]?.conclusion === "success" ? 0 : 1);
-  });
-' "$revision"; then
-  echo "Waiting for successful GitHub CI on main at $revision"
-  exit 0
-fi
-
 echo "Checking main at $revision"
 # This disposable checkout belongs only to the deployment service.
 git checkout --quiet --force --detach "$revision"
 npm ci --no-audit --no-fund
 npm run check
 test -s dist/index.html
+npx --no-install playwright install chromium
+node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort > "$state/preview.log" 2>&1 &
+preview_pid=$!
+node scripts/smoke-production.mjs
+kill "$preview_pid"
+wait "$preview_pid" 2>/dev/null || true
+preview_pid=''
 
 # Do not publish an obsolete build if main advanced while checks ran.
 latest="$(git ls-remote origin refs/heads/main | cut -f1)"
