@@ -9,7 +9,10 @@ export default {
   ...base,
   testDir: join(root, 'tests/browser'),
   outputDir: join(root, 'test-results/online'),
-  timeout: 360000,
+  timeout: 540000,
+  // Two software-rendered contexts can take over 15 seconds to answer even
+  // when the authoritative snapshot already satisfies the assertion.
+  expect: { ...base.expect, timeout: 45000 },
   use: {
     ...base.use,
     viewport: { width: 960, height: 600 },
