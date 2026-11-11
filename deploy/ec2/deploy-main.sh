@@ -12,6 +12,7 @@ flock -n 9 || exit 0
 previous=''
 activated=false
 staging=''
+release_path=''
 preview_pid=''
 on_failure() {
   local status="$1"
@@ -26,6 +27,10 @@ on_failure() {
     echo "Deployment failed; restored $previous" >&2
   fi
   [ -z "$staging" ] || rm -rf -- "$staging"
+  if [ -n "$release_path" ] && [ "$(readlink "$site/current" || true)" != "$release_path" ]; then
+    rm -rf -- "$release_path"
+  fi
+  rm -f -- "$site/activate-$$"
   exit "$status"
 }
 trap 'on_failure $?' ERR
@@ -76,6 +81,7 @@ node -e '
 ' "$staging/deployment.json" "$revision"
 chmod -R a+rX "$staging"
 mv "$staging" "$site/releases/$release"
+release_path="$site/releases/$release"
 staging=''
 previous="$(readlink "$site/current" || true)"
 ln -s "$site/releases/$release" "$site/activate-$$"
