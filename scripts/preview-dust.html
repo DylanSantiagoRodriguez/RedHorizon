@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Titán del polvo — revisión</title>
+<style>body{margin:0;background:#17212a;color:#e9d9b3;font:16px system-ui}canvas{display:block}#info{position:absolute;top:18px;left:24px;pointer-events:none}button,select,input{font:inherit;margin:8px;padding:6px}#controls{position:absolute;bottom:15px;left:15px}</style></head>
+<body><div id="info">TITÁN DEL POLVO · DUST</div><div id="controls"><select id="clip"><option value="">Pose de referencia</option></select><input id="frame" type="range" min="0" max="100" value="0"><button id="play">Reproducir</button></div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { DUST_CLIPS } from '../src/data/dustAnimations.js';
+const scene=new THREE.Scene();scene.background=new THREE.Color('#17212a');
+const camera=new THREE.PerspectiveCamera(38,innerWidth/innerHeight,.01,100);camera.position.set(10.5,7,14);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(1);document.body.append(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,3.4,0);controls.update();
+scene.add(new THREE.HemisphereLight(0xdce9ff,0x5d4832,2));const light=new THREE.DirectionalLight(0xffe3b8,3);light.position.set(2,3,3);scene.add(light);const fill=new THREE.DirectionalLight(0xb1cfff,2);fill.position.set(-3,1,-2);scene.add(fill);
+const asset=await new GLTFLoader().loadAsync('/Modelos_Animados/dust/dust.glb');scene.add(asset.scene);
+const mixer=new THREE.AnimationMixer(asset.scene);let action=null,playing=false,lastTime=performance.now();
+const select=document.querySelector('#clip'),slider=document.querySelector('#frame');
+for(const clip of asset.animations){const option=document.createElement('option');option.value=clip.name;option.textContent=clip.name;select.append(option);}
+function pose(name,time=0){select.value=name;mixer.stopAllAction();action=null;const clip=asset.animations.find(c=>c.name===name);if(clip){action=mixer.clipAction(clip);action.setLoop(THREE.LoopOnce,1);action.clampWhenFinished=true;action.play();mixer.setTime(time);slider.max=Math.round(clip.duration*30);slider.value=Math.round(time*30);}asset.scene.updateMatrixWorld(true);renderer.render(scene,camera);}
+select.onchange=()=>{playing=false;pose(select.value);};slider.oninput=()=>{playing=false;pose(select.value,Number(slider.value)/30);};document.querySelector('#play').onclick=()=>{if(playing){playing=false;return;}pose(select.value);if(action){action.setLoop(DUST_CLIPS[select.value]?.loop?THREE.LoopRepeat:THREE.LoopOnce,Infinity);playing=true;}};
+window.dustPreview={asset,mixer,scene,camera,renderer,controls,pose};
+renderer.setAnimationLoop(()=>{const now=performance.now(),dt=(now-lastTime)/1000;lastTime=now;if(playing){mixer.update(dt);slider.value=Math.round(action.time*30);}renderer.render(scene,camera);});
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+</script></body></html>

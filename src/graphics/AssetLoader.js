@@ -1,6 +1,6 @@
 import { AnimationMixer } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-// Optional, explicit extension point. The playable game has no external assets.
+// GLB assets are served locally with the game; each instance owns its mixer/resources.
 export async function loadAnimatedModel(url) {
   const asset = await new GLTFLoader().loadAsync(url);
   const mixer = new AnimationMixer(asset.scene);

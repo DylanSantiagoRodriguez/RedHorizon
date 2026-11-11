@@ -1,9 +1,12 @@
 import { moveCircle } from '../physics/CollisionSystem.js';
+import { isDust } from '../data/dustAnimations.js';
+import { advanceDustAction, startDustAction } from './DustActions.js';
 export function updateEnemy(enemy, dt, run) {
   if (enemy.dead) { enemy.state = 'Dead'; return; }
   if (enemy.behavior === 'boss' && enemy.active === false) return;
   enemy.attackTimer = Math.max(0, enemy.attackTimer - dt); enemy.flash = Math.max(0, enemy.flash - dt);
-  if (enemy.stun > 0) { enemy.stun -= dt; enemy.state = 'Stunned'; return; }
+  if (enemy.stun > 0) { enemy.stun = Math.max(0, enemy.stun - dt); enemy.dustAction = null; enemy.state = 'Stunned'; return; }
+  if (isDust(enemy) && advanceDustAction(enemy, run)) return;
   const p = run.player, dx = p.x - enemy.x, dz = p.z - enemy.z, distance = Math.hypot(dx, dz) || 0.01;
   const ranged = enemy.behavior === 'ranged';
   const retreat = ranged && distance < enemy.range * 0.55;
@@ -32,7 +35,8 @@ export function updateEnemy(enemy, dt, run) {
   enemy.y = run.world.heightAt(enemy.x, enemy.z) + enemy.height;
   if (distance <= enemy.range && enemy.attackTimer <= 0) {
     enemy.attackTimer = enemy.cooldown;
-    if (ranged) run.combat.enemyShot(enemy);
+    if (isDust(enemy)) startDustAction(enemy, 'attack_melee', run.time);
+    else if (ranged) run.combat.enemyShot(enemy);
     else if (Math.abs(p.y + 1 - enemy.y) < enemy.height + 1.2) run.hurtPlayer(enemy.damage);
   }
 }

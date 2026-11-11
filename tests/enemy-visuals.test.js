@@ -5,6 +5,8 @@ import { Models } from '../src/graphics/Models.js';
 import { createEnemy } from '../src/entities/Enemy.js';
 import { Run } from '../src/core/Run.js';
 import { animateGuardian } from '../src/graphics/EnemyModels.js';
+import { advanceDustAction } from '../src/ai/DustActions.js';
+import { DUST_CLIPS } from '../src/data/dustAnimations.js';
 
 it('invoca cinco identidades y conserva su color en proyectiles, áreas y efectos', () => {
   const events = [], run = new Run({ heightAt: () => 0, obstacles: [] }, 'guardians', (type, data) => events.push({ type, data }));
@@ -12,6 +14,7 @@ it('invoca cinco identidades y conserva su color en proyectiles, áreas y efecto
     run.player.x = altar.x; run.player.z = altar.z; expect(run.boss.awaken(run, altar)).toBe(true);
     const boss = run.boss.enemy; boss.abilityTimer = 0;
     run.boss.updateBoss(0.01, run, boss);
+    if (boss.guardianId === 'dust') { run.time += DUST_CLIPS.attack_special.eventFrame / 30; advanceDustAction(boss, run); }
     expect(run.boss.zones.at(-1).color).toBe(altar.color);
     expect(run.combat.pool.items.filter(p => p.active).at(-1).color).toBe(altar.color);
   }
