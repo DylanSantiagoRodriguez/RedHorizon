@@ -5,6 +5,8 @@ export class Connection {
   save(identity) { this.identity = identity; try { if (identity) sessionStorage.setItem('rh-online', JSON.stringify(identity)); else sessionStorage.removeItem('rh-online'); } catch { /* Private storage may be unavailable. In-memory reconnection still works. */ } }
   connect(request) {
     clearTimeout(this.retry); this.request = request;
+    if (request.type === 'reconnect') this.save({ code: request.code, token: request.token });
+    else { this.save(null); this.lostAt = null; }
     const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`); this.socket = socket;
     this.status('Conectando…');
     socket.onopen = () => { this.send({ ...request, version: PROTOCOL_VERSION, gameVersion: GAME_VERSION }); this.lastMessage = performance.now(); this.heartbeat = setInterval(() => { if (performance.now() - this.lastMessage > 15000) socket.close(); else this.send({ type: 'ping', at: performance.now() }); }, 5000); };
@@ -16,11 +18,14 @@ export class Connection {
       if (m.type === 'error' && ['TOKEN', 'NOT_FOUND', 'VERSION', 'ACTIVE'].includes(m.code)) { this.closed = true; this.save(null); }
       this.receive(m);
     };
-    socket.onerror = () => this.status(ERRORS.OFFLINE);
+    socket.onerror = () => this.status(this.identity ? ERRORS.OFFLINE : ERRORS.UNAVAILABLE);
     socket.onclose = () => {
-      clearInterval(this.heartbeat); if (this.closed) return;
-      this.status(ERRORS.OFFLINE); this.lostAt ||= performance.now();
-      if (!this.identity || performance.now() - this.lostAt >= 30000) { this.status('Sin conexión. La sala o el plazo de reconexión ha terminado. Vuelve al menú.'); this.save(null); return; }
+      clearInterval(this.heartbeat);
+      if (this.socket === socket) this.socket = null;
+      if (this.closed) return;
+      if (!this.identity) { this.status(ERRORS.UNAVAILABLE); return; }
+      this.status(ERRORS.OFFLINE); this.lostAt ??= performance.now();
+      if (performance.now() - this.lostAt >= 30000) { this.status('Terminó el plazo de reconexión de 30 segundos. Vuelve al menú.'); this.save(null); return; }
       this.retry = setTimeout(() => this.connect({ type: 'reconnect', ...this.identity }), Math.min(4000, 300 * 2 ** this.attempt++) + Math.random() * 200);
     };
   }

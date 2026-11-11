@@ -12,7 +12,7 @@ export class OnlineGame {
   open() {
     const ui = this.game.ui; ui.overlay.hidden = false; ui.overlay.className = 'modal-overlay';
     ui.overlay.innerHTML = `<section class="dialog online-dialog"><span class="eyebrow">AURORA / COOPERATIVO ONLINE</span><h2>Multijugador</h2><p>2–4 exploradores. Sin cuentas. Todos comienzan con estadísticas base. No se ganan fragmentos ni blindaje para el modo individual.</p><label>Apodo (opcional)<input id="online-name" maxlength="20" placeholder="Explorador"></label><button id="create-room" class="primary">Crear sala</button><label>Código de sala<input id="room-code" maxlength="32" autocomplete="off" placeholder="ABC234"></label><button id="join-room" class="secondary">Unirse con código</button><p id="online-status" role="status"></p><button id="online-back" class="text-button">Volver al menú</button></section>`;
-    const request = type => { if (this.connection.socket) return; this.connection.connect({ type, nickname: ui.overlay.querySelector('#online-name').value, ...(type === 'join' ? { code: ui.overlay.querySelector('#room-code').value } : {}) }); };
+    const request = type => { if (this.connection.socket) return; this.error = ''; this.connection.connect({ type, nickname: ui.overlay.querySelector('#online-name').value, ...(type === 'join' ? { code: ui.overlay.querySelector('#room-code').value } : {}) }); };
     ui.overlay.querySelector('#create-room').onclick = () => request('create');
     ui.overlay.querySelector('#join-room').onclick = () => request('join');
     ui.overlay.querySelector('#online-back').onclick = () => this.game.menu();

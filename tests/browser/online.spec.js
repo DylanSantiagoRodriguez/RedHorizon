@@ -40,3 +40,14 @@ test('dos contextos completan una expedición compartida y reconectan', async ({
     await a.locator('#menu').click(); await expect(a.locator('#multiplayer')).toBeVisible(); expect(errors).toEqual([]);
   } finally { await Promise.all(contexts.map(c => c.close())); }
 });
+
+
+test('permite reintentar una conexión inicial fallida sin anunciar una sala expirada', async ({ page, context }) => {
+  await page.goto('/?qa'); await page.getByRole('button', { name: 'Multijugador', exact: true }).click();
+  await context.setOffline(true); await page.locator('#create-room').click();
+  await expect(page.locator('#online-status')).toContainText('No se pudo conectar con el servidor multijugador');
+  await expect(page.locator('#online-status')).not.toContainText('reconexión ha terminado');
+  await context.setOffline(false); await page.locator('#create-room').click();
+  await expect(page.locator('#lobby-code')).toHaveText(/^[A-Z2-9]{6}$/);
+  await page.locator('#leave-room').click();
+});
