@@ -18,8 +18,9 @@ export function advanceDustAction(enemy, run) {
     if (action.name === 'attack_special') run.boss.releaseAbility(run, enemy);
     else if (action.name === 'summon') run.boss.releaseSummon(run, enemy);
     else {
-      const p = run.player;
-      if (Math.hypot(p.x - enemy.x, p.z - enemy.z) <= enemy.range && Math.abs(p.y + 1 - enemy.y) < enemy.height + 1.2) run.hurtPlayer(enemy.damage);
+      const strike = () => { const p = run.player;
+      if (Math.hypot(p.x - enemy.x, p.z - enemy.z) <= enemy.range && Math.abs(p.y + 1 - enemy.y) < enemy.height + 1.2) run.hurtPlayer(enemy.damage); };
+      if (run.forEachLiving) run.forEachLiving(strike); else strike();
     }
   }
   if (elapsed + 1e-8 >= clip.duration) { enemy.dustAction = null; return false; }
