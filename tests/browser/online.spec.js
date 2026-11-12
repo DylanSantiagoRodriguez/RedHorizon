@@ -54,6 +54,7 @@ test('dos contextos completan una expedición compartida y reconectan', async ({
     await fixture(request, code, 'mission'); await a.keyboard.press('KeyQ'); await expect.poll(async () => (await game(b)).gems).toBe(5);
     await fixture(request, code, 'launch-position'); await expect.poll(async () => (await game(b)).phase).toBe('ready');
     // The second player may launch the team's beacon.
+    await b.bringToFront();
     if ((await game(b)).state === 'paused') await b.locator('#resume').click();
     // 'ready' may already be visible before the fixture moves the team. Wait
     // for its authoritative position and the end of queued upgrade transitions
