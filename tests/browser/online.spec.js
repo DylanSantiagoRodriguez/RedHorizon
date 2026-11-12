@@ -1,13 +1,17 @@
 import { test, expect } from '@playwright/test';
 const game = page => page.evaluate(() => {
   const g = window.__RED_HORIZON__, o = g.online;
-  return { state: g.state.value, time: g.run.time, status: g.run.status, playerId: o?.playerId, count: o?.players.size, remoteViews: g.entities.remotePlayers.size, players: o ? [...o.players].map(([id, m]) => ({ id, x: m.player.x, z: m.player.z, hp: m.player.hp, maxHp: m.player.stats.maxHp })) : [], enemies: g.run.enemies.map(e => ({ id: e.id, hp: e.hp, dead: e.dead })), phase: g.run.mission.phase, kills: g.run.kills, gems: g.run.gems.length, connected: o?.connected, connection: { state: o?.connectionState, error: o?.error, socketState: o?.connection.socket?.readyState, retries: o?.connection.attempt, closed: o?.connection.closed } };
+  return { state: g.state.value, time: g.run.time, status: g.run.status, playerId: o?.playerId, count: o?.players.size, remoteViews: g.entities.remotePlayers.size, players: o ? [...o.players].map(([id, m]) => ({ id, x: m.player.x, z: m.player.z, hp: m.player.hp, maxHp: m.player.stats.maxHp })) : [], enemies: g.run.enemies.map(e => ({ id: e.id, hp: e.hp, dead: e.dead })), phase: g.run.mission.phase, kills: g.run.kills, gems: g.run.gems.length, connected: o?.connected, maxTaskMs: window.__TEST_MAX_TASK_MS__, connection: { state: o?.connectionState, error: o?.error, socketState: o?.connection.socket?.readyState, retries: o?.connection.attempt, closed: o?.connection.closed } };
 });
 async function fixture(request, code, action) { const response = await request.post(`http://127.0.0.1:18788/${action}?code=${code}`, { headers: { 'x-test-fixture': 'redhorizon-playwright' } }); expect(response.ok(), await response.text()).toBeTruthy(); }
 test('dos contextos completan una expedición compartida y reconectan', async ({ browser, request }) => {
   const contexts = await Promise.all([browser.newContext(), browser.newContext()]); const [a, b] = await Promise.all(contexts.map(c => c.newPage())); const errors = [];
   for (const p of [a, b]) p.on('pageerror', e => errors.push(e.message));
   try {
+    for (const context of contexts) await context.addInitScript(() => {
+      window.__TEST_MAX_TASK_MS__ = 0;
+      new PerformanceObserver(list => { for (const entry of list.getEntries()) window.__TEST_MAX_TASK_MS__ = Math.max(window.__TEST_MAX_TASK_MS__, entry.duration); }).observe({ type: 'longtask', buffered: true });
+    });
     await Promise.all([a.goto('/?qa'), b.goto('/?qa')]);
     for (const p of [a, b]) await p.evaluate(() => { const g = window.__RED_HORIZON__; g.save.data.options.quality = 'low'; g.save.write(); g.applyOptions(); });
     await a.evaluate(() => { const g = window.__RED_HORIZON__; g.save.data.armor = 5; g.save.data.salvage = 99; g.save.write(); });
@@ -61,6 +65,7 @@ test('dos contextos completan una expedición compartida y reconectan', async ({
     await b.keyboard.press('KeyE'); await expect.poll(async () => (await game(a)).phase).toBe('countdown');
     await fixture(request, code, 'finale'); await expect.poll(async () => (await game(a)).phase).toBe('cinematic'); await fixture(request, code, 'epilogue');
     await expect.poll(async () => (await game(a)).state).toBe('victory'); await expect.poll(async () => (await game(b)).state).toBe('victory');
+    console.log('QA longest browser tasks (ms)', (await game(a)).maxTaskMs, (await game(b)).maxTaskMs);
     expect(await a.evaluate(() => ({ armor: window.__RED_HORIZON__.save.data.armor, salvage: window.__RED_HORIZON__.save.data.salvage }))).toEqual({ armor: 5, salvage: 99 });
     await a.locator('#menu').click(); await expect(a.locator('#multiplayer')).toBeVisible(); expect(errors).toEqual([]);
   } finally { await Promise.all(contexts.map(c => c.close())); }

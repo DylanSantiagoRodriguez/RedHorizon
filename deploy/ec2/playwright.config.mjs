@@ -15,7 +15,7 @@ export default {
   expect: { ...base.expect, timeout: 45000 },
   use: {
     ...base.use,
-    viewport: { width: 480, height: 360 },
+    viewport: { width: 360, height: 240 },
     // Continuous trace screenshots force costly ReadPixels on SwiftShader.
     // Keep DOM/network traces and the final failure screenshot.
     trace: { mode: 'retain-on-failure', screenshots: false, snapshots: true, sources: true },
