@@ -20,24 +20,30 @@ test('recaptura el mouse al elegir y muestra solo los GLB de los cinco jefes', a
   await page.keyboard.press('Escape');
   await expect(page.locator('#resume')).toBeVisible();
 
-  let release;
-  const barrier = new Promise(resolve => { release = resolve; });
-  await page.route(/\/models\/(ruby|sapphire|emerald|amethyst|dust)\.glb$/, async route => { await barrier; await route.continue(); });
-  try {
-    expect(await page.evaluate(() => {
-      const g = window.__RED_HORIZON__;
-      for (const guardianId of ['ruby', 'sapphire', 'emerald', 'amethyst', 'dust']) {
-        const enemy = g.run.spawn('titan', 0, -10); enemy.guardianId = guardianId;
-      }
-      for (let i = 0; i < 10; i++) g.entities.sync(g.run, 0);
-      return [...g.entities.enemies.values()].every(mesh => mesh.children.length === 0);
-    })).toBe(true);
-  } finally { release(); }
-  await expect.poll(() => page.evaluate(() => {
+  // Models must already be resident when an altar spawns its guardian.
+  let downloads = 0;
+  page.on('request', request => { if (/\/models\/(ruby|sapphire|emerald|amethyst|dust)\.glb$/.test(request.url())) downloads++; });
+  expect(await page.evaluate(() => {
     const g = window.__RED_HORIZON__;
+    for (const guardianId of ['ruby', 'sapphire', 'emerald', 'amethyst', 'dust']) {
+      const enemy = g.run.spawn('titan', 0, -10); enemy.guardianId = guardianId;
+    }
+    g.entities.sync(g.run, 0);
     return [...g.entities.enemies.values()].filter(mesh => {
       const avatar = g.entities.animatedAvatar(mesh);
       return avatar && mesh.children.length === 1 && mesh.children[0] === avatar.root && avatar.root.visible;
     }).length;
-  }), { timeout: 60000 }).toBe(5);
+  })).toBe(5);
+  expect(downloads).toBe(0);
+});
+
+test('una descarga fallida bloquea la entrada y permite reintentar', async ({ page, context }) => {
+  await context.addInitScript(() => localStorage.setItem('red-horizon-v1', JSON.stringify({ options: { quality: 'low', volume: 0 } })));
+  await page.route('**/models/dust.glb', route => route.abort());
+  await page.goto('/?qa');
+  await expect(page.locator('.model-loading')).toContainText('No se pudieron cargar los guardianes');
+  expect(await page.evaluate(() => window.__RED_HORIZON__.loading.pending)).toBe(true);
+  await page.unroute('**/models/dust.glb');
+  await page.getByRole('button', { name: 'Reintentar', exact: true }).click();
+  await expect(page.locator('.model-loading')).toBeHidden({ timeout: 60000 });
 });

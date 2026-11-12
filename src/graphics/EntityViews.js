@@ -31,10 +31,25 @@ export class EntityViews {
       this.avatar = avatar;
       for (const child of this.player.children) if (child !== avatar.root && child !== this.player.userData.gun) child.visible = false;
     }).catch(error => { if (!this.disposed) console.warn('No se pudo cargar el personaje; se mantiene el modelo de respaldo.', error); });
+    this.guardiansReady = this.prepareGuardians();
     this.projectileMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
     this.projectiles = new THREE.InstancedMesh(models.geometry('sphere'), this.projectileMaterial, CONFIG.projectileLimit);
     this.projectiles.instanceMatrix.setUsage(THREE.DynamicDrawUsage); this.projectiles.frustumCulled = false; scene.add(this.projectiles);
     this.dummy = new THREE.Object3D(); this.color = new THREE.Color();
+  }
+  async prepareGuardians() {
+    const entries = [
+      ['ruby', loadRubyAvatar, this.rubyAvatars], ['sapphire', loadSapphireAvatar, this.sapphireAvatars],
+      ['emerald', loadEmeraldAvatar, this.emeraldAvatars], ['amethyst', loadAmethystAvatar, this.amethystAvatars],
+      ['dust', loadDustAvatar, this.dustAvatars],
+    ];
+    await Promise.all(entries.map(async ([id, load, avatars]) => {
+      const mesh = new THREE.Group(); mesh.userData.modelKey = `titan-${id}`; mesh.visible = false;
+      this.scene.add(mesh); this.free.set(mesh.userData.modelKey, [mesh]);
+      const avatar = await load(mesh);
+      if (this.disposed) { avatar.dispose(); mesh.removeFromParent(); return; }
+      softenEnemyMaterials(avatar.root); avatars.set(mesh, avatar);
+    }));
   }
   syncPlayers(players, localId, run, dt) {
     for (const [id, member] of players) {

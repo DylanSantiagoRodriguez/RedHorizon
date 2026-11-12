@@ -49,7 +49,7 @@ export class Game {
   }
   waitForModels() {
     this.loading.wait([this.entities.avatarReady, this.world.environmentReady, this.world.wreckReady,
-      this.missionView.beaconReady, this.missionView.helmetReady, this.missionView.auroraReady, this.view.backdrop.ready]);
+      this.missionView.beaconReady, this.missionView.helmetReady, this.missionView.auroraReady, this.view.backdrop.ready], [this.entities.guardiansReady]);
     this.input.clear();
   }
   multiplayer() { this.online?.dispose(); this.online = new OnlineGame(this); this.online.open(); }
