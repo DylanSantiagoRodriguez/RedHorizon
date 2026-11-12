@@ -20,7 +20,7 @@ export class Game {
   constructor(container) {
     this.view = new Renderer(container); this.models = new Models(); this.input = new InputManager(this.view.renderer.domElement);
     this.state = new StateManager(); this.camera = new CameraController(this.view.camera);
-    this.save = new SaveSystem(); this.audio = new AudioManager(); this.particles = new ParticleSystem(this.view.scene, this.models); this.fps = 60;
+    this.save = new SaveSystem(); this.audio = new AudioManager(); this.particles = new ParticleSystem(this.view.scene, this.models); this.fps = null; this.fpsWindow = null; this.fpsFrames = 0;
     this.loading = new ModelLoadingScreen(container);
     setModelQuality(this.save.data.options.quality);
     this.createRun('ASTER-09'); this.ui = new UI(this, container); this.missionView = new MissionView(this);
@@ -107,7 +107,14 @@ export class Game {
   }
   render(dt) {
     if (this.loading.pending && !this.loading.ready) return;
-    this.fps += ((dt > 0 ? 1 / dt : 60) - this.fps) * 0.03;
+    // Measure rendered frames against real time, independently of capped simulation dt.
+    const now = performance.now();
+    if (this.fpsWindow === null) this.fpsWindow = now;
+    else {
+      this.fpsFrames++;
+      const elapsed = now - this.fpsWindow;
+      if (elapsed >= 500) { this.fps = this.fpsFrames * 1000 / elapsed; this.fpsFrames = 0; this.fpsWindow = now; }
+    }
     this.online?.interpolate();
     this.world.update(this.run.time); this.entities.sync(this.run, (this.online ? this.run.status === 'upgrade' : ['paused', 'upgrade'].includes(this.state.value)) ? 0 : Math.min(dt, 0.1));
     if (this.state.value === 'menu') { this.view.camera.position.set(8, 4.6, 10); this.view.camera.lookAt(-4, 1.8, -11); }

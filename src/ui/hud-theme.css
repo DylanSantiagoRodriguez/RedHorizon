@@ -93,7 +93,8 @@
 .neo-hud #interaction kbd { color:var(--aether); border-color:#8fcac56b; background:#0a151b; }
 .neo-hud #toast { top:35%; background:#10242ce8; border:1px solid #c69c6959; border-left:2px solid var(--copper); color:#d9e7de; font:10px/1.7 monospace; }
 .neo-hud .bottom-coordinates { left:30px; right:30px; bottom:23px; padding-top:12px; color:#cbb893; border-top-color:#bc925a38; font:7px monospace; letter-spacing:1.5px; }
-.neo-hud .bottom-coordinates #fps { color:#9aada6; }
+.neo-hud #fps { position:absolute; right:14px; bottom:10px; min-width:94px; padding:7px 11px; border:1px solid #99b9a5; background:#101d20ed; color:#d9f5bf; font:700 16px/1.2 monospace; font-variant-numeric:tabular-nums; text-align:center; letter-spacing:1px; pointer-events:none; z-index:6; }
+.neo-hud .bottom-coordinates { padding-right:110px; }
 @media(max-width:1100px) {
   .neo-hud .mission { width:265px; left:22px; padding:14px; } .neo-hud .mission h3 { font-size:15px; }
   .neo-hud .vitals { width:290px; left:22px; }
