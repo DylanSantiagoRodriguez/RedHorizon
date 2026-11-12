@@ -6,3 +6,10 @@
 .online-dialog ul { padding-left: 1.2rem; line-height: 1.8; }
 .online-team { position: absolute; top: 95px; left: 22px; max-width: 360px; padding: 10px 14px; background: #101d20de; border: 1px solid #99b9a5; color: #e5efdc; font: 12px/1.8 sans-serif; pointer-events: none; z-index: 5; }
 .online-team[hidden] { display: none; }
+
+.room-code-panel { margin: 18px 0; padding: 16px; text-align: center; background: #101d20; border: 1px solid #99b9a5; color: #e5efdc; }
+.room-code-panel > span { display: block; font-size: 12px; letter-spacing: 1px; }
+.room-code-panel #lobby-code { display: block; margin: 8px 0; color: #f3ffdf; font: 700 clamp(28px, 6vw, 42px)/1.2 monospace; letter-spacing: .16em; user-select: all; }
+.room-code-panel p { margin: 8px 0 12px; font-size: 12px; }
+.online-room-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.online-room-code { color: #f3ffdf; font: 700 20px/1.4 monospace; letter-spacing: .12em; }

@@ -30,7 +30,7 @@ export class OnlineGame {
   }
   showLobby() {
     const overlay = this.game.ui.overlay; overlay.hidden = false; overlay.className = 'modal-overlay';
-    overlay.innerHTML = `<section class="dialog online-dialog"><span class="eyebrow">SALA / <b id="lobby-code"></b></span><h2>Equipo de expedición</h2><button id="copy-code" class="secondary">Copiar código</button><ul id="lobby-players"></ul><p>Todos deben estar conectados y listos (2–4). Estadísticas base; sin metaprogresión individual.</p><button id="ready-room" class="primary">Listo</button><button id="start-room" class="secondary">Iniciar expedición</button><p id="online-status" role="status"></p><button id="leave-room" class="text-button">Abandonar sala</button></section>`;
+    overlay.innerHTML = `<section class="dialog online-dialog"><span class="eyebrow">COOPERATIVO ONLINE</span><h2>Equipo de expedición</h2><div class="room-code-panel"><span id="lobby-code-label">Código de sala</span><strong id="lobby-code" aria-labelledby="lobby-code-label"></strong><p>Comparte este código para que tus amigos se unan.</p><button id="copy-code" class="secondary">Copiar código</button></div><ul id="lobby-players"></ul><p>Todos deben estar conectados y listos (2–4). Estadísticas base; sin metaprogresión individual.</p><button id="ready-room" class="primary">Listo</button><button id="start-room" class="secondary">Iniciar expedición</button><p id="online-status" role="status"></p><button id="leave-room" class="text-button">Abandonar sala</button></section>`;
     overlay.querySelector('#lobby-code').textContent = this.code;
     for (const p of this.lobby.players) { const li = document.createElement('li'); li.textContent = `${p.nickname}${p.id === this.lobby.hostId ? ' · Creador' : ''} · ${p.connected ? (p.ready ? 'Listo' : 'Preparándose') : 'Desconectado'}`; overlay.querySelector('#lobby-players').appendChild(li); }
     const me = this.lobby.players.find(p => p.id === this.playerId);
@@ -115,7 +115,9 @@ export class OnlineGame {
   cameraPlayer() { return this.game.run.player.dead ? [...this.players.values()].find(m => !m.player.dead && !m.player.abandoned)?.player || this.game.run.player : this.game.run.player; }
   updateTeam() {
     if (!this.team) return; this.team.hidden = !this.started; this.team.replaceChildren();
-    const heading = document.createElement('div'); heading.textContent = `SALA ${this.code || ''} · ${this.connectionState}`; this.team.appendChild(heading);
+    const heading = document.createElement('div'); heading.className = 'online-room-heading'; heading.textContent = 'Código de sala · ';
+    const code = document.createElement('strong'); code.className = 'online-room-code'; code.textContent = this.code || ''; heading.appendChild(code); this.team.appendChild(heading);
+    const connection = document.createElement('div'); connection.textContent = this.connectionState; this.team.appendChild(connection);
     for (const [id, m] of this.players) { const row = document.createElement('div'); row.dataset.playerId = id; row.textContent = `${m.nickname}${id === this.playerId ? ' (tú)' : ''} · ${m.player.dead ? 'Sin señal vital' : `${Math.ceil(m.player.hp)} / ${m.player.stats.maxHp} PV`}${m.connected ? '' : ' · Desconectado'}`; this.team.appendChild(row); }
     if (this.game.run.player.dead) { const row = document.createElement('div'); row.textContent = 'Observando a un compañero vivo'; this.team.appendChild(row); }
   }
