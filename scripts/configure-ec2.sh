@@ -2,7 +2,7 @@
 # Install/update trusted deployment infrastructure over the existing SSH access.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-deployment_host="${DEPLOY_HOST:-ubuntu@3.138.154.61}"
+deployment_host="${DEPLOY_HOST:-ubuntu@77.113.171.135}"
 deployment_key="${DEPLOY_KEY:-../llaveredhorizon/redhorizon.pem}"
 ssh_options=(-i "$deployment_key" -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=3)
 remote_dir="$(ssh "${ssh_options[@]}" "$deployment_host" 'mktemp -d /tmp/redhorizon-setup.XXXXXXXX')"

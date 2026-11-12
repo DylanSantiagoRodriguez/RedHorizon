@@ -2,7 +2,7 @@
 # Validate the exact main revision locally; EC2 validates Node and activates it.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-deployment_host="${DEPLOY_HOST:-ubuntu@3.138.154.61}"
+deployment_host="${DEPLOY_HOST:-ubuntu@77.113.171.135}"
 deployment_key="${DEPLOY_KEY:-../llaveredhorizon/redhorizon.pem}"
 ssh_options=(-i "$deployment_key" -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=3)
 if [ -n "$(git status --porcelain)" ]; then echo 'Commit or stash local changes before deploying.' >&2; exit 1; fi

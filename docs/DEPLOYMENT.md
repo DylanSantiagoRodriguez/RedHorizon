@@ -1,6 +1,6 @@
 # Despliegue cooperativo en EC2
 
-Sitio: https://redhorizon.lat. EC2 (`3.138.154.61`, usuario SSH `ubuntu`) aloja **Node.js y Caddy**. Los jugadores y las pruebas gráficas ejecutan sus navegadores en equipos externos. No se ejecuta Chromium en producción: compartir la VM de dos núcleos con dos clientes 3D provocaba contención y expiraciones durante las comprobaciones.
+Sitio: https://redhorizon.lat. EC2 destino (`77.113.171.135`, instancia `i-0db322d7e36dea80a`, usuario SSH `ubuntu`) aloja **Node.js y Caddy**. Los jugadores y las pruebas gráficas ejecutan sus navegadores en equipos externos. No se ejecuta Chromium en producción: compartir la VM de dos núcleos con dos clientes 3D provocaba contención y expiraciones durante las comprobaciones.
 
 ## Publicar una revisión de main
 
@@ -72,4 +72,10 @@ sudo systemctl restart redhorizon-backend
 curl -fsS https://redhorizon.lat/health
 ```
 
-Corregir o revertir main, validar la revisión con `scripts/deploy-ec2.sh` y reactivar el timer. Conservar `/var/lib/caddy` para los certificados y revisar espacio de disco y journal. `www` redirige al dominio principal. DNS actual: `A @ → 3.138.154.61`, `CNAME www → redhorizon.lat`; si cambia la IP, actualizar DNS y DEPLOY_HOST.
+Corregir o revertir main, validar la revisión con `scripts/deploy-ec2.sh` y reactivar el timer. Conservar `/var/lib/caddy` para los certificados y revisar espacio de disco y journal. `www` redirige al dominio principal. DNS requerido para el destino actual: `A @ → 77.113.171.135`, `CNAME www → redhorizon.lat`; si cambia la IP, actualizar DNS y DEPLOY_HOST.
+
+## Migración a la nueva instancia
+
+La instancia anterior `3.138.154.61` se conserva durante el cambio de DNS. El destino `77.113.171.135` usa la misma llave SSH externa al repositorio, Node 22 y Caddy desde su repositorio estable. Se trasladó el almacenamiento TLS del dominio por SSH cifrado entre los dos servidores para mantener HTTPS válido durante la propagación; no se guardaron certificados privados en el repositorio.
+
+Antes de retirar la instancia anterior, comprobar que los DNS autoritativos de Porkbun y los resolutores públicos devuelven la nueva IP, y validar HTTPS/WSS contra ese destino. Un código de sala pertenece a un proceso: durante la propagación los jugadores deben llegar al mismo servidor; las salas anteriores no se migran. Los scripts locales usan la nueva IP por defecto; `DEPLOY_HOST` permite seleccionar explícitamente otro destino.
