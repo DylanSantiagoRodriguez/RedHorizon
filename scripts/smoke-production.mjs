@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const { chromium, expect } = require('@playwright/test');
+const { chromium, expect: baseExpect } = require('@playwright/test');
+const expect = baseExpect.configure({ timeout: 45000 });
 
 const url = process.env.SMOKE_URL || 'http://127.0.0.1:4173/';
 let ready = false;
@@ -31,6 +32,9 @@ try {
   await page.locator('#start').click();
   await expect(page.locator('#hud')).toBeVisible();
   await expect.poll(() => loadedModels.length, { timeout: 30000 }).toBeGreaterThan(0);
+  // The HUD appears before model decoding and the first rendered frame finish.
+  // Inputs are intentionally neutral during the loading screen.
+  await expect(page.locator('.model-loading')).toBeHidden({ timeout: 180000 });
   await page.keyboard.down('KeyW');
   await page.waitForTimeout(1000);
   await page.keyboard.up('KeyW');
