@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+// Full Chromium supports native pointer lock; headless-shell rejects it on macOS.
+test.use({ channel: 'chromium' });
 const game = page => page.evaluate(() => {
   const g = window.__RED_HORIZON__, o = g.online;
   return { state: g.state.value, time: g.run.time, status: g.run.status, playerId: o?.playerId, count: o?.players.size, remoteViews: g.entities.remotePlayers.size, players: o ? [...o.players].map(([id, m]) => ({ id, x: m.player.x, z: m.player.z, hp: m.player.hp, maxHp: m.player.stats.maxHp })) : [], enemies: g.run.enemies.map(e => ({ id: e.id, hp: e.hp, dead: e.dead })), phase: g.run.mission.phase, kills: g.run.kills, gems: g.run.gems.length, connected: o?.connected, maxTaskMs: window.__TEST_MAX_TASK_MS__, connection: { state: o?.connectionState, error: o?.error, socketState: o?.connection.socket?.readyState, retries: o?.connection.attempt, closed: o?.connection.closed } };
@@ -37,7 +39,15 @@ test('dos contextos completan una expedición compartida y reconectan', async ({
     const initial = await game(a), id = initial.playerId; expect(initial.players.find(p => p.id === id).maxHp).toBe(120);
     await a.keyboard.down('KeyW'); await expect.poll(async () => (await game(b)).players.find(p => p.id === id)?.z).toBeLessThan(-1); await a.keyboard.up('KeyW');
     await a.keyboard.press('Escape'); await expect.poll(async () => (await game(a)).state).toBe('paused'); const before = (await game(b)).time; await expect.poll(async () => (await game(b)).time).toBeGreaterThan(before + .5);
-    await a.locator('#resume').click(); await fixture(request, code, 'combat');
+    await a.locator('#resume').click(); await fixture(request, code, 'upgrade');
+    await b.bringToFront(); await b.locator('[data-upgrade]').first().click();
+    await a.bringToFront(); await a.locator('[data-upgrade]').first().click();
+    await expect.poll(() => a.evaluate(() => document.pointerLockElement === window.__RED_HORIZON__.input.canvas)).toBe(true);
+    await expect.poll(async () => (await game(a)).state).toBe('playing');
+    expect(await a.evaluate(() => document.pointerLockElement === window.__RED_HORIZON__.input.canvas)).toBe(true);
+    // Release capture for subsequent automation; this remains an explicit local pause.
+    await a.keyboard.press('Escape'); await a.locator('#resume').click();
+    await fixture(request, code, 'combat');
     // Fire through the same input path used by the remappable HUD, without relying on pointer-lock permissions in headless Chrome.
     await a.evaluate(() => { const g = window.__RED_HORIZON__; g.camera.yaw = 0; g.camera.pitch = 0; g.input.buttons.add(0); });
     await expect.poll(async () => (await game(b)).enemies[0]?.hp ?? 0).toBeLessThan(100);

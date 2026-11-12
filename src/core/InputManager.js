@@ -29,13 +29,17 @@ export class InputManager {
       if (!this.active || this.rebinding) return;
       if (!this.buttons.has(e.button)) this.pressed.add('Mouse' + e.button);
       this.buttons.add(e.button);
-      if (document.pointerLockElement !== canvas) canvas.requestPointerLock()?.catch(() => {});
+      this.lockPointer();
     }, options);
     window.addEventListener('mouseup', e => this.buttons.delete(e.button), options);
     canvas.addEventListener('contextmenu', e => e.preventDefault(), options);
     window.addEventListener('mousemove', e => {
       if (this.active && (document.pointerLockElement === canvas || this.buttons.size)) { this.dx += e.movementX; this.dy += e.movementY; }
     }, options);
+  }
+  lockPointer() {
+    if (document.pointerLockElement === this.canvas) return;
+    try { this.canvas.requestPointerLock?.()?.catch(() => {}); } catch { /* Browser may deny capture after Escape or loss of focus. */ }
   }
   label(code) { return keyLabel(this.bindings[code] || code); }
   down(code) { const bound = this.bindings[code] || code; return bound.startsWith('Mouse') ? this.buttons.has(Number(bound.slice(5))) : this.keys.has(bound); }

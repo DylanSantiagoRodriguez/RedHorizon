@@ -84,7 +84,7 @@ export class OnlineGame {
   }
   pause() { if (!this.started || this.game.state.value !== 'playing') return; this.paused = true; this.show('paused'); this.sendNeutral(); }
   resume() { if (this.game.state.value !== 'paused') return; this.paused = false; this.show(this.latest?.status === 'upgrade' ? 'upgrade' : 'playing'); }
-  choose(id) { this.connection.send({ type: 'upgrade', round: this.latest.round, option: id }); }
+  choose(id) { return this.connection.send({ type: 'upgrade', round: this.latest.round, option: id }); }
   action(key) { if (this.game.state.value === 'playing') this.extraActions.push(key); }
   sendNeutral() { this.sendInput(this.step, false); }
   sendInput(dt, enabled) {

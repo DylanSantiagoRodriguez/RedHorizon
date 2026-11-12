@@ -21,6 +21,8 @@ const control = http.createServer(async (req, res) => {
     if (url.pathname === '/explore') {
       // Network/menus are checked before combat; browser rendering time must not kill the fixture players.
       r.enemies.length = 0; r.director.timer = 100000;
+    } else if (url.pathname === '/upgrade') {
+      r.experience.pending = 1; r.checkLevel();
     } else if (url.pathname === '/combat') {
       r.enemies.length = 0; r.director.timer = 100000;
       for (const [i, m] of [...r.members.values()].entries()) { Object.assign(m.player, { x: i * 1.5, z: 0, y: 0, hp: 120, dead: false, vx: 0, vz: 0 }); m.weapon.timer = 0; m.player.stats.crit = 0; }

@@ -88,9 +88,13 @@ export class Game {
   resume() { if (this.online) { this.online.resume(); return; } if (this.state.value === 'paused') this.change('playing'); }
   menu() { if (this.online) { this.online.dispose(); this.online = null; this.createRun('ASTER-09'); this.state.value = 'playing'; } this.change('menu'); }
   chooseUpgrade(id) {
-    if (this.online) { this.online.choose(id); return; }
+    // Request capture within the card's user gesture, before the asynchronous
+    // team acknowledgement consumes browser activation. Inputs stay disabled
+    // during the server's upgrade pause.
+    if (this.online) { if (this.online.choose(id)) this.input.lockPointer(); return; }
     if (!this.run.chooseUpgrade(id)) return;
-    if (this.run.status === 'upgrade') this.ui.show('upgrade'); else this.change('playing');
+    if (this.run.status === 'upgrade') this.ui.show('upgrade');
+    else { this.change('playing'); this.input.lockPointer(); }
   }
   update(dt) {
     if (this.online) { this.online.update(dt); return; }
