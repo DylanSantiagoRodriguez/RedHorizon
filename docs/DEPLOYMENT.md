@@ -50,7 +50,7 @@ La prueba pública se ejecuta desde un equipo externo, usa dos contextos indepen
 SMOKE_URL=https://redhorizon.lat node scripts/smoke-online-production.mjs
 ```
 
-Comprueba creación/unión, preparación, movimiento, enemigos y proyectiles compartidos, Escape local, recuperación de identidad al recargar y salida. La misión completa acelerada se verifica previamente en la suite cooperativa.
+Comprueba creación/unión, preparación, movimiento, enemigos y disparos autoritativos compartidos, Escape local, recuperación de identidad al recargar y salida. La misión completa acelerada se verifica previamente en la suite cooperativa.
 
 ```sh
 sudo systemctl status redhorizon-backend redhorizon-backend-restart.path

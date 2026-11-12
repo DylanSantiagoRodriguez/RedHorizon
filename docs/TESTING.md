@@ -1,3 +1,15 @@
+# Publicación comprobada desde fuera de EC2
+
+La revisión `0920a18ddf09429bda14c08af2a135f63b72c464` se activó el 12 de noviembre de 2026 a las 00:50 UTC. Frontend, manifiesto de runtime y `/health.buildId` coincidieron. Node, Caddy y el timer quedaron activos; Node escucha solo en `127.0.0.1:8787`. EC2 ya no ejecuta Chromium.
+
+Resultados de esa publicación: `npm run check` correcto (**179 pruebas en 36 archivos**, lint y build); integración correcta (**41 pruebas**, incluidas en las 179); los **dos escenarios cooperativos** pasaron en el Mac en 1,2 minutos; smoke individual compilado sin errores ni recursos fallidos. EC2 repitió check/integración y validó el backend empaquetado antes de activar.
+
+`SMOKE_URL=https://redhorizon.lat node scripts/smoke-online-production.mjs` pasó desde el Mac con dos contextos independientes: lobby, preparación, movimiento compartido, enemigos, disparos autoritativos observados por el compañero, Escape local, identidad tras recarga y salida, sin errores del navegador. La prueba espera la descarga de modelos y comprueba el contador autoritativo de disparos: un proyectil que impacta entre snapshots no debe producir un falso fallo.
+
+Una comprobación adicional con dos clientes WSS externos confirmó proyectiles atribuidos al atacante, continuidad durante desconexión y recuperación de la misma identidad. También se verificaron rechazo de Origin ajeno, error VERSION, `/runtime/package.json` privado (404) y limpieza de la sala de prueba. Todo lo anterior fue automatizado; no se realizó una sesión manual desde dos redes distintas ni una certificación de capacidad de salas. Las salas siguen siendo volátiles ante reinicios.
+
+El ajuste posterior del script de comprobación y este registro no cambian el runtime publicado; no requieren reiniciar las salas de la presentación.
+
 # Recuperación sin esperar el cierre del transporte
 
 El cliente inicia la recuperación al detectar un enlace sin respuesta, aunque el handshake de cierre anterior siga pendiente. Los casos nuevos cubren callbacks tardíos, ACTIVE temporal y vencimiento de los reintentos; no amplían el plazo autoritativo ni permiten dos conexiones de control.
