@@ -11,7 +11,6 @@ import * as THREE from 'three';
 import { loadPlayerAvatar } from './PlayerAvatar.js';
 import { WeaponModels } from './WeaponModels.js';
 import { enemyModelKey } from '../data/guardians.js';
-import { animateGuardian } from './EnemyModels.js';
 import { CONFIG } from '../config.js';
 import { isDust } from '../data/dustAnimations.js';
 import { loadDustAvatar } from './DustAvatar.js';
@@ -97,7 +96,9 @@ export class EntityViews {
       let mesh = this.enemies.get(e.id);
       if (!mesh) {
         const key = enemyModelKey(e);
-        mesh = this.free.get(key)?.pop() || this.models.enemy(e); mesh.userData.modelKey = key;
+        // Guardians have a configured GLB. Never construct the procedural body,
+        // including while loading or if a download fails.
+        mesh = this.free.get(key)?.pop() || (e.type === 'titan' ? new THREE.Group() : this.models.enemy(e)); mesh.userData.modelKey = key;
         this.enemies.set(e.id, mesh); this.scene.add(mesh); mesh.visible = true;
         if (e.type === 'stalker' && !mesh.userData.stalkerLoading && !this.stalkerAvatars.has(mesh)) {
           mesh.userData.stalkerLoading = true;
@@ -167,7 +168,7 @@ export class EntityViews {
             softenEnemyMaterials(avatar.root);
             for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
             mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
-          }).catch(error => { console.warn('No se pudo cargar amethyst; se mantiene el modelo de respaldo.', error); })
+          }).catch(error => { console.warn('No se pudo cargar amethyst; no se mostrará geometría provisional.', error); })
             .finally(() => { mesh.userData.amethystLoading = false; });
         }
         if (isEmerald(e) && !mesh.userData.emeraldLoading && !this.emeraldAvatars.has(mesh)) {
@@ -178,7 +179,7 @@ export class EntityViews {
             softenEnemyMaterials(avatar.root);
             for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
             mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
-          }).catch(error => { console.warn('No se pudo cargar emerald; se mantiene el modelo de respaldo.', error); })
+          }).catch(error => { console.warn('No se pudo cargar emerald; no se mostrará geometría provisional.', error); })
             .finally(() => { mesh.userData.emeraldLoading = false; });
         }
         if (isSapphire(e) && !mesh.userData.sapphireLoading && !this.sapphireAvatars.has(mesh)) {
@@ -189,7 +190,7 @@ export class EntityViews {
             softenEnemyMaterials(avatar.root);
             for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
             mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
-          }).catch(error => { console.warn('No se pudo cargar sapphire; se mantiene el modelo de respaldo.', error); })
+          }).catch(error => { console.warn('No se pudo cargar sapphire; no se mostrará geometría provisional.', error); })
             .finally(() => { mesh.userData.sapphireLoading = false; });
         }
         if (isRuby(e) && !mesh.userData.sapphireLoading && !mesh.userData.rubyLoading && !this.rubyAvatars.has(mesh)) {
@@ -200,7 +201,7 @@ export class EntityViews {
             softenEnemyMaterials(avatar.root);
             for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
             mesh.rotation.z = 0; mesh.position.set(e.x, e.y, e.z);
-          }).catch(error => { console.warn('No se pudo cargar ruby; se mantiene el modelo de respaldo.', error); })
+          }).catch(error => { console.warn('No se pudo cargar ruby; no se mostrará geometría provisional.', error); })
             .finally(() => { mesh.userData.rubyLoading = false; });
         }
         if (isDust(e) && !mesh.userData.dustLoading && !this.dustAvatars.has(mesh)) {
@@ -210,7 +211,7 @@ export class EntityViews {
             this.dustAvatars.set(mesh, avatar);
             softenEnemyMaterials(avatar.root);
             for (const child of mesh.children) if (child !== avatar.root) child.visible = false;
-          }).catch(error => { console.warn('No se pudo cargar dust; se mantiene el modelo de respaldo.', error); })
+          }).catch(error => { console.warn('No se pudo cargar dust; no se mostrará geometría provisional.', error); })
             .finally(() => { mesh.userData.dustLoading = false; });
         }
       }
@@ -233,7 +234,6 @@ export class EntityViews {
       if (avatar) { mesh.rotation.z = 0; avatar.update(e, run.time, run.world); }
       else {
         if (e.type !== 'drone') { mesh.position.y += Math.sin(run.time * e.speed * 2 + e.id) * 0.045; mesh.rotation.z = Math.sin(run.time * e.speed + e.id) * 0.025; }
-        if (e.type === 'titan') animateGuardian(mesh, e, run.time);
       }
       mesh.visible = e.flash <= 0 || Math.floor(run.time * 35) % 2 === 0;
     }
