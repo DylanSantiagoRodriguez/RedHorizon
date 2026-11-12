@@ -22,9 +22,12 @@ test('dos contextos completan una expedición compartida y reconectan', async ({
     await expect(a.locator('#lobby-code')).toHaveText(/^[A-Z2-9]{6}$/); const code = await a.locator('#lobby-code').textContent();
     await b.locator('#online-name').fill('<Beta>'); await b.locator('#room-code').fill(` ${code.toLowerCase().slice(0, 3)} ${code.toLowerCase().slice(3)} `); await b.getByRole('button', { name: 'Unirse con código', exact: true }).click();
     await expect(a.locator('#lobby-players li')).toHaveCount(2); await expect(b.locator('#lobby-players')).toContainText('<Beta>');
-    await a.getByRole('button', { name: 'Listo', exact: true }).click(); await b.getByRole('button', { name: 'Listo', exact: true }).click(); await expect(a.locator('#start-room')).toBeEnabled(); await a.locator('#start-room').click();
+    await a.getByRole('button', { name: 'Listo', exact: true }).click(); await b.getByRole('button', { name: 'Listo', exact: true }).click(); await expect(a.locator('#start-room')).toBeEnabled();
+    await a.evaluate(() => { window.__PREPARED_WORLD__ = window.__RED_HORIZON__.world; });
+    await a.locator('#start-room').click();
     await fixture(request, code, 'explore');
     await expect.poll(async () => (await game(a)).count).toBe(2); await expect.poll(async () => (await game(b)).remoteViews).toBe(1);
+    expect(await a.evaluate(() => window.__PREPARED_WORLD__ === window.__RED_HORIZON__.world && !window.__RED_HORIZON__.loading.pending)).toBe(true);
     for (const page of [a, b]) {
       await expect.poll(() => page.evaluate(() => !!window.__RED_HORIZON__.world.environmentLoaded), { timeout: 180000 }).toBe(true);
       expect(await page.evaluate(() => {

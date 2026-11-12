@@ -21,7 +21,7 @@ export class RoomManager {
     const member = { id, token, nickname: nickname.trim().replace(/[\p{C}]/gu, '').slice(0, 20) || `Explorador ${room.members.size + 1}`, ready: false, socket, ack: 0, received: 0, queue: [], lastInputAt: 0, disconnectedAt: null };
     room.members.set(id, member); room.hostId ||= id; this.welcome(room, member); this.broadcastLobby(room); return { room, member };
   }
-  welcome(room, m) { this.send(m.socket, { type: 'welcome', tickHz: this.tickHz, version: PROTOCOL_VERSION, gameVersion: GAME_VERSION, code: room.code, playerId: m.id, token: m.token, seq: m.received, started: !!room.run }); if (room.run) this.send(m.socket, snapshot(room, this.now())); }
+  welcome(room, m) { this.send(m.socket, { type: 'welcome', tickHz: this.tickHz, version: PROTOCOL_VERSION, gameVersion: GAME_VERSION, seed: room.code, code: room.code, playerId: m.id, token: m.token, seq: m.received, started: !!room.run }); if (room.run) this.send(m.socket, snapshot(room, this.now())); }
   reconnect(code, token, socket) {
     const room = this.find(code), member = [...room.members.values()].find(m => m.token === token);
     if (!member || member.expired || member.disconnectedAt !== null && this.now() - member.disconnectedAt >= this.reconnectMs) throw new RoomError('TOKEN');

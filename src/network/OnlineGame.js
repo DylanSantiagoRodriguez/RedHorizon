@@ -25,13 +25,23 @@ export class OnlineGame {
   }
   updateLobbyStatus() { const node = this.game.ui.overlay.querySelector('#online-status'); if (node) node.textContent = this.error || this.connectionState; }
   receive(m) {
-    if (m.type === 'welcome') { this.step = 1 / m.tickHz; this.accumulator = 0; this.playerId = m.playerId; this.code = m.code; this.seq = m.seq; this.pending = []; this.history = []; this.fresh = true; this.error = ''; }
+    if (m.type === 'welcome') { this.step = 1 / m.tickHz; this.accumulator = 0; this.playerId = m.playerId; this.code = m.code; this.seq = m.seq; this.pending = []; this.history = []; this.fresh = true; this.error = ''; if (!this.started) this.prepare(m.seed || m.code); }
     if (m.type === 'lobby') { this.lobby = m; if (!m.started) this.showLobby(); }
     if (m.type === 'error') {
       this.error = m.message; this.updateLobbyStatus(); this.game.ui.hud.toast(m.message);
       if (!this.playerId) { this.connection.dispose(); this.connection = new Connection(n => this.receive(n), text => { this.connectionState = text; this.connected = text === 'Conectado'; this.updateLobbyStatus(); }); }
     }
     if (m.type === 'snapshot') this.snapshot(m);
+  }
+  prepare(seed) {
+    if (this.preparedSeed === seed) return;
+    this.preparedSeed = seed; this.prepared = false;
+    this.game.createRun(seed, false);
+    this.game.loading.promise.then(() => {
+      if (this.game.online !== this || !this.game.loading.ready) return;
+      this.prepared = true;
+      if (this.lobby && !this.started) this.showLobby();
+    });
   }
   showLobby() {
     const overlay = this.game.ui.overlay; overlay.hidden = false; overlay.className = 'modal-overlay';
@@ -40,15 +50,16 @@ export class OnlineGame {
     for (const p of this.lobby.players) { const li = document.createElement('li'); li.textContent = `${p.nickname}${p.id === this.lobby.hostId ? ' · Creador' : ''} · ${p.connected ? (p.ready ? 'Listo' : 'Preparándose') : 'Desconectado'}`; overlay.querySelector('#lobby-players').appendChild(li); }
     const me = this.lobby.players.find(p => p.id === this.playerId);
     overlay.querySelector('#ready-room').textContent = me?.ready ? 'Cancelar listo' : 'Listo';
-    overlay.querySelector('#ready-room').onclick = () => this.connection.send({ type: 'ready', ready: !me?.ready });
-    overlay.querySelector('#start-room').disabled = this.playerId !== this.lobby.hostId || this.lobby.players.length < 2 || this.lobby.players.some(p => !p.connected || !p.ready);
+    overlay.querySelector('#ready-room').disabled = !this.prepared;
+    overlay.querySelector('#ready-room').onclick = () => this.prepared && this.connection.send({ type: 'ready', ready: !me?.ready });
+    overlay.querySelector('#start-room').disabled = !this.prepared || this.playerId !== this.lobby.hostId || this.lobby.players.length < 2 || this.lobby.players.some(p => !p.connected || !p.ready);
     overlay.querySelector('#start-room').onclick = () => this.connection.send({ type: 'start' });
     overlay.querySelector('#copy-code').onclick = async () => { try { await navigator.clipboard.writeText(this.code); this.error = 'Código copiado'; } catch { this.error = `Comparte este código: ${this.code}`; } this.updateLobbyStatus(); };
     overlay.querySelector('#leave-room').onclick = () => this.game.menu(); this.updateLobbyStatus();
   }
   snapshot(s) {
     const g = this.game;
-    if (!this.started) { g.createRun(s.seed, false); this.started = true; g.camera.yaw = 0; g.camera.ready = false; g.audio.unlock().catch(() => {}); }
+    if (!this.started) { if (this.preparedSeed !== s.seed) g.createRun(s.seed, false); this.started = true; g.camera.yaw = 0; g.camera.ready = false; g.audio.unlock().catch(() => {}); }
     if (this.latest && s.tick < this.latest.tick) return;
     this.latest = s; this.receivedAt = performance.now(); this.history.push({ snapshot: s, at: this.receivedAt }); if (this.history.length > 8) this.history.shift();
     const r = g.run;

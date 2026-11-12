@@ -4,7 +4,7 @@ import { chromium, expect } from '@playwright/test';
 const url = process.env.SMOKE_URL || 'http://127.0.0.1:4173/';
 const health = await fetch(new URL('/health', url)).then(r => r.json());
 if (!health.ok) throw new Error('Backend no disponible');
-const browser = await chromium.launch({ headless: true, args: ['--enable-webgl', '--enable-unsafe-swiftshader'] });
+const browser = await chromium.launch({ channel: 'chromium', headless: true, args: ['--enable-webgl', '--enable-unsafe-swiftshader'] });
 const errors = [], peers = [];
 try {
   for (let i = 0; i < 2; i++) {
@@ -38,6 +38,9 @@ try {
   await expect.poll(() => b.snapshot?.players.length, { timeout: 15000 }).toBe(2);
   for (const peer of peers) await expect(peer.page.locator('.online-team [data-player-id]')).toHaveCount(2);
   for (const peer of peers) await expect(peer.page.locator('.model-loading')).toBeHidden({ timeout: 180000 });
+  await a.page.bringToFront();
+  if (await a.page.locator('#resume').isVisible()) await a.page.locator('#resume').click();
+  expect(a.snapshot.players.every(p => !p.dead), 'Equipo vivo al terminar la carga inicial').toBe(true);
   const id = a.id, z = b.snapshot.players.find(p => p.id === id).z;
   await a.page.keyboard.down('KeyW');
   try { await expect.poll(() => b.snapshot.players.find(p => p.id === id).z, { timeout: 15000 }).toBeLessThan(z - 1); }
