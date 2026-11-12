@@ -7,7 +7,12 @@ export class OnlineGame {
   constructor(game) {
     this.game = game; this.seq = 0; this.step = 1 / 60; this.accumulator = 0; this.pending = []; this.history = []; this.players = new Map(); this.extraActions = []; this.connectionState = 'Sin conexión';
     this.connection = new Connection(m => this.receive(m), text => { this.connectionState = text; this.connected = text === 'Conectado'; if (!this.connected) { game.input.clear(); this.pending = []; } this.updateTeam(); this.updateLobbyStatus(); });
-    this.team = document.createElement('aside'); this.team.className = 'online-team'; this.team.setAttribute('aria-label', 'Equipo'); game.ui.root.appendChild(this.team);
+    this.team = document.createElement('aside'); this.team.className = 'online-team'; this.team.setAttribute('aria-label', 'Equipo'); this.team.hidden = true;
+    const hud = game.ui.hud.nodes.hud;
+    this.sidebar = document.createElement('div'); this.sidebar.className = 'online-sidebar';
+    this.overview = document.createElement('div'); this.overview.className = 'online-overview';
+    this.missionPanel = hud.querySelector('.mission'); this.vitalsPanel = hud.querySelector('.vitals');
+    this.overview.append(this.team, this.missionPanel); this.sidebar.append(this.overview, this.vitalsPanel); hud.appendChild(this.sidebar);
   }
   open() {
     const ui = this.game.ui; ui.overlay.hidden = false; ui.overlay.className = 'modal-overlay';
@@ -119,7 +124,7 @@ export class OnlineGame {
     const code = document.createElement('strong'); code.className = 'online-room-code'; code.textContent = this.code || ''; heading.appendChild(code); this.team.appendChild(heading);
     const connection = document.createElement('div'); connection.textContent = this.connectionState; this.team.appendChild(connection);
     for (const [id, m] of this.players) { const row = document.createElement('div'); row.dataset.playerId = id; row.textContent = `${m.nickname}${id === this.playerId ? ' (tú)' : ''} · ${m.player.dead ? 'Sin señal vital' : `${Math.ceil(m.player.hp)} / ${m.player.stats.maxHp} PV`}${m.connected ? '' : ' · Desconectado'}`; this.team.appendChild(row); }
-    if (this.game.run.player.dead) { const row = document.createElement('div'); row.textContent = 'Observando a un compañero vivo'; this.team.appendChild(row); }
+    if (this.game.run.player.dead) { const row = document.createElement('div'); row.textContent = [...this.players.values()].some(m => !m.player.dead && !m.player.abandoned) ? 'Observando a un compañero vivo' : 'No quedan compañeros vivos'; this.team.appendChild(row); }
   }
-  dispose() { this.connection.dispose(); this.team.remove(); this.players.clear(); this.pending = []; this.history = []; }
+  dispose() { this.connection.dispose(); this.game.ui.hud.nodes.hud.append(this.missionPanel, this.vitalsPanel); this.sidebar.remove(); this.team.remove(); this.players.clear(); this.pending = []; this.history = []; }
 }

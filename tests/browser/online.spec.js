@@ -61,7 +61,24 @@ test('dos contextos completan una expedición compartida y reconectan', async ({
     await expect(a.locator('.model-loading')).toBeHidden({ timeout: 180000 });
     await expect.poll(() => a.evaluate(() => !!window.__RED_HORIZON__.world.environmentLoaded), { timeout: 180000 }).toBe(true);
     await expect.poll(async () => (await game(a)).connected).toBe(true);
-    await fixture(request, code, 'mission'); await a.keyboard.press('KeyQ'); await expect.poll(async () => (await game(b)).gems).toBe(5);
+    expect(await a.evaluate(() => {
+      const overview = document.querySelector('.online-overview').getBoundingClientRect();
+      const vitals = document.querySelector('.online-sidebar .vitals').getBoundingClientRect();
+      const team = document.querySelector('.online-team').getBoundingClientRect();
+      const mission = document.querySelector('.online-sidebar .mission').getBoundingClientRect();
+      return overview.bottom <= vitals.top && team.bottom <= mission.top;
+    })).toBe(true);
+    await fixture(request, code, 'mission');
+    for (const page of [a, b]) await expect.poll(() => page.evaluate(() => {
+      const g = window.__RED_HORIZON__;
+      return [...g.entities.enemies.values()].filter(mesh => {
+        const avatar = g.entities.animatedAvatar(mesh); if (!avatar || !mesh.userData.modelKey.startsWith('titan-')) return false;
+        mesh.updateMatrixWorld(true); let valid = mesh.visible && avatar.root.visible, meshes = 0;
+        avatar.root.traverse(node => { if (node.isMesh) { meshes++; valid &&= node.matrixWorld.elements.every(Number.isFinite); if (node.skeleton) { node.skeleton.update(); valid &&= [...node.skeleton.boneMatrices].every(Number.isFinite); } } });
+        return valid && meshes > 0;
+      }).length;
+    })).toBe(5);
+    await a.keyboard.press('KeyQ'); await expect.poll(async () => (await game(b)).gems).toBe(5);
     await fixture(request, code, 'launch-position'); await expect.poll(async () => (await game(b)).phase).toBe('ready');
     // The second player may launch the team's beacon.
     await b.bringToFront();

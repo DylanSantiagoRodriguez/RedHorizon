@@ -147,3 +147,13 @@
 #hurt-feedback { position:absolute; top:calc(50% + 82px); left:50%; transform:translateX(-50%); opacity:0; transition:opacity .15s; color:#ffc2ad; font:700 13px/1.4 monospace; letter-spacing:1px; text-shadow:0 2px 5px #000; padding:6px 12px; border-top:2px solid #ed7259; background:#211217b3; pointer-events:none; }
 #hurt-feedback.visible { opacity:1; }
 #hurt-feedback.shield-hit { color:#b6fff6; border-color:#81dfd6; background:#10252ab3; }
+
+/* Team, mission and local health share one column; their heights never overlap. */
+.neo-hud .online-sidebar { position:absolute; top:118px; bottom:66px; left:30px; width:320px; display:flex; flex-direction:column; gap:12px; min-height:0; }
+.neo-hud .online-overview { min-height:0; flex:1; overflow:auto; display:flex; flex-direction:column; gap:12px; pointer-events:auto; scrollbar-width:thin; }
+.neo-hud .online-sidebar .mission, .neo-hud .online-sidebar .online-team, .neo-hud .online-sidebar .vitals { position:static; width:100%; max-width:none; margin:0; flex-shrink:0; transform:none; }
+.neo-hud .online-sidebar .online-team { overflow-wrap:anywhere; font-size:12px; line-height:1.6; }
+.neo-hud .online-sidebar .vitals { max-height:44%; overflow:auto; pointer-events:auto; }
+@media(max-width:1100px) { .neo-hud .online-sidebar { left:22px; width:290px; } }
+@media(max-height:740px) and (min-width:701px) { .neo-hud .online-sidebar { top:100px; bottom:52px; } }
+@media(max-width:700px) { .neo-hud .online-sidebar { top:84px; bottom:48px; left:12px; width:calc(100% - 178px); gap:8px; } .neo-hud .online-overview { gap:8px; } .neo-hud .online-sidebar .online-team { padding:8px; font-size:11px; } .neo-hud .online-sidebar .online-room-code { font-size:17px; } }
