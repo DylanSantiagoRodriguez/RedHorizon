@@ -17,12 +17,10 @@ ExecStart=/usr/local/lib/redhorizon/deploy-main.sh
 TimeoutStartSec=20min
 UMask=0022
 Nice=10
-CPUQuota=200%
-# Borrow both idle CPUs for software rendering; give live services priority.
+CPUQuota=100%
+# Browser tests run externally. Keep build/Node checks below live services.
 CPUWeight=25
-# Two software-rendered contexts and a reload reached 5 GiB and reclaimed
-# memory during network checks. Reserve 2 GiB for backend, Caddy and OS.
-MemoryMax=6G
+MemoryMax=2G
 NoNewPrivileges=true
 PrivateTmp=true
 PrivateDevices=true

@@ -17,9 +17,11 @@ if ! id redhorizon-deploy >/dev/null 2>&1; then
   useradd --system --home-dir /var/lib/redhorizon-deploy --shell /usr/sbin/nologin redhorizon-deploy
 fi
 install -d -m 755 /usr/local/lib/redhorizon /srv/redhorizon/releases
+install -d -o root -g root -m 755 /var/lib/redhorizon-validation
 install -d -o redhorizon-deploy -g redhorizon-deploy -m 750 /var/lib/redhorizon-deploy /var/cache/redhorizon-deploy
 chown -R redhorizon-deploy:redhorizon-deploy /srv/redhorizon
 install -m 755 deploy-main.sh validate-backend.sh /usr/local/lib/redhorizon/
+install -m 644 validate-browser-proof.mjs /usr/local/lib/redhorizon/
 install -m 644 playwright.config.mjs /usr/local/lib/redhorizon/
 if ! id redhorizon-backend >/dev/null 2>&1; then
   useradd --system --no-create-home --shell /usr/sbin/nologin redhorizon-backend

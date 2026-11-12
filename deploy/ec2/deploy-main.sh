@@ -61,6 +61,11 @@ if [ -f "$site/current/deployment.json" ] && [ -f "$site/current/runtime/release
   exit 0
 fi
 
+if ! node /usr/local/lib/redhorizon/validate-browser-proof.mjs "/var/lib/redhorizon-validation/$revision.json" "$revision"; then
+  echo "Awaiting browser verification for $revision: run bash scripts/deploy-ec2.sh from a graphics-capable workstation."
+  exit 0
+fi
+
 echo "Checking main at $revision"
 # This disposable checkout belongs only to the deployment service.
 git checkout --quiet --force --detach "$revision"
@@ -68,14 +73,7 @@ npm ci --no-audit --no-fund
 npm run check
 npm run test:integration
 test -s dist/index.html
-npx --no-install playwright install chromium
-npx --no-install playwright test --config /usr/local/lib/redhorizon/playwright.config.mjs
-node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort > "$state/preview.log" 2>&1 &
-preview_pid=$!
-node scripts/smoke-production.mjs
-kill "$preview_pid"
-wait "$preview_pid" 2>/dev/null || true
-preview_pid=''
+echo "Browser checks verified externally for $revision; production does not run Chromium."
 
 # Do not publish an obsolete build if main advanced while checks ran.
 latest="$(git ls-remote origin refs/heads/main | cut -f1)"
