@@ -1,3 +1,9 @@
+# Recuperación sin esperar el cierre del transporte
+
+El cliente inicia la recuperación al detectar un enlace sin respuesta, aunque el handshake de cierre anterior siga pendiente. Los casos nuevos cubren callbacks tardíos, ACTIVE temporal y vencimiento de los reintentos; no amplían el plazo autoritativo ni permiten dos conexiones de control.
+
+Validación local: `npm run check` pasó con **178 pruebas en 36 archivos**, ESLint y build; `npm run test:integration` pasó con **41 pruebas** (incluidas en las 178); el perfil de EC2 pasó sus **dos escenarios online en 1,2 minutos**. El smoke individual se actualizó para esperar la pantalla de carga y pasó sin errores ni recursos fallidos antes de esta corrección de transporte. Los resultados de publicación se comprueban en el journal del servicio y con el smoke público; los registros siguientes son históricos.
+
 # Validación integrada de carga y cooperativo
 
 Después de integrar `16da2ce` (pantalla de carga y animación lateral) con el heartbeat tolerante a bloqueos, `npm run check` pasó con **175 pruebas en 36 archivos**, ESLint y compilación correctos. Los dos escenarios online pasaron en **1,3 minutos** usando el perfil de EC2 localmente. La prueba conserva la recuperación automática de identidad antes de cargar modelos, espera la pantalla de carga y verifica después conexión, combate, baliza y victoria. Los registros siguientes corresponden a revisiones anteriores y conservan sus resultados originales.
