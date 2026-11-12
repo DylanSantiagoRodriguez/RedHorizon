@@ -112,7 +112,8 @@ printf '%s\n' "$revision" > "$site/backend-restart"
 /usr/local/lib/redhorizon/validate-backend.sh "$site/current/runtime/release.json"
 
 curl --fail --silent --show-error --max-time 15 http://127.0.0.1:8080/ -o /dev/null
-curl --fail --silent --show-error --max-time 20 https://redhorizon.lat/deployment.json |
+# Validate this instance even while public DNS still points at the previous host.
+curl --fail --silent --show-error --max-time 20 --resolve redhorizon.lat:443:127.0.0.1 https://redhorizon.lat/deployment.json |
   node -e '
     let body = "";
     process.stdin.on("data", chunk => body += chunk);

@@ -31,5 +31,6 @@ remote_report="$(ssh "${ssh_options[@]}" "$deployment_host" 'mktemp /tmp/redhori
 [[ "$remote_report" =~ ^/tmp/redhorizon-proof\.[a-zA-Z0-9]+$ ]]
 scp "${ssh_options[@]}" "$validation_dir/proof.json" "$deployment_host:$remote_report"
 ssh "${ssh_options[@]}" "$deployment_host" "sudo install -d -o root -g root -m 0755 /var/lib/redhorizon-validation && sudo install -o root -g root -m 0644 '$remote_report' '/var/lib/redhorizon-validation/$revision.json' && rm -f '$remote_report' && sudo systemctl start redhorizon-deploy.service && sudo journalctl -u redhorizon-deploy.service -n 20 --no-pager"
-curl --fail --silent --show-error --max-time 20 https://redhorizon.lat/deployment.json |
+# Check the actual destination externally, retaining normal certificate validation.
+curl --fail --silent --show-error --max-time 20 --resolve "redhorizon.lat:443:${DEPLOY_VERIFY_IP:-${deployment_host#*@}}" https://redhorizon.lat/deployment.json |
   node -e 'let body=""; process.stdin.on("data",c=>body+=c); process.stdin.on("end",()=>{ const data=JSON.parse(body); if(data.commit!==process.argv[1]) process.exit(1); console.log(JSON.stringify(data)); });' "$revision"
