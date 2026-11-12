@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 const game = page => page.evaluate(() => {
   const g = window.__RED_HORIZON__, o = g.online;
-  return { state: g.state.value, time: g.run.time, status: g.run.status, playerId: o?.playerId, count: o?.players.size, remoteViews: g.entities.remotePlayers.size, players: o ? [...o.players].map(([id, m]) => ({ id, x: m.player.x, z: m.player.z, hp: m.player.hp, maxHp: m.player.stats.maxHp })) : [], enemies: g.run.enemies.map(e => ({ id: e.id, hp: e.hp, dead: e.dead })), phase: g.run.mission.phase, kills: g.run.kills, gems: g.run.gems.length, connected: o?.connected };
+  return { state: g.state.value, time: g.run.time, status: g.run.status, playerId: o?.playerId, count: o?.players.size, remoteViews: g.entities.remotePlayers.size, players: o ? [...o.players].map(([id, m]) => ({ id, x: m.player.x, z: m.player.z, hp: m.player.hp, maxHp: m.player.stats.maxHp })) : [], enemies: g.run.enemies.map(e => ({ id: e.id, hp: e.hp, dead: e.dead })), phase: g.run.mission.phase, kills: g.run.kills, gems: g.run.gems.length, connected: o?.connected, connection: { state: o?.connectionState, error: o?.error, socketState: o?.connection.socket?.readyState, retries: o?.connection.attempt, closed: o?.connection.closed } };
 });
 async function fixture(request, code, action) { const response = await request.post(`http://127.0.0.1:18788/${action}?code=${code}`, { headers: { 'x-test-fixture': 'redhorizon-playwright' } }); expect(response.ok(), await response.text()).toBeTruthy(); }
 test('dos contextos completan una expedición compartida y reconectan', async ({ browser, request }) => {
