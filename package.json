@@ -16,12 +16,15 @@
     "server": "node server/main.js",
     "test:integration": "vitest run tests/online*.test.js",
     "test:online": "playwright test --config playwright.online.config.js",
-    "dev:frontend": "vite --host 127.0.0.1"
+    "dev:frontend": "vite --host 127.0.0.1",
+    "test:cluster": "vitest run tests/cluster*.test.js",
+    "test:cluster:browser": "playwright test --config playwright.cluster.config.js"
   },
   "engines": {
     "node": ">=22.12.0"
   },
   "dependencies": {
+    "redis": "5.12.3",
     "three": "^0.187.0",
     "ws": "^8.22.2"
   },

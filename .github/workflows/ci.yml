@@ -16,12 +16,15 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - run: sudo apt-get update && sudo apt-get install -y redis-server openssl nginx
       - run: npm ci
       - run: npm run check
+      - run: python3 scripts/cluster/validate-nginx.py
       - run: npm run test:integration
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - run: npm run test:online
+      - run: npm run test:cluster:browser
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

@@ -1,0 +1,33 @@
+[Unit]
+Description=Red Horizon cluster service
+After=network-online.target
+Wants=network-online.target
+[Service]
+User=redhorizon-cluster
+Group=redhorizon-cluster
+WorkingDirectory=/srv/redhorizon-cluster/current/runtime
+Environment=NODE_ENV=production
+Environment=RH_CLUSTER_CONFIG=/etc/redhorizon-cluster/cluster.json
+ExecStart=/srv/redhorizon-cluster/current/node/bin/node server/cluster/main.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+UMask=0077
+RuntimeDirectory=redhorizon-cluster
+RuntimeDirectoryMode=0700
+MemoryMax=650M
+LimitNOFILE=4096
+TasksMax=128
+TimeoutStopSec=15
+[Install]
+WantedBy=multi-user.target

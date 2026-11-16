@@ -7,3 +7,12 @@ playwright-report/
 # Blender backups and export scratch files
 *.blend[0-9]*
 Modelos_Animados/*/temp/
+
+# Cluster secrets, local plans and packaged artifacts
+*.pem
+*.key
+.cluster-local/
+*.tfstate*
+.terraform/
+
+__pycache__/

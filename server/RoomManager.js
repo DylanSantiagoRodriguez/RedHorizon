@@ -9,9 +9,10 @@ export class RoomManager {
     Object.assign(this, { now, tickHz, reconnectMs, maxRooms, lobbyMs, matchMs, healthPerPlayer, upgradeMs, send }); this.rooms = new Map();
   }
   code() { let code; do { code = Array.from({ length: 6 }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join(''); } while (this.rooms.has(code)); return code; }
-  create(socket, nickname) {
+  create(socket, nickname, assignedCode = null) {
     if (this.rooms.size >= this.maxRooms) throw new RoomError('LIMIT');
-    const room = { code: this.code(), members: new Map(), hostId: null, createdAt: this.now(), tick: 0, events: [], eventId: 0 };
+    if (assignedCode && (normalizeCode(assignedCode) !== assignedCode || assignedCode.length !== 6 || [...assignedCode].some(c => !CODE_ALPHABET.includes(c)) || this.rooms.has(assignedCode))) throw new RoomError('INVALID');
+    const room = { code: assignedCode || this.code(), members: new Map(), hostId: null, createdAt: this.now(), tick: 0, events: [], eventId: 0 };
     this.rooms.set(room.code, room); return this.add(room, socket, nickname);
   }
   find(code) { code = normalizeCode(code); if (code.length !== 6 || [...code].some(c => !CODE_ALPHABET.includes(c))) throw new RoomError('INVALID_CODE'); const r = this.rooms.get(code); if (!r) throw new RoomError('NOT_FOUND'); return r; }

@@ -77,3 +77,14 @@ it('no prolonga indefinidamente los reintentos de una identidad todavía activa'
   vi.advanceTimersByTime(300); connection.socket.open(); now.mockReturnValue(30000); connection.socket.receive({ type: 'error', code: 'ACTIVE' });
   expect(connection.identity).toBeNull(); expect(vi.getTimerCount()).toBe(0);
 });
+
+it('persiste solo rutas de servidor permitidas y no las envía como campos del protocolo', () => {
+  connection.connect({ type: 'create' }); connection.socket.open();
+  connection.socket.receive({ type: 'welcome', version: PROTOCOL_VERSION, gameVersion: GAME_VERSION, code: 'ABC234', token: 'e'.repeat(64), serverId: 'rh-game-02' });
+  expect(Connection.saved().serverId).toBe('rh-game-02');
+  connection.connect({ type: 'reconnect', ...connection.identity });
+  const send = vi.spyOn(connection.socket, 'send'); connection.socket.open();
+  expect(JSON.parse(send.mock.calls[0][0]).serverId).toBeUndefined();
+  connection.socket.receive({ type: 'welcome', version: PROTOCOL_VERSION, gameVersion: GAME_VERSION, code: 'ABC234', token: 'e'.repeat(64), serverId: 'https://evil.invalid' });
+  expect(Connection.saved().serverId).toBeUndefined();
+});

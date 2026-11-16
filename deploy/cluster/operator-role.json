@@ -1,0 +1,101 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Operational role only; no long-lived keys, IAM administration or fleet creation",
+  "Parameters": {
+    "OperatorPrincipalArn": {
+      "Type": "String",
+      "AllowedPattern": "arn:aws:iam::670036769494:user/.+",
+      "Description": "Dedicated IAM operator user with MFA; never root"
+    }
+  },
+  "Resources": {
+    "OperatorRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "RedHorizonClusterOperator",
+        "MaxSessionDuration": 3600,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Ref": "OperatorPrincipalArn"
+                }
+              },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "Bool": {
+                  "aws:MultiFactorAuthPresent": "true"
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "OperateClusterOnly",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ec2:DescribeInstances",
+                    "ec2:DescribeInstanceStatus",
+                    "ec2:DescribeSecurityGroups",
+                    "ec2:DescribeVolumes",
+                    "ssm:DescribeInstanceInformation",
+                    "cloudwatch:GetMetricData",
+                    "cloudwatch:GetMetricStatistics"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ec2:StartInstances",
+                    "ec2:StopInstances",
+                    "ec2:RebootInstances"
+                  ],
+                  "Resource": "arn:aws:ec2:us-east-2:670036769494:instance/*",
+                  "Condition": {
+                    "StringEquals": {
+                      "ec2:ResourceTag/Project": "RedHorizonCluster"
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": "ssm:StartSession",
+                  "Resource": "arn:aws:ec2:us-east-2:670036769494:instance/*",
+                  "Condition": {
+                    "StringEquals": {
+                      "ssm:resourceTag/Project": "RedHorizonCluster"
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": "ssm:StartSession",
+                  "Resource": "arn:aws:ssm:us-east-2:670036769494:document/SSM-SessionManagerRunShell"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "RoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "OperatorRole",
+          "Arn"
+        ]
+      }
+    }
+  }
+}

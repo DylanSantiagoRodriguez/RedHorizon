@@ -5,13 +5,15 @@ export class Connection {
   save(identity) { this.identity = identity; try { if (identity) sessionStorage.setItem('rh-online', JSON.stringify(identity)); else sessionStorage.removeItem('rh-online'); } catch { /* Private storage may be unavailable. In-memory reconnection still works. */ } }
   connect(request) {
     clearTimeout(this.retry); this.request = request;
-    if (request.type === 'reconnect') this.save({ code: request.code, token: request.token });
+    if (request.type === 'reconnect') this.save({ code: request.code, token: request.token, ...(request.serverId ? { serverId: request.serverId } : {}) });
     else { this.save(null); this.lostAt = null; }
-    const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`); this.socket = socket;
+    const route = request.type === 'reconnect' && /^rh-game-0[123]$/.test(request.serverId || '') ? `?server=${request.serverId}` : '';
+    const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws${route}`); this.socket = socket;
     this.status('Conectando…');
     socket.onopen = () => {
       if (this.socket !== socket) return;
-      this.send({ ...request, version: PROTOCOL_VERSION, gameVersion: GAME_VERSION });
+      const { serverId: _route, ...message } = request;
+      this.send({ ...message, version: PROTOCOL_VERSION, gameVersion: GAME_VERSION });
       this.lastMessage = this.lastHeartbeat = performance.now(); this.heartbeatGraceUntil = 0;
       this.heartbeat = setInterval(() => {
         const now = performance.now();
@@ -28,7 +30,7 @@ export class Connection {
       if (this.socket !== socket) return;
       let m; try { m = JSON.parse(e.data); } catch { return; } this.lastMessage = performance.now();
       if (m.type === 'welcome' && (m.version !== PROTOCOL_VERSION || m.gameVersion !== GAME_VERSION)) { this.closed = true; this.save(null); this.status(ERRORS.VERSION); socket.close(); return; }
-      if (m.type === 'welcome') { this.save({ code: m.code, token: m.token }); this.attempt = 0; this.lostAt = null; this.status('Conectado'); }
+      if (m.type === 'welcome') { this.save({ code: m.code, token: m.token, ...(/^rh-game-0[123]$/.test(m.serverId || '') ? { serverId: m.serverId } : {}) }); this.attempt = 0; this.lostAt = null; this.status('Conectado'); }
       if (m.type === 'shutdown') { this.closed = true; this.save(null); this.status(m.message); }
       // A proxy can report loss before the server observes the old socket's
       // close. Retry the same token; the server continues rejecting concurrent

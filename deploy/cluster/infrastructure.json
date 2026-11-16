@@ -1,0 +1,688 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Red Horizon: four additional nodes; primary stays outside stack lifecycle.",
+  "Parameters": {
+    "VpcId": {
+      "Type": "AWS::EC2::VPC::Id",
+      "Default": "vpc-0acc002bf61620138"
+    },
+    "SubnetId": {
+      "Type": "AWS::EC2::Subnet::Id",
+      "Default": "subnet-0fde15f950925cb60"
+    },
+    "UbuntuAmi": {
+      "Type": "AWS::EC2::Image::Id",
+      "Description": "Pin verified Canonical Ubuntu 24.04 amd64 AMI in us-east-2"
+    },
+    "GatewayKeyName": {
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "Game02KeyName": {
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "Game03KeyName": {
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "CoordinatorKeyName": {
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    }
+  },
+  "Resources": {
+    "GatewaySecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Red Horizon cluster Gateway",
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "RedHorizonCluster"
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 80,
+            "ToPort": 80,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "GameSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Red Horizon cluster Game",
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "RedHorizonCluster"
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 80,
+            "ToPort": 80,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "CoordinatorSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Red Horizon cluster Coordinator",
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "RedHorizonCluster"
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 80,
+            "ToPort": 80,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "Public80": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "GatewaySecurityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 80,
+        "ToPort": 80,
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "Public443": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "GatewaySecurityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 443,
+        "ToPort": 443,
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "GatewayGameIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "GameSecurityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 8787,
+        "ToPort": 8787,
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "GatewaySecurityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "GatewayGameOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "GatewaySecurityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 8787,
+        "ToPort": 8787,
+        "DestinationSecurityGroupId": {
+          "Fn::GetAtt": [
+            "GameSecurityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "GatewayCoordinatorIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "CoordinatorSecurityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 8443,
+        "ToPort": 8443,
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "GatewaySecurityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "GatewayCoordinatorOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "GatewaySecurityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 8443,
+        "ToPort": 8443,
+        "DestinationSecurityGroupId": {
+          "Fn::GetAtt": [
+            "CoordinatorSecurityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "GameCoordinatorIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "CoordinatorSecurityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 8443,
+        "ToPort": 8443,
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "GameSecurityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "GameCoordinatorOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "GameSecurityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 8443,
+        "ToPort": 8443,
+        "DestinationSecurityGroupId": {
+          "Fn::GetAtt": [
+            "CoordinatorSecurityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "NodeRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "RedHorizonCluster"
+          }
+        ]
+      }
+    },
+    "NodeProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Roles": [
+          {
+            "Ref": "NodeRole"
+          }
+        ]
+      }
+    },
+    "Gateway": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "UbuntuAmi"
+        },
+        "InstanceType": "t3.micro",
+        "KeyName": {
+          "Ref": "GatewayKeyName"
+        },
+        "IamInstanceProfile": {
+          "Ref": "NodeProfile"
+        },
+        "MetadataOptions": {
+          "HttpTokens": "required",
+          "HttpEndpoint": "enabled",
+          "HttpPutResponseHopLimit": 1
+        },
+        "CreditSpecification": {
+          "CPUCredits": "standard"
+        },
+        "DisableApiTermination": true,
+        "NetworkInterfaces": [
+          {
+            "DeviceIndex": "0",
+            "AssociatePublicIpAddress": true,
+            "SubnetId": {
+              "Ref": "SubnetId"
+            },
+            "GroupSet": [
+              {
+                "Fn::GetAtt": [
+                  "GatewaySecurityGroup",
+                  "GroupId"
+                ]
+              }
+            ]
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeSize": 20,
+              "VolumeType": "gp3",
+              "Encrypted": true,
+              "DeleteOnTermination": true
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "RedHorizonCluster"
+          },
+          {
+            "Key": "Name",
+            "Value": "rh-gateway"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": "#!/bin/bash\nset -euo pipefail\n# Ubuntu AWS AMI includes SSM agent. No secrets or application code in user-data.\nsystemctl enable --now snap.amazon-ssm-agent.amazon-ssm-agent.service\n"
+        }
+      },
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
+    },
+    "Game02": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "UbuntuAmi"
+        },
+        "InstanceType": "t3.small",
+        "KeyName": {
+          "Ref": "Game02KeyName"
+        },
+        "IamInstanceProfile": {
+          "Ref": "NodeProfile"
+        },
+        "MetadataOptions": {
+          "HttpTokens": "required",
+          "HttpEndpoint": "enabled",
+          "HttpPutResponseHopLimit": 1
+        },
+        "CreditSpecification": {
+          "CPUCredits": "standard"
+        },
+        "DisableApiTermination": true,
+        "NetworkInterfaces": [
+          {
+            "DeviceIndex": "0",
+            "AssociatePublicIpAddress": true,
+            "SubnetId": {
+              "Ref": "SubnetId"
+            },
+            "GroupSet": [
+              {
+                "Fn::GetAtt": [
+                  "GameSecurityGroup",
+                  "GroupId"
+                ]
+              }
+            ]
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeSize": 20,
+              "VolumeType": "gp3",
+              "Encrypted": true,
+              "DeleteOnTermination": true
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "RedHorizonCluster"
+          },
+          {
+            "Key": "Name",
+            "Value": "rh-game-02"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": "#!/bin/bash\nset -euo pipefail\n# Ubuntu AWS AMI includes SSM agent. No secrets or application code in user-data.\nsystemctl enable --now snap.amazon-ssm-agent.amazon-ssm-agent.service\n"
+        }
+      },
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
+    },
+    "Game03": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "UbuntuAmi"
+        },
+        "InstanceType": "t3.small",
+        "KeyName": {
+          "Ref": "Game03KeyName"
+        },
+        "IamInstanceProfile": {
+          "Ref": "NodeProfile"
+        },
+        "MetadataOptions": {
+          "HttpTokens": "required",
+          "HttpEndpoint": "enabled",
+          "HttpPutResponseHopLimit": 1
+        },
+        "CreditSpecification": {
+          "CPUCredits": "standard"
+        },
+        "DisableApiTermination": true,
+        "NetworkInterfaces": [
+          {
+            "DeviceIndex": "0",
+            "AssociatePublicIpAddress": true,
+            "SubnetId": {
+              "Ref": "SubnetId"
+            },
+            "GroupSet": [
+              {
+                "Fn::GetAtt": [
+                  "GameSecurityGroup",
+                  "GroupId"
+                ]
+              }
+            ]
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeSize": 20,
+              "VolumeType": "gp3",
+              "Encrypted": true,
+              "DeleteOnTermination": true
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "RedHorizonCluster"
+          },
+          {
+            "Key": "Name",
+            "Value": "rh-game-03"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": "#!/bin/bash\nset -euo pipefail\n# Ubuntu AWS AMI includes SSM agent. No secrets or application code in user-data.\nsystemctl enable --now snap.amazon-ssm-agent.amazon-ssm-agent.service\n"
+        }
+      },
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
+    },
+    "Coordinator": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "UbuntuAmi"
+        },
+        "InstanceType": "t3.micro",
+        "KeyName": {
+          "Ref": "CoordinatorKeyName"
+        },
+        "IamInstanceProfile": {
+          "Ref": "NodeProfile"
+        },
+        "MetadataOptions": {
+          "HttpTokens": "required",
+          "HttpEndpoint": "enabled",
+          "HttpPutResponseHopLimit": 1
+        },
+        "CreditSpecification": {
+          "CPUCredits": "standard"
+        },
+        "DisableApiTermination": true,
+        "NetworkInterfaces": [
+          {
+            "DeviceIndex": "0",
+            "AssociatePublicIpAddress": true,
+            "SubnetId": {
+              "Ref": "SubnetId"
+            },
+            "GroupSet": [
+              {
+                "Fn::GetAtt": [
+                  "CoordinatorSecurityGroup",
+                  "GroupId"
+                ]
+              }
+            ]
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeSize": 20,
+              "VolumeType": "gp3",
+              "Encrypted": true,
+              "DeleteOnTermination": true
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "RedHorizonCluster"
+          },
+          {
+            "Key": "Name",
+            "Value": "rh-coordinator"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": "#!/bin/bash\nset -euo pipefail\n# Ubuntu AWS AMI includes SSM agent. No secrets or application code in user-data.\nsystemctl enable --now snap.amazon-ssm-agent.amazon-ssm-agent.service\n"
+        }
+      },
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
+    }
+  },
+  "Outputs": {
+    "Gateway": {
+      "Value": {
+        "Ref": "Gateway"
+      }
+    },
+    "Game02": {
+      "Value": {
+        "Ref": "Game02"
+      }
+    },
+    "Game03": {
+      "Value": {
+        "Ref": "Game03"
+      }
+    },
+    "Coordinator": {
+      "Value": {
+        "Ref": "Coordinator"
+      }
+    },
+    "NodeProfile": {
+      "Value": {
+        "Ref": "NodeProfile"
+      }
+    },
+    "GatewayPrivateIp": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Gateway",
+          "PrivateIp"
+        ]
+      }
+    },
+    "GatewayPublicIp": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Gateway",
+          "PublicIp"
+        ]
+      }
+    },
+    "Game02PrivateIp": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Game02",
+          "PrivateIp"
+        ]
+      }
+    },
+    "Game02PublicIp": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Game02",
+          "PublicIp"
+        ]
+      }
+    },
+    "Game03PrivateIp": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Game03",
+          "PrivateIp"
+        ]
+      }
+    },
+    "Game03PublicIp": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Game03",
+          "PublicIp"
+        ]
+      }
+    },
+    "CoordinatorPrivateIp": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Coordinator",
+          "PrivateIp"
+        ]
+      }
+    },
+    "CoordinatorPublicIp": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Coordinator",
+          "PublicIp"
+        ]
+      }
+    },
+    "GatewaySecurityGroup": {
+      "Value": {
+        "Fn::GetAtt": [
+          "GatewaySecurityGroup",
+          "GroupId"
+        ]
+      }
+    },
+    "GameSecurityGroup": {
+      "Value": {
+        "Fn::GetAtt": [
+          "GameSecurityGroup",
+          "GroupId"
+        ]
+      }
+    },
+    "CoordinatorSecurityGroup": {
+      "Value": {
+        "Fn::GetAtt": [
+          "CoordinatorSecurityGroup",
+          "GroupId"
+        ]
+      }
+    }
+  }
+}

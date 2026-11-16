@@ -79,3 +79,10 @@ Corregir o revertir main, validar la revisión con `scripts/deploy-ec2.sh` y rea
 La instancia anterior `3.138.154.61` se conserva durante el cambio de DNS. El destino `77.113.171.135` usa la misma llave SSH externa al repositorio, Node 22 y Caddy desde su repositorio estable. Se trasladó el almacenamiento TLS del dominio por SSH cifrado entre los dos servidores para mantener HTTPS válido durante la propagación; no se guardaron certificados privados en el repositorio.
 
 Antes de retirar la instancia anterior, comprobar que los DNS autoritativos de Porkbun y los resolutores públicos devuelven la nueva IP, y validar HTTPS/WSS contra ese destino. Un código de sala pertenece a un proceso: durante la propagación los jugadores deben llegar al mismo servidor; las salas anteriores no se migran. Los scripts locales usan la nueva IP por defecto; `DEPLOY_HOST` permite seleccionar explícitamente otro destino.
+
+## Arquitectura de cinco EC2 (preparación)
+
+La implementación local y el plan están en [cluster/PLAN.md](cluster/PLAN.md),
+con [presupuesto pendiente de aprobación](cluster/COSTS.md) y
+[procedimiento de migración y rollback](cluster/RUNBOOK.md).
+Esto no indica que la producción ya haya migrado.
