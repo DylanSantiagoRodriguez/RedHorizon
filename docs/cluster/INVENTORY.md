@@ -1,0 +1,26 @@
+# Inventario AWS del despliegue
+
+Estado al 16 de noviembre de 2026: cuatro nodos creados; configuración y validación en curso. DNS sigue apuntando a la principal.
+
+| Función | Instancia | Tipo | IP privada | IP pública |
+|---|---|---|---|---|
+| rh-game-01 | i-0db322d7e36dea80a | m7i-flex.large | 172.31.16.183 | 77.113.171.135 |
+| rh-gateway | i-050759a4168f12f3b | t3.micro | 172.31.25.69 | 3.23.131.44 |
+| rh-game-02 | i-0ee8a3a9d7cf9a1f6 | t3.small | 172.31.21.170 | 18.118.158.91 |
+| rh-game-03 | i-0173a548389b00fb6 | t3.small | 172.31.22.129 | 3.128.120.165 |
+| rh-coordinator | i-06bb1fd55f4634ed3 | t3.micro | 172.31.21.151 | 3.16.129.247 |
+
+Stack: `redhorizon-cluster`, protección contra terminación habilitada. No modifica las otras dos instancias.
+
+Grupos exclusivos:
+- GameSecurityGroup: `sg-09a457a3eab1df5bd`
+- GatewaySecurityGroup: `sg-0929579efb3434239`
+- CoordinatorSecurityGroup: `sg-01d10d3f03ff7797f`
+
+Las cuatro PEM se guardaron en `/Users/dylanrodriguez/Documents/redhorizon/llaveredhorizon`, con nombres que comienzan por el rol y terminan en `20261116T234246Z.pem`, modo 600. La llave existente de la principal se conserva.
+
+La PKI interna está en `llaveredhorizon/cluster-20261116`; se distribuye solo el certificado y clave de cada servicio. La CA privada no sale del Mac.
+
+Perfil operativo: `rh-cluster-operator`. Su usuario dedicado solo puede asumir el rol acotado a los cinco IDs. Credenciales de origen en el archivo estándar local de AWS, sin imprimirlas ni copiarlas a EC2. Root se usó para bootstrap de IAM y CloudFormation; no puede asumir roles directamente. MFA del operador humano sigue requiriendo enrolamiento del propietario.
+
+Pendientes: instalar/verificar runtime, calibrar capacidades, terminar endurecimiento, retirar SSH temporal, validar candidato por HTTPS/WSS, cifrar disco principal con mantenimiento y completar DNS.

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Local-on-host setup. Staging only: does not start services or change primary Caddy.
 set -euo pipefail
+export NEEDRESTART_MODE=l
 role="${1:?gateway, game or coordinator required}"
 case "$role" in gateway|game|coordinator) ;; *) exit 2;; esac
 [ "$(id -u)" = 0 ]
