@@ -105,6 +105,12 @@ export class OnlineGame {
   sendNeutral() { this.sendInput(this.step, false); }
   sendInput(dt, enabled) {
     if (!this.started || !this.connected) return;
+    // Pace by real time, not catch-up simulation steps after a render stall.
+    const now = performance.now();
+    this.inputBudget = Math.min(2, (this.inputBudget ?? 2) + Math.max(0, now - (this.inputBudgetAt ?? now)) * 60 / 1000);
+    this.inputBudgetAt = now;
+    if (this.inputBudget < 1 || this.connection.socket?.bufferedAmount > 4096) return;
+    this.inputBudget--;
     const g = this.game, input = g.input, aim = g.camera.shotDirection(g.run, g.save.data.options.assist);
     const message = { type: 'input', seq: ++this.seq, enabled, held: enabled ? HELD.filter(k => input.down(k)) : [], actions: enabled ? [...new Set([...ACTIONS.filter(k => input.take(k)), ...this.extraActions])] : [], yaw: g.camera.yaw, aim: { x: aim.x, y: aim.y, z: aim.z } };
     this.extraActions = [];

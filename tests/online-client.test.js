@@ -85,3 +85,14 @@ it('congela la presentación durante una mejora sin inventar tiempo ni retrocede
     now.mockReturnValue(1110); expect(client.interpolate().time).toBe(1.1);
   } finally { now.mockRestore(); }
 });
+
+it('bounds catch-up input bursts by wall time without consuming queued actions', () => {
+ vi.spyOn(performance, 'now').mockReturnValue(1000);
+ const client = Object.assign(Object.create(OnlineGame.prototype), { started: true, connected: true, step: 1 / 60, seq: 0, pending: [], extraActions: [], latest: { status: 'paused' }, connection: { socket: { bufferedAmount: 0 }, send: vi.fn(() => true) }, game: { input: { down: () => false, take: () => false }, camera: { yaw: 0, shotDirection: () => ({ x: 0, y: 0, z: 1 }) }, run: { player: { dead: true } }, save: { data: { options: {} } } } });
+ try {
+  for (let i = 0; i < 200; i++) client.sendInput(1 / 60, true);
+  expect(client.connection.send).toHaveBeenCalledTimes(2);
+  client.extraActions.push('KeyQ');client.sendInput(1 / 60, true);expect(client.extraActions).toEqual(['KeyQ']);
+  performance.now.mockReturnValue(2000);client.connection.socket.bufferedAmount = 8192;client.sendInput(1 / 60, true);expect(client.connection.send).toHaveBeenCalledTimes(2);
+ } finally { vi.restoreAllMocks(); }
+});
