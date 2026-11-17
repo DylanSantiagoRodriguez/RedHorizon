@@ -1,6 +1,6 @@
 # Ampliación de observabilidad: presupuesto para aprobar
 
-Inspección: **17 de noviembre de 2026**, `us-east-2`. **Presupuesto incremental de USD 141/mes aprobado expresamente por el propietario. Aún no provisionado: solicitud de cuota regional pendiente de AWS.**
+Inspección: **17 de noviembre de 2026**, `us-east-2`. **Presupuesto incremental de USD 141/mes aprobado expresamente por el propietario. Aún no provisionado: cuota regional insuficiente: solicitud cerrada y límite aplicado aún en 16 vCPU.**
 
 ## Estimación incremental
 

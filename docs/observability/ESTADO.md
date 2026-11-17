@@ -62,8 +62,8 @@ Se mantienen commits y push a `main` con la identidad Git configurada del propie
 ## Pendientes que impiden declarar la plataforma lista
 
 1. **Completado:** [presupuesto incremental](COSTOS.md) de USD 141/mes antes de impuestos aprobado por el propietario.
-2. **Pendiente de AWS:** aumento a 20 vCPU solicitado; 16 actuales frente a 18 necesarios. Solicitud `3db4bb40b4b34066ab3a12e43e592d89aH5yqWXl`. No se detuvieron instancias ajenas.
-3. Límite IAM `RedHorizonObservabilityRuntimeBoundary` creado. La política temporal de provisión se aplica únicamente durante la ejecución autorizada; no se copian credenciales root a máquinas ni código.
+2. **Bloqueado por cuota:** solicitud a 20 vCPU cerrada (`CASE_CLOSED`), pero cuota aplicada todavía 16 frente a 18 necesarios. Solicitud `3db4bb40b4b34066ab3a12e43e592d89aH5yqWXl`, caso AWS `179495295800966`. La API de soporte rechazó consultar el motivo por requerir suscripción Premium; no se contrató soporte ni se cambió el plan. No se detuvieron instancias ajenas.
+3. Límite IAM `RedHorizonObservabilityRuntimeBoundary` creado. La política temporal de provisión fue retirada al comprobar el bloqueo; reaplicarla al reanudar con cuota suficiente; no se copian credenciales root a máquinas ni código.
 4. Crear las dos EC2, reconciliar IP/IDs, generar las nuevas PEM y la PKI de observabilidad en el directorio autorizado. **Todavía no existen PEM de recuperación para estas dos EC2.**
 5. Desplegar agentes, Kafka, Prometheus y panel; comprobar puertos, certificados y roles desde la red real.
 6. Drenar y actualizar secuencialmente workers; actualizar entrada/coordinador solo sin conexiones activas. Preservar frontend y sus correcciones de texturas/animaciones.
@@ -76,4 +76,4 @@ Sin alta disponibilidad: gateway, coordinador, panel/almacenamiento y broker ún
 
 Se añadió un mapa SVG de las siete VM y sus rutas: WSS, asignación al coordinador, agentes → Kafka → panel y acceso administrativo. Las flechas usan tráfico medido; con muestras ausentes/atrasadas no se simula movimiento. El navegador verificó siete VM y ausencia de errores. No se repitió la batería completa: solo lint de los archivos modificados y esta comprobación visual funcional.
 
-La solicitud de cuota se conserva en `.cluster-local/observability/quota-request.json`. Al aprobarla AWS, continuar la provisión y el RUNBOOK con el presupuesto ya aprobado; no pedir nuevamente autorización económica. No cambiar el plan de cuenta ni detener instancias para eludir la cuota.
+La solicitud de cuota se conserva en `.cluster-local/observability/quota-request.json`. Cuando la cuota aplicada sea suficiente, continuar la provisión y el RUNBOOK con el presupuesto ya aprobado; no pedir nuevamente autorización económica. No cambiar el plan de cuenta ni detener instancias para eludir la cuota.
