@@ -92,3 +92,23 @@ La PKI activa desde el 17/11/2026 es `llaveredhorizon/cluster-20261117-strict`. 
 Para una futura rotación con todo el clúster vacío, generar otra PKI en un directorio nuevo y usar `rotate-idle-pki.py RUTA --execute`. Comprueba cero conexiones/salas, prepara solo la identidad de cada host, valida las cadenas y claves, detiene los cinco servicios de clúster, sustituye certificados y arranca de nuevo. Conserva los anteriores por host para rollback. Es mantenimiento del candidato, no rotación sin interrupciones de producción. No toca Caddy ni el backend legado. La CA privada nunca sale del Mac.
 
 Después de restaurar un snapshot antiguo de la principal, reinstalar la PKI actual antes de habilitar admisión: ese snapshot conserva la identidad anterior, ya no aceptada por el clúster.
+
+
+## Correcciones del frontend sin reiniciar partidas
+
+Desde el 17/11/2026 el gateway puede servir una release estática independiente del runtime. El endpoint `/health` identifica el backend; `/frontend-release.json` identifica el frontend y su runtime compatible. No confundir los dos commits.
+
+Para un cambio exclusivamente visual compatible con el protocolo que ya está ejecutándose:
+
+```sh
+bash scripts/cluster/package.sh "$PWD/.cluster-local/artifacts"
+python3 scripts/cluster/deploy-frontend.py NUEVO.tar.gz --base ARTEFACTO_BASE.tar.gz --release COMMIT_COMPLETO --compatible-runtime COMMIT_BACKEND
+```
+
+El paquete completo se construye y prueba localmente. El despliegue transfiere un delta, copia el frontend anterior mediante enlaces duros, desliga los archivos modificados y verifica todos los hashes antes de cambiar el `root` de Nginx. Conserva assets JS/CSS anteriores para pestañas abiertas. Hace `nginx -t` y una recarga gradual; no reinicia Node ni los workers. No usar para cambios incompatibles de protocolo.
+
+El frontend activo queda en `/srv/redhorizon-cluster/frontend-releases/COMMIT`. La configuración anterior se conserva en `/srv/redhorizon-cluster/nginx-before-frontend-COMMIT.conf`. Para rollback, restaurar esa configuración, ejecutar `nginx -t` y `systemctl reload nginx`. Si falla la validación o recarga durante el despliegue, el script restaura la configuración anterior.
+
+Después de un rollout completo, revisar explícitamente el frontend: mientras Nginx apunte a una release estática independiente, cambiar el symlink `current` del backend no publica otra interfaz. Para volver al frontend de la release completa, restaurar el root `/srv/redhorizon-cluster/current/frontend`, validar y recargar Nginx en la misma operación de publicación.
+
+La CSP debe permitir `blob:` en **connect-src**, además de **img-src**: GLTFLoader usa fetch para las imágenes embebidas antes de crear ImageBitmap. La prueba `graphics-policy.spec.js` aplica la política de la plantilla a un navegador real, comprueba imágenes decodificadas y verifica el avance del AnimationMixer entre snapshots. No basta con recibir HTTP 200 para un archivo GLB.
