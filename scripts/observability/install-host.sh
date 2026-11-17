@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Runs on one host after verified upload. Never restarts the game or changes Nginx.
 set -euo pipefail
-role="${1:?agent|observability|events}"; archive="${2:?archive}"; sha="${3:?sha256}"; revision="${4:?commit}"; input="${5:?staging directory}"
-[[ "$role" =~ ^(agent|observability|events)$ && "$sha" =~ ^[a-f0-9]{64}$ && "$revision" =~ ^[a-f0-9]{40}$ ]] || exit 2
+role="${1:?agent|observability|events|combined}"; archive="${2:?archive}"; sha="${3:?sha256}"; revision="${4:?commit}"; input="${5:?staging directory}"
+[[ "$role" =~ ^(agent|observability|events|combined)$ && "$sha" =~ ^[a-f0-9]{64}$ && "$revision" =~ ^[a-f0-9]{40}$ ]] || exit 2
 [ "$(id -u)" = 0 ]
 printf '%s  %s\n' "$sha" "$archive" | sha256sum -c -
 if tar -tzf "$archive" | grep -Eq '(^/|(^|/)\.\.(/|$))'; then exit 2; fi
@@ -35,7 +35,7 @@ if [ "$role" != agent ]; then
   printf '[Journal]\nSystemMaxUse=100M\nMaxRetentionSec=7day\n' >/etc/systemd/journald.conf.d/redhorizon-observability.conf
   systemctl enable --now docker
 fi
-if [ "$role" = events ]; then
+if [[ "$role" = events || "$role" = combined ]]; then
   install -d -m 0700 -o 1000 -g 1000 /etc/redhorizon-kafka /etc/redhorizon-kafka/tls /var/lib/redhorizon-kafka
   install -m 0644 "$input/server.properties" "$units/start-kafka.sh" /etc/redhorizon-kafka/
   install -m 0644 "$input/ca.crt" /etc/redhorizon-kafka/tls/
@@ -43,7 +43,7 @@ if [ "$role" = events ]; then
   docker pull apache/kafka@sha256:833b867a9585a141da455dc2b57431c65cbccb27f11c91f694444cca9f777e0f
   install -m 0644 "$units/redhorizon-kafka.service" /etc/systemd/system/
 fi
-if [ "$role" = observability ]; then
+if [[ "$role" = observability || "$role" = combined ]]; then
   id redhorizon-panel >/dev/null 2>&1 || useradd --system --home /nonexistent --shell /usr/sbin/nologin redhorizon-panel
   install -d -m 0750 -o root -g redhorizon-panel /etc/redhorizon-panel /etc/redhorizon-panel/tls
   install -m 0640 -o root -g redhorizon-panel "$input/panel.json" "$input/users.json" /etc/redhorizon-panel/
@@ -61,8 +61,8 @@ ln -s "$base/releases/$revision" "$base/next"
 mv -Tf "$base/next" "$base/current"
 [ -z "$previous" ] || printf '%s\n' "$previous" > "$base/previous"
 systemctl daemon-reload
-if [ "$role" = events ]; then systemctl enable redhorizon-kafka; systemctl restart redhorizon-kafka; fi
-if [ "$role" = observability ]; then systemctl enable redhorizon-prometheus redhorizon-panel; systemctl restart redhorizon-prometheus redhorizon-panel; fi
+if [[ "$role" = events || "$role" = combined ]]; then systemctl enable redhorizon-kafka; systemctl restart redhorizon-kafka; fi
+if [[ "$role" = observability || "$role" = combined ]]; then systemctl enable redhorizon-prometheus redhorizon-panel; systemctl restart redhorizon-prometheus redhorizon-panel; fi
 systemctl enable redhorizon-observer
 systemctl restart redhorizon-observer
 # Uploaded private materials have now been installed into restricted service directories.

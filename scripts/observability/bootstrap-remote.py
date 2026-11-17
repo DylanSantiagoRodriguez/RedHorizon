@@ -6,10 +6,10 @@ sys.path.insert(0,str(Path('scripts/cluster').resolve()))
 from remote import ssh,upload,pin_host,KEYS
 p=argparse.ArgumentParser();p.add_argument('inventory');p.add_argument('--pki',required=True);a=p.parse_args()
 nodes=json.loads(Path(a.inventory).read_text())['nodes'];node=nodes['rh-events'];pki=Path(a.pki).resolve();assert pki.is_relative_to(KEYS.resolve())
-pin_host('rh-events',node);remote='/home/ubuntu/rh-kafka-bootstrap-'+uuid.uuid4().hex
-ssh('rh-events',node,f'install -d -m 0700 -o ubuntu -g ubuntu {remote}')
+host=node.get('physicalId','rh-events');pin_host(host,node);remote='/home/ubuntu/rh-kafka-bootstrap-'+uuid.uuid4().hex
+ssh(host,node,f'install -d -m 0700 -o ubuntu -g ubuntu {remote}')
 try:
- upload('rh-events',node,[pki/'ca.crt',pki/'rh-kafka-admin.crt',pki/'rh-kafka-admin.key'],remote+'/')
+ upload(host,node,[pki/'ca.crt',pki/'rh-kafka-admin.crt',pki/'rh-kafka-admin.key'],remote+'/')
  config={'brokers':[node['privateIp']+':9093'],'tlsDir':remote,'identity':'rh-kafka-admin'}
  # Config contains paths only; key bytes never enter a shell command or SSM parameter.
  script=f'''set -euo pipefail
@@ -35,9 +35,9 @@ PROPS
   script+=shlex.join(args)+'\n'
  # Config files are root-created, readable only by temporary CLI UID.
  script=script.replace('/srv/redhorizon-observability/current/node/bin/node', 'chown -R 1000:1000 '+remote+'\n/srv/redhorizon-observability/current/node/bin/node',1)
- result=ssh('rh-events',node,script,check=False)
+ result=ssh(host,node,script,check=False)
  Path('.cluster-local/observability/broker-bootstrap.log').write_text(result.stdout+'\n'+result.stderr)
  if result.returncode:raise RuntimeError('Broker bootstrap failed; inspect private log before retrying')
  print('Topics, ACL and quotas configured; administrative material removed from broker.')
 finally:
- ssh('rh-events',node,'rm -rf -- '+shlex.quote(remote))
+ ssh(host,node,'rm -rf -- '+shlex.quote(remote))

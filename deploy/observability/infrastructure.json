@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Red Horizon observability: two additive nodes, no NAT/ALB/MSK; existing instances remain unmanaged.",
+  "Description": "Red Horizon observability: one additive shared metrics/Kafka node, no NAT/ALB/MSK; existing instances remain unmanaged.",
   "Parameters": {
     "VpcId": {
       "Type": "AWS::EC2::VPC::Id",
@@ -27,9 +27,6 @@
       "Default": "sg-01d10d3f03ff7797f"
     },
     "ObservabilityKeyName": {
-      "Type": "AWS::EC2::KeyPair::KeyName"
-    },
-    "EventsKeyName": {
       "Type": "AWS::EC2::KeyPair::KeyName"
     }
   },
@@ -560,7 +557,7 @@
         "ImageId": {
           "Ref": "UbuntuAmi"
         },
-        "InstanceType": "c7i-flex.large",
+        "InstanceType": "m7i-flex.large",
         "KeyName": {
           "Ref": "ObservabilityKeyName"
         },
@@ -586,6 +583,12 @@
                   "ObservabilityGroup",
                   "GroupId"
                 ]
+              },
+              {
+                "Fn::GetAtt": [
+                  "EventsGroup",
+                  "GroupId"
+                ]
               }
             ]
           }
@@ -594,7 +597,7 @@
           {
             "DeviceName": "/dev/sda1",
             "Ebs": {
-              "VolumeSize": 30,
+              "VolumeSize": 70,
               "VolumeType": "gp3",
               "Encrypted": true,
               "DeleteOnTermination": false
@@ -613,116 +616,6 @@
           {
             "Key": "Name",
             "Value": "rh-observability"
-          }
-        ],
-        "UserData": {
-          "Fn::Base64": "#!/bin/bash\nset -euo pipefail\nsystemctl enable --now snap.amazon-ssm-agent.amazon-ssm-agent.service\n"
-        }
-      },
-      "DeletionPolicy": "Retain",
-      "UpdateReplacePolicy": "Retain"
-    },
-    "EventsRole": {
-      "Type": "AWS::IAM::Role",
-      "Properties": {
-        "PermissionsBoundary": "arn:aws:iam::670036769494:policy/RedHorizonObservabilityRuntimeBoundary",
-        "AssumeRolePolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": {
-                "Service": "ec2.amazonaws.com"
-              },
-              "Action": "sts:AssumeRole"
-            }
-          ]
-        },
-        "ManagedPolicyArns": [
-          "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-        ],
-        "Policies": [],
-        "Tags": [
-          {
-            "Key": "Project",
-            "Value": "RedHorizonCluster"
-          },
-          {
-            "Key": "Component",
-            "Value": "Observability"
-          }
-        ]
-      }
-    },
-    "EventsProfile": {
-      "Type": "AWS::IAM::InstanceProfile",
-      "Properties": {
-        "Roles": [
-          {
-            "Ref": "EventsRole"
-          }
-        ]
-      }
-    },
-    "Events": {
-      "Type": "AWS::EC2::Instance",
-      "Properties": {
-        "ImageId": {
-          "Ref": "UbuntuAmi"
-        },
-        "InstanceType": "c7i-flex.large",
-        "KeyName": {
-          "Ref": "EventsKeyName"
-        },
-        "IamInstanceProfile": {
-          "Ref": "EventsProfile"
-        },
-        "MetadataOptions": {
-          "HttpTokens": "required",
-          "HttpEndpoint": "enabled",
-          "HttpPutResponseHopLimit": 1
-        },
-        "DisableApiTermination": true,
-        "NetworkInterfaces": [
-          {
-            "DeviceIndex": "0",
-            "AssociatePublicIpAddress": true,
-            "SubnetId": {
-              "Ref": "SubnetId"
-            },
-            "GroupSet": [
-              {
-                "Fn::GetAtt": [
-                  "EventsGroup",
-                  "GroupId"
-                ]
-              }
-            ]
-          }
-        ],
-        "BlockDeviceMappings": [
-          {
-            "DeviceName": "/dev/sda1",
-            "Ebs": {
-              "VolumeSize": 40,
-              "VolumeType": "gp3",
-              "Encrypted": true,
-              "DeleteOnTermination": false
-            }
-          }
-        ],
-        "Tags": [
-          {
-            "Key": "Project",
-            "Value": "RedHorizonCluster"
-          },
-          {
-            "Key": "Component",
-            "Value": "Observability"
-          },
-          {
-            "Key": "Name",
-            "Value": "rh-events"
           }
         ],
         "UserData": {
@@ -765,13 +658,13 @@
     },
     "Events": {
       "Value": {
-        "Ref": "Events"
+        "Ref": "Observability"
       }
     },
     "EventsPrivateIp": {
       "Value": {
         "Fn::GetAtt": [
-          "Events",
+          "Observability",
           "PrivateIp"
         ]
       }
@@ -779,7 +672,7 @@
     "EventsPublicIp": {
       "Value": {
         "Fn::GetAtt": [
-          "Events",
+          "Observability",
           "PublicIp"
         ]
       }

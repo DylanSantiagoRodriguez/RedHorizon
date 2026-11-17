@@ -17,14 +17,14 @@ for name in a.hosts:
  ssh(name,node,f'install -d -m 0700 -o ubuntu -g ubuntu {destination}')
  files=[artifact,Path('scripts/observability/install-host.sh'),config/(name+'.agent.json'),pki/'ca.crt',pki/(name+'.crt'),pki/(name+'.key')]
  role='agent'
- if name=='rh-events':
+ if name=='rh-events' or (name=='rh-observability' and nodes['rh-events'].get('physicalId')==name):
   role='events';bundle=pki/'rh-events.bundle.pem'
   if not bundle.exists():
    with bundle.open('xb') as f:f.write((pki/'rh-events.key').read_bytes()+(pki/'rh-events.crt').read_bytes())
    bundle.chmod(0o600)
   files += [bundle,config/'server.properties']
  if name=='rh-observability':
-  role='observability';files += [config/'panel.json',config/'prometheus.json',access/'users.json',pki/'rh-panel-consumer.crt',pki/'rh-panel-consumer.key']
+  role='combined' if role=='events' else 'observability';files += [config/'panel.json',config/'prometheus.json',access/'users.json',pki/'rh-panel-consumer.crt',pki/'rh-panel-consumer.key']
  upload(name,node,files,destination+'/')
  command=f'set -euo pipefail\ncd {destination}\nmv {name}.agent.json agent.json\nbash install-host.sh {role} {shlex.quote(str(destination+"/"+artifact.name))} {digest} {a.revision} {destination}'
  result=ssh(name,node,command,check=False)

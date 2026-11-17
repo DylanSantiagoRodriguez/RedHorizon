@@ -8,11 +8,13 @@ s=aws('cloudformation','describe-stacks','--stack-name','redhorizon-observabilit
 out={o['OutputKey']:o['OutputValue'] for o in s['Outputs']};i=json.loads(Path('.cluster-local/inventory.json').read_text())
 assert set(i['nodes'])=={'rh-gateway','rh-game-01','rh-game-02','rh-game-03','rh-coordinator'}
 for logical in ['Observability','Events']:
- id='rh-'+logical.lower();i['nodes'][id]={'instanceId':out[logical],'privateIp':out[logical+'PrivateIp'],'publicIp':out[logical+'PublicIp'],'instanceType':'c7i-flex.large','securityGroupId':out[logical+'Group']}
-actual=aws('ec2','describe-instances','--instance-ids',*[n['instanceId'] for n in i['nodes'].values()])
+ id='rh-'+logical.lower();i['nodes'][id]={'instanceId':out[logical],'privateIp':out[logical+'PrivateIp'],'publicIp':out[logical+'PublicIp'],'instanceType':'m7i-flex.large','securityGroupId':out[logical+'Group']}
+i['nodes']['rh-events']['physicalId']='rh-observability'
+i['nodes']['rh-events']['kind']='service'
+actual=aws('ec2','describe-instances','--instance-ids',*sorted({n['instanceId'] for n in i['nodes'].values()}))
 for r in actual['Reservations']:
  for n in r['Instances']:
   target=next(v for v in i['nodes'].values() if v['instanceId']==n['InstanceId']);target['instanceType']=n['InstanceType'];target['privateIp']=n['PrivateIpAddress'];target['publicIp']=n.get('PublicIpAddress')
 assert i['nodes']['rh-game-01']['instanceId']=='i-0db322d7e36dea80a'
 Path('.cluster-local/observability/inventory.json').write_text(json.dumps(i,indent=2))
-print('Seven-node inventory reconciled without modifying instances.')
+print('Six-VM inventory with shared Kafka service reconciled without modifying instances.')

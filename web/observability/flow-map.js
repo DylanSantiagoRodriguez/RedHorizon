@@ -27,7 +27,7 @@ export function renderFlowMap(target, overview) {
  for (const node of overview.nodes || []) {
   const p = positions[node.id]; if (!p) continue;
   const [x,y] = p, width = node.id === 'rh-gateway' ? 110 : 180, up = rate('service_up',node.id);
-  const box = el('g', { class: `flow-node ${recent(node.id) && up === 1 ? 'flow-healthy' : ''}` }); box.append(el('rect', { x, y, width, height: '70', rx: '9' }), el('text', { x:x+width/2, y:y+27, 'text-anchor':'middle' }, node.id), el('text', { x:x+width/2, y:y+49, 'text-anchor':'middle', class:'flow-state' }, recent(node.id) ? up === 1 ? 'Servicio activo' : up === 0 ? 'Servicio inactivo' : 'Estado sin muestras' : 'Sin datos recientes')); svg.append(box);
+  const box = el('g', { class: `flow-node ${recent(node.id) && up === 1 ? 'flow-healthy' : ''}` }); box.append(el('rect', { x, y, width, height: '70', rx: '9' }), el('text', { x:x+width/2, y:y+27, 'text-anchor':'middle' }, node.id), el('text', { x:x+width/2, y:y+49, 'text-anchor':'middle', class:'flow-state' }, node.kind === 'service' ? (overview.kafka?.up ? 'Kafka activo · VM compartida' : 'Kafka sin conexión') : recent(node.id) ? up === 1 ? 'Servicio activo' : up === 0 ? 'Servicio inactivo' : 'Estado sin muestras' : 'Sin datos recientes')); svg.append(box);
  }
  svg.append(el('text', { x:35, y:230, class:'flow-label','text-anchor':'middle' }, 'Clientes'));
  svg.append(el('rect', { x:335, y:480, width:200, height:40, rx:8, class:'flow-agent-box' }), el('text', { x:435,y:505,class:'flow-label','text-anchor':'middle' }, 'Agentes de telemetría'));

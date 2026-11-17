@@ -11,12 +11,12 @@ reservations=aws('ec2','describe-instances','--filters','Name=instance-state-nam
 assert any(i['InstanceId']=='i-0db322d7e36dea80a' for i in instances)
 assert not any(t.get('Value') in ['rh-observability','rh-events'] for i in instances for t in i.get('Tags',[]) if t['Key']=='Name'),'New nodes already exist; inspect and resume rather than duplicate'
 types=aws('ec2','describe-instance-types','--instance-types',*sorted({i['InstanceType'] for i in instances}))['InstanceTypes'];cpus={t['InstanceType']:t['VCpuInfo']['DefaultVCpus'] for t in types}
-assert sum(cpus[i['InstanceType']] for i in instances)+4<=quota,'Insufficient regional vCPU quota; request increase separately'
-chosen=aws('ec2','describe-instance-types','--instance-types','c7i-flex.large')['InstanceTypes'][0];assert chosen['FreeTierEligible'] and chosen['MemoryInfo']['SizeInMiB']>=4096
+assert sum(cpus[i['InstanceType']] for i in instances)+2<=quota,'Insufficient regional vCPU quota; request increase separately'
+chosen=aws('ec2','describe-instance-types','--instance-types','m7i-flex.large')['InstanceTypes'][0];assert chosen['FreeTierEligible'] and chosen['MemoryInfo']['SizeInMiB']>=8192
 image=aws('ec2','describe-images','--image-ids',a.ami)['Images'][0];assert image['OwnerId']=='099720109477' and image['Architecture']=='x86_64' and image['State']=='available' and image.get('FreeTierEligible')
 root=Path('/Users/dylanrodriguez/Documents/redhorizon/llaveredhorizon');root.mkdir(mode=0o700,exist_ok=True,parents=True);root.chmod(0o700);os.umask(0o077)
 suffix=datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ');parameters=[{'ParameterKey':'UbuntuAmi','ParameterValue':a.ami}]
-for logical in ['Observability','Events']:
+for logical in ['Observability']:
  name='rh-'+logical.lower()+'-'+suffix;private=root/(name+'.pem');assert not private.exists()
  subprocess.run(['ssh-keygen','-q','-t','rsa','-b','3072','-m','PEM','-N','','-C',name,'-f',str(private)],check=True);private.chmod(0o600)
  aws('ec2','import-key-pair','--key-name',name,'--public-key-material','fileb://'+str(private)+'.pub')

@@ -26,9 +26,15 @@ for n in ['Observability','Events']:
  resource(n+'Profile','AWS::IAM::InstanceProfile',{'Roles':[ref(n+'Role')]})
  resource(n,'AWS::EC2::Instance',{'ImageId':ref('UbuntuAmi'),'InstanceType':'c7i-flex.large','KeyName':ref(n+'KeyName'),'IamInstanceProfile':ref(n+'Profile'),'MetadataOptions':{'HttpTokens':'required','HttpEndpoint':'enabled','HttpPutResponseHopLimit':1},'DisableApiTermination':True,'NetworkInterfaces':[{'DeviceIndex':'0','AssociatePublicIpAddress':True,'SubnetId':ref('SubnetId'),'GroupSet':[group(n)]}],'BlockDeviceMappings':[{'DeviceName':'/dev/sda1','Ebs':{'VolumeSize':30 if n=='Observability' else 40,'VolumeType':'gp3','Encrypted':True,'DeleteOnTermination':False}}],'Tags':tags+[{'Key':'Name','Value':'rh-'+n.lower()}],'UserData':{'Fn::Base64':'#!/bin/bash\nset -euo pipefail\nsystemctl enable --now snap.amazon-ssm-agent.amazon-ssm-agent.service\n'}})
  R[n].update(DeletionPolicy='Retain',UpdateReplacePolicy='Retain')
+# One physical 8 GiB host; separate security groups retain service boundaries.
+for key in ['Events','EventsRole','EventsProfile']: R.pop(key)
+params.pop('EventsKeyName')
+R['Observability']['Properties']['InstanceType']='m7i-flex.large'
+R['Observability']['Properties']['BlockDeviceMappings'][0]['Ebs']['VolumeSize']=70
+R['Observability']['Properties']['NetworkInterfaces'][0]['GroupSet']=[group('Observability'),group('Events')]
 outputs={}
 for n in ['Observability','Events']:
- outputs[n]={'Value':ref(n)}
- for a in ['PrivateIp','PublicIp']:outputs[n+a]={'Value':get(n,a)}
+ outputs[n]={'Value':ref('Observability')}
+ for a in ['PrivateIp','PublicIp']:outputs[n+a]={'Value':get('Observability',a)}
  outputs[n+'Group']={'Value':group(n)}
-Path('deploy/observability/infrastructure.json').write_text(json.dumps({'AWSTemplateFormatVersion':'2010-09-09','Description':'Red Horizon observability: two additive nodes, no NAT/ALB/MSK; existing instances remain unmanaged.','Parameters':params,'Resources':R,'Outputs':outputs},indent=2)+'\n')
+Path('deploy/observability/infrastructure.json').write_text(json.dumps({'AWSTemplateFormatVersion':'2010-09-09','Description':'Red Horizon observability: one additive shared metrics/Kafka node, no NAT/ALB/MSK; existing instances remain unmanaged.','Parameters':params,'Resources':R,'Outputs':outputs},indent=2)+'\n')
