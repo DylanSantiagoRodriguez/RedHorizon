@@ -1,3 +1,5 @@
+> **Acceso actualizado por solicitud del propietario:** el panel desplegado usa usuario y contraseña, sin código TOTP (`requireMfa: false`). Se conservan roles, límites de intentos, sesiones seguras y mTLS interno. Las referencias a MFA de abajo documentan la configuración y pruebas anteriores; no son un requisito de acceso actual.
+
 # Despliegue AWS compartido — 17/11/2026
 
 La ampliación utiliza **una EC2 nueva**, `rh-observability` (`i-0d5651c3f279e29b3`, `m7i-flex.large`, 8 GiB, privada `172.31.17.191`). Las cinco EC2 del juego se conservan. `rh-events` es la identidad lógica de Kafka en esa misma VM, no una séptima máquina. Las instancias ajenas no forman parte del inventario.

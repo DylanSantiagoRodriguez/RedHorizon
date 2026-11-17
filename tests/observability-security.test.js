@@ -51,3 +51,13 @@ it('emits one room closure with measured duration and an internal identifier', a
  const { room, member } = manager.create({}, 'test'); now += 2500; manager.disconnect(room, member, true); manager.retire(room);
  expect(events.map(e => e.type)).toEqual(['room.created','room.closed']); expect(events[1].data.durationSeconds).toBe(2.5); expect(events[1].data.roomId).toBe(events[0].data.roomId); expect(JSON.stringify(events)).not.toContain(room.code);
 });
+
+it('allows explicitly configured password-only access while rejecting invalid passwords', async () => {
+ const store = new EventStore(), users = { reader: { ...await passwordHash('test-only-password'), role: 'reader' } };
+ expect(() => new Auth(users, store)).toThrow();
+ const auth = new Auth(users, store, { requireMfa: false });
+ expect(await auth.login('reader', 'wrong', undefined, 'a')).toBe(null);
+ const token = await auth.login('reader', 'test-only-password', undefined, 'a'); expect(auth.get(token).role).toBe('reader');
+ const panel = await createPanel({ development: true, requireMfa: false, origin: 'http://127.0.0.1', port: 0, metricsPort: 0, prometheus: 'http://127.0.0.1:1', users, nodes: [] });
+ try { const html = await (await fetch(`http://127.0.0.1:${panel.server.address().port}/ops/`)).text(); expect(html).not.toContain('name="otp"'); } finally { await panel.close(); store.close(); }
+});

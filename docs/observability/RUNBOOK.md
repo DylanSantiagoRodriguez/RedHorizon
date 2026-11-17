@@ -1,3 +1,5 @@
+> **Acceso actualizado por solicitud del propietario:** el panel desplegado usa usuario y contraseña, sin código TOTP (`requireMfa: false`). Se conservan roles, límites de intentos, sesiones seguras y mTLS interno. Las referencias a MFA de abajo documentan la configuración y pruebas anteriores; no son un requisito de acceso actual.
+
 # Despliegue y operación de observabilidad
 
 **No ejecutar la fase AWS sin aprobar COSTOS.md.** No hay nuevas instancias ni URL activa todavía. Este procedimiento conserva el juego y el frontend actual; no despliega el bundle del juego como parte de publicar el panel.

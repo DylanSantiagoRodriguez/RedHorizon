@@ -35,7 +35,7 @@ const queries = {
 };
 export async function createPanel(config) {
   if (!config.development && (!config.tls || !config.origin?.startsWith('https://'))) throw new Error('Production requires TLS and HTTPS origin');
-  const store = new EventStore(config.dbPath), auth = new Auth(config.users, store), metrics = new Metrics();
+  const store = new EventStore(config.dbPath), auth = new Auth(config.users, store, { requireMfa: config.requireMfa !== false }), metrics = new Metrics();
   let consumer, admin, poll, consuming = false, brokerUp = false, kafkaCheckedAt = 0, lastErrorAt = 0;
   const requestLimits = new Limiter(256), offsets = new Map(), cloud = config.awsMetrics ? awsMetrics(config.nodes.filter(n => !n.physicalId)) : null;
   const files = new Map([['/ops/', ['index.html', 'text/html']], ['/ops/app.js', ['app.js', 'text/javascript']], ['/ops/flow-map.js', ['flow-map.js', 'text/javascript']], ['/ops/style.css', ['style.css', 'text/css']]]);
@@ -59,14 +59,14 @@ export async function createPanel(config) {
     if (!config.development && (!req.socket.authorized || req.socket.getPeerCertificate().subject.CN !== 'rh-gateway')) return send(res, 403, { error: 'Forbidden' });
     try {
       const url = new URL(req.url, config.origin), path = url.pathname;
-      if (files.has(path) && req.method === 'GET') { const [name, type] = files.get(path); res.writeHead(200, { 'Content-Type': type }); return res.end(await readFile(new URL('../../web/observability/' + name, import.meta.url))); }
+      if (files.has(path) && req.method === 'GET') { const [name, type] = files.get(path); res.writeHead(200, { 'Content-Type': type }); let content = await readFile(new URL('../../web/observability/' + name, import.meta.url)); if (name === 'index.html' && config.requireMfa === false) content = content.toString().replace(/<label id="otp-field">.*?<\/label>/, '').replace('Autenticación de dos factores.', 'Acceso con usuario y contraseña.'); return res.end(content); }
       const session = auth.get(token(req));
       if (path === '/ops/api/login' && req.method === 'POST') {
         if (!originOK(req)) return send(res, 403, { error: 'Forbidden' });
         let raw = ''; for await (const chunk of req) { raw += chunk; if (Buffer.byteLength(raw) > 4096) { res.writeHead(413).end(); req.destroy(); return; } }
         let ip = config.development ? req.socket.remoteAddress : req.headers['x-real-ip']; if (!isIP(ip || '')) ip = 'unknown';
         const b = JSON.parse(raw), s = await auth.login(b.username, b.password, b.otp, ip);
-        if (!s) { metrics.inc('rh_panel_login_rejected_total'); return send(res, 401, { error: 'Credenciales o código inválidos; espera antes de reintentar.' }); }
+        if (!s) { metrics.inc('rh_panel_login_rejected_total'); return send(res, 401, { error: 'Credenciales inválidas; espera antes de reintentar.' }); }
         res.setHeader('Set-Cookie', `__Host-rhops=${s}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=1800`); return send(res, 200, { ok: true });
       }
       if (!session) return send(res, 401, { error: 'Authentication required' });

@@ -1,3 +1,5 @@
+> **Acceso actualizado por solicitud del propietario:** el panel desplegado usa usuario y contraseña, sin código TOTP (`requireMfa: false`). Se conservan roles, límites de intentos, sesiones seguras y mTLS interno. Las referencias a MFA de abajo documentan la configuración y pruebas anteriores; no son un requisito de acceso actual.
+
 # Observabilidad de Red Horizon — despliegue AWS
 
 **Panel desplegado y comprobado extremo a extremo en https://redhorizon.lat/ops/.** Fecha: 17/11/2026. API privada sin sesión: HTTP 401.
