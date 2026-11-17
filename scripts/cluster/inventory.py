@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Read only. Assemble the five-node inventory after the approved stack exists."""
-import argparse,json,subprocess
+import argparse,json
+from remote import aws
 p=argparse.ArgumentParser();p.add_argument('stack');args=p.parse_args()
-def aws(*a): return json.loads(subprocess.check_output(['aws',*a,'--region','us-east-2','--output','json','--no-cli-pager']))
 s=aws('cloudformation','describe-stacks','--stack-name',args.stack)['Stacks'][0]
 o={x['OutputKey']:x['OutputValue'] for x in s['Outputs']}
 ids={'rh-game-01':'i-0db322d7e36dea80a','rh-gateway':o['Gateway'],'rh-game-02':o['Game02'],'rh-game-03':o['Game03'],'rh-coordinator':o['Coordinator']}

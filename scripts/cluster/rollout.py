@@ -17,6 +17,7 @@ p.add_argument('artifact');p.add_argument('--release',required=True)
 p.add_argument('--hosts',nargs='+',required=True)
 p.add_argument('--allow-entry-interruption',action='store_true')
 p.add_argument('--rollback-check',action='store_true')
+p.add_argument('--delta',action='store_true')
 args=p.parse_args()
 assert args.release.replace('-','').replace('.','').isalnum()
 nodes=json.loads(Path('.cluster-local/inventory.json').read_text())['nodes']
@@ -32,14 +33,15 @@ for name in args.hosts:
         health=json.loads(ssh('rh-gateway',nodes['rh-gateway'],'curl -fsS localhost:8788/health').stdout)
         assert health['connections']==0, 'Active gateway tunnels; postpone maintenance'
     remote='/home/ubuntu/rh-stage/'
-    files=[artifact,Path('scripts/cluster/activate.sh'),Path('scripts/cluster/drain-host.sh'),Path('scripts/cluster/reopen-host.sh')]
+    files=[artifact,Path('scripts/cluster/activate.sh'),Path('scripts/cluster/activate-delta.py'),Path('scripts/cluster/drain-host.sh'),Path('scripts/cluster/reopen-host.sh')]
     if worker: files.append(Path('.cluster-local/config')/(name+'.json'))
     upload(name,node,files,remote)
     old=ssh(name,node,'readlink -f /srv/redhorizon-cluster/current').stdout.strip()
     stop='DRAIN_TIMEOUT_SECONDS=7500 bash '+remote+'drain-host.sh' if worker else 'systemctl stop redhorizon-cluster'
     config=f'install -m 0640 -o root -g redhorizon-cluster {remote}{name}.json /etc/redhorizon-cluster/cluster.json' if worker else ':'
     print('Activating '+name,flush=True)
-    result=ssh(name,node,f'set -euo pipefail\n{stop}\n{config}\nbash {remote}activate.sh {shlex.quote(remote+artifact.name)} {digest} {args.release}\nsleep 6\ncat /srv/redhorizon-cluster/current/runtime/release.json')
+    activate='python3 '+remote+'activate-delta.py' if args.delta else 'bash '+remote+'activate.sh'
+    result=ssh(name,node,f'set -euo pipefail\n{stop}\n{config}\n{activate} {shlex.quote(remote+artifact.name)} {digest} {args.release}\nsleep 6\ncat /srv/redhorizon-cluster/current/runtime/release.json')
     manifest=json.loads(result.stdout.splitlines()[-1])
     def health():
         if worker:
