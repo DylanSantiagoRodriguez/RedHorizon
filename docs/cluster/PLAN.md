@@ -1,6 +1,6 @@
 # Red Horizon: arquitectura de cinco EC2
 
-Estado al 16 de noviembre de 2026 (Bogotá): cuatro EC2 nuevas creadas y principal conservada. Ver [inventario real](INVENTORY.md), [validación](VALIDATION.md), [costos](COSTS.md) y [operación](RUNBOOK.md). El DNS lo cambia el propietario.
+Estado al 16 de noviembre de 2026 (Bogotá): cuatro EC2 nuevas creadas y principal conservada. Ver [inventario real](INVENTORY.md), [validación](VALIDATION.md), [costos](COSTS.md) y [operación](RUNBOOK.md). El propietario realizó el cambio de DNS, verificado el 17/11/2026; queda pendiente cerrar la entrada legada. Estado consolidado en [INFORME-COMPLETO-SERVIDORES.md](INFORME-COMPLETO-SERVIDORES.md).
 
 Cuenta `670036769494`, región `us-east-2`, VPC `vpc-0acc002bf61620138`, subred `subnet-0fde15f950925cb60`, AZ `us-east-2b`. Cuota estándar: 16 vCPU; las siete EC2 de la cuenta suman 14. Cuatro nodos Ubuntu 24.04 Canonical, AMI `ami-096d6538c463eb1db`; la principal conserva Ubuntu 26.04.
 

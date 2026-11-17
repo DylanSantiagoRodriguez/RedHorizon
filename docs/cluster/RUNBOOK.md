@@ -45,7 +45,7 @@ Certificados internos: 90 días, CA de 365 días guardada solo en `llaveredhoriz
 
 ## DNS y transición
 
-El propietario cambia `A @` a **3.23.131.44**, y `www` a CNAME `redhorizon.lat` o A a la misma IP. Retirar registros A/AAAA antiguos que compitan. Un TTL de 300 s facilita la transición. No se modificó DNS mediante herramientas.
+El propietario ya cambió `A @` a **3.23.131.44** y `www` a CNAME `redhorizon.lat`; ambos se verificaron en Google y Cloudflare el 17/11/2026. Retirar registros A/AAAA antiguos que compitan. Un TTL de 300 s facilita la transición. No se modificó DNS mediante herramientas.
 
 Se conserva Caddy/backend legado en la principal hasta que el propietario cambie DNS. Se ensayó y retiró un puente temporal: la ruta por la IP antigua no superó la carga de modelos dentro del plazo. El acceso directo al gateway sí pasó. No reactivar ese puente como procedimiento de producción. El timer de despliegue legado queda deshabilitado para evitar publicar otra versión durante la transición.
 
@@ -60,7 +60,7 @@ python3 scripts/cluster/finalize-dns.py --execute
 
 Consulta dos resolutores públicos para apex/www y exige que solo devuelvan gateway, sin IPv6 antiguo. Comprueba salud pública del gateway y cero salas legadas, detiene Caddy/backend antiguos y deja en la principal únicamente GameSecurityGroup. No reinicia los workers ni mueve partidas. Hacerlo dentro de una ventana vigilada tras la propagación.
 
-Los códigos/sesiones antiguos no migran; el cambio final de DNS todavía no se realizó. Los códigos nuevos siempre pertenecen a un único proceso. Las partidas en RAM se pierden si ese proceso cae; Redis no las reconstruye.
+Los códigos/sesiones antiguos no migran. El cambio de DNS ya se verificó; queda pendiente retirar la entrada legada mediante el procedimiento anterior. Los códigos nuevos siempre pertenecen a un único proceso. Las partidas en RAM se pierden si ese proceso cae; Redis no las reconstruye.
 
 ## Recuperación y rollback
 
