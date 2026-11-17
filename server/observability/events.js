@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-const sources = new Set(['rh-gateway', 'rh-game-01', 'rh-game-02', 'rh-game-03', 'rh-coordinator']);
+const sources = new Set(['rh-gateway', 'rh-game-01', 'rh-game-02', 'rh-game-03', 'rh-coordinator', 'rh-observability', 'rh-events']);
 const fields = {
   'room.created': ['roomId'], 'room.closed': ['roomId', 'durationSeconds'],
   'connection.opened': [], 'connection.closed': ['reason'], 'connection.reconnected': [],

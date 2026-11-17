@@ -26,11 +26,12 @@ def generate(destination, hosts):
     run('req', '-x509', '-newkey', 'rsa:3072', '-nodes', '-keyout', 'ca.key', '-out', 'ca.crt', '-days', '365', '-sha256', '-config', str(ca_config))
     ca_config.unlink()
     for name, address in hosts.items():
-        if name not in ['rh-gateway', 'rh-coordinator', 'rh-game-01', 'rh-game-02', 'rh-game-03']:
+        if name not in ['rh-gateway', 'rh-coordinator', 'rh-game-01', 'rh-game-02', 'rh-game-03', 'rh-observability', 'rh-events', 'rh-kafka-admin', 'rh-panel-consumer']:
             raise ValueError('Unknown service identity')
         ipaddress.ip_address(address)
         ext = destination / f'{name}.ext'
-        ext.write_text(f'basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth,clientAuth\nsubjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid:always\nsubjectAltName=DNS:{name},IP:{address}\n')
+        loopback = ',IP:127.0.0.1' if name == 'rh-events' and address != '127.0.0.1' else ''
+        ext.write_text(f'basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth,clientAuth\nsubjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid:always\nsubjectAltName=DNS:{name},IP:{address}{loopback}\n')
         run('req', '-new', '-newkey', 'rsa:2048', '-nodes', '-keyout', f'{name}.key', '-out', f'{name}.csr', '-subj', f'/CN={name}')
         run('x509', '-req', '-in', f'{name}.csr', '-CA', 'ca.crt', '-CAkey', 'ca.key', '-set_serial', str(secrets.randbits(128)), '-out', f'{name}.crt', '-days', '90', '-sha256', '-extfile', str(ext))
         (destination / f'{name}.csr').unlink(); ext.unlink()

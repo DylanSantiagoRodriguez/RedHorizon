@@ -1,19 +1,19 @@
-import { randomBytes, randomInt } from 'node:crypto';
+import { randomBytes, randomInt, randomUUID } from 'node:crypto';
 import { WorldModel } from '../src/world/WorldModel.js';
 import { CoopRun } from '../src/core/CoopRun.js';
 import { CODE_ALPHABET, normalizeCode, inputAdapter, PROTOCOL_VERSION, GAME_VERSION } from '../src/network/protocol.js';
 import { snapshot } from '../src/network/snapshot.js';
 export class RoomError extends Error { constructor(code) { super(code); this.code = code; } }
 export class RoomManager {
-  constructor({ now = Date.now, tickHz = 60, reconnectMs = 30000, maxRooms = 64, lobbyMs = 900000, matchMs = 7200000, healthPerPlayer = .65, upgradeMs = 15000, send = (s, m) => s.send(JSON.stringify(m)) } = {}) {
-    Object.assign(this, { now, tickHz, reconnectMs, maxRooms, lobbyMs, matchMs, healthPerPlayer, upgradeMs, send }); this.rooms = new Map();
+  constructor({ telemetry = null, now = Date.now, tickHz = 60, reconnectMs = 30000, maxRooms = 64, lobbyMs = 900000, matchMs = 7200000, healthPerPlayer = .65, upgradeMs = 15000, send = (s, m) => s.send(JSON.stringify(m)) } = {}) {
+    Object.assign(this, { telemetry, now, tickHz, reconnectMs, maxRooms, lobbyMs, matchMs, healthPerPlayer, upgradeMs, send }); this.rooms = new Map();
   }
   code() { let code; do { code = Array.from({ length: 6 }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join(''); } while (this.rooms.has(code)); return code; }
   create(socket, nickname, assignedCode = null) {
     if (this.rooms.size >= this.maxRooms) throw new RoomError('LIMIT');
     if (assignedCode && (normalizeCode(assignedCode) !== assignedCode || assignedCode.length !== 6 || [...assignedCode].some(c => !CODE_ALPHABET.includes(c)) || this.rooms.has(assignedCode))) throw new RoomError('INVALID');
-    const room = { code: assignedCode || this.code(), members: new Map(), hostId: null, createdAt: this.now(), tick: 0, events: [], eventId: 0 };
-    this.rooms.set(room.code, room); return this.add(room, socket, nickname);
+    const room = { telemetryId: randomUUID(), code: assignedCode || this.code(), members: new Map(), hostId: null, createdAt: this.now(), tick: 0, events: [], eventId: 0 };
+    this.rooms.set(room.code, room); this.telemetry?.emit('room.created', { roomId: room.telemetryId }); return this.add(room, socket, nickname);
   }
   find(code) { code = normalizeCode(code); if (code.length !== 6 || [...code].some(c => !CODE_ALPHABET.includes(c))) throw new RoomError('INVALID_CODE'); const r = this.rooms.get(code); if (!r) throw new RoomError('NOT_FOUND'); return r; }
   join(code, socket, nickname) { const room = this.find(code); if (room.run) throw new RoomError('STARTED'); if (room.members.size >= 4) throw new RoomError('FULL'); return this.add(room, socket, nickname); }
@@ -56,14 +56,17 @@ export class RoomManager {
     if (permanent) { member.expired = true; member.token = ''; if (room.run) room.run.abandon(member.id); else room.members.delete(member.id); }
     if (room.hostId === member.id) room.hostId = [...room.members.values()].find(m => m.socket)?.id || null;
     this.broadcastLobby(room);
-    if (!room.members.size) this.rooms.delete(room.code);
+    if (!room.members.size) this.retire(room);
+  }
+  retire(room) {
+    if (this.rooms.delete(room.code)) this.telemetry?.emit('room.closed', { roomId: room.telemetryId, durationSeconds: Math.max(0, (this.now() - room.createdAt) / 1000) });
   }
   step(dt) {
     const now = this.now();
     for (const room of this.rooms.values()) {
       for (const m of room.members.values()) if (!m.socket && !m.expired && now - m.disconnectedAt >= this.reconnectMs) this.disconnect(room, m, true);
       if (![...room.members.values()].some(m => !m.expired) || now - (room.startedAt || room.createdAt) > (room.run ? this.matchMs : this.lobbyMs) || room.endedAt && now - room.endedAt > 60000) {
-        for (const m of room.members.values()) m.socket?.close(1000, 'Sala caducada'); this.rooms.delete(room.code); continue;
+        for (const m of room.members.values()) m.socket?.close(1000, 'Sala caducada'); this.retire(room); continue;
       }
       if (!room.run) continue;
       const inputs = new Map();

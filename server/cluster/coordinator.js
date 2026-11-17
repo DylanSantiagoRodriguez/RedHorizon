@@ -6,13 +6,13 @@ import { CODE_ALPHABET } from '../../src/network/protocol.js';
 import { jsonBody, jsonReply, peer } from './transport.js';
 const script = readFileSync(new URL('./directory.lua', import.meta.url), 'utf8');
 const codeOK = code => typeof code === 'string' && code.length === 6 && [...code].every(c => CODE_ALPHABET.includes(c));
-export async function createCoordinator({ tls, redisUrl = 'redis://127.0.0.1:6379', workers, key = 'rh:directory:v1', host = '127.0.0.1', port = 8443 }) {
+export async function createCoordinator({ telemetry = null, tls, redisUrl = 'redis://127.0.0.1:6379', workers, key = 'rh:directory:v1', host = '127.0.0.1', port = 8443 }) {
   if (!workers.length || workers.some(w => !/^rh-game-0[123]$/.test(w))) throw new Error('Invalid worker allowlist');
   const redis = createClient({ url: redisUrl, disableOfflineQueue: true, socket: { connectTimeout: 2000, reconnectStrategy: retries => Math.min(1000, 100 * retries) } });
   redis.on('error', () => {}); await redis.connect();
   const execute = async (op, args) => JSON.parse(await redis.eval(script, { keys: [key], arguments: [op, JSON.stringify(args)] }));
   const server = https.createServer({ ...tls, requestCert: true, rejectUnauthorized: true, minVersion: 'TLSv1.2' }, async (req, res) => {
-    const identity = peer(req);
+    const identity = peer(req); const endpoint = ['/reserve', '/lookup', '/heartbeat', '/activate'].includes(req.url) ? req.url.slice(1) : 'unknown'; telemetry?.metrics.inc('rh_coordinator_requests_total', 1, { endpoint });
     try {
       if (req.method !== 'POST') return jsonReply(res, 405, { error: 'INVALID' });
       if (identity !== 'rh-gateway' && !workers.includes(identity)) return jsonReply(res, 403, { error: 'PERMISSION' });
@@ -31,6 +31,7 @@ export async function createCoordinator({ tls, redisUrl = 'redis://127.0.0.1:637
       jsonReply(res, result.error ? 503 : 200, result);
     } catch { if (!res.headersSent) jsonReply(res, 503, { error: 'UNAVAILABLE' }); }
   });
+  server.on('tlsClientError', () => { telemetry?.metrics.inc('rh_tls_failures_total'); telemetry?.emit('security.rejected', { reason: 'certificate' }); });
   server.requestTimeout = 5000; server.headersTimeout = 5000; server.maxConnections = 64;
   return { server, redis, execute, listen: () => new Promise(resolve => server.listen(port, host, () => resolve(server.address()))), close: async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); redis.destroy(); } };
 }

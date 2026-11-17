@@ -1,0 +1,54 @@
+const $ = id => document.getElementById(id);
+let current = 'overview', session, overview, polling = false, chartAt = 0;
+const format = n => Number.isFinite(Number(n)) ? Number(n).toLocaleString('es', { maximumFractionDigits: 2 }) : 'Sin muestras';
+const rows = name => overview?.metrics?.[name] || [];
+const value = (name, node, peer) => { const r = rows(name).find(r => (!node || r.metric.node === node) && (!peer || r.metric.peer === peer)); return r && r.value[1] !== 'NaN' ? Number(r.value[1]) : null; };
+const show = n => n === null ? 'Sin muestras' : format(n);
+async function api(path, options = {}) { const res = await fetch('/ops/api/' + path, { credentials: 'same-origin', ...options }); if (res.status === 401 && path !== 'login') { session = null; $('login').hidden = false; $('dashboard').hidden = true; } const data = await res.json(); if (!res.ok) throw new Error(data.error || 'No disponible'); return data; }
+function card(title, content, detail = '') { const root = document.createElement('article'); root.className = 'card'; const h = document.createElement('h2'), v = document.createElement('div'), p = document.createElement('p'); h.textContent = title; v.className = 'value'; v.textContent = content; p.textContent = detail; root.append(h, v, p); return root; }
+function events(target, entries) {
+ const table = document.createElement('table');
+ for (const e of entries) { const row = document.createElement('tr'); for (const text of [new Date(e.timestamp).toLocaleTimeString(), e.source, e.type, e.data.roomId ? `Sala interna ${e.data.roomId.slice(0, 8)}` : e.data.reason || e.data.revision?.slice(0, 8) || '', e.data.durationSeconds !== undefined ? `${format(e.data.durationSeconds)} s` : '']) { const cell = document.createElement('td'); cell.textContent = text; row.append(cell); } table.append(row); }
+ $(target).replaceChildren(table); if (!entries.length) $(target).textContent = 'Sin eventos recibidos en este intervalo.';
+}
+function render() {
+ $('freshness').className = overview.stale ? 'bad' : 'good'; $('freshness').textContent = `${overview.mode} · ${overview.stale ? 'Datos atrasados o ausentes' : 'Recolección activa'} · última consulta ${overview.collectedAt ? new Date(overview.collectedAt).toLocaleTimeString() : 'sin datos'} · actualización cada 5 s`;
+ const sum = name => rows(name).length ? rows(name).reduce((n, r) => n + Number(r.value[1]), 0) : null;
+ $('summary').replaceChildren(card('Salas activas', show(sum('rooms')), 'Distribuidas entre los tres workers'), card('Jugadores', show(sum('players')), 'Jugadores reportados por workers'), card('Conexiones del juego', show(value('connections')), 'Conexiones observadas en el gateway'), card('RTT p95', `${show(value('rtt_p95_ms'))} ms`, 'Ping/pong de transporte · ventana 5 min'), card('Telemetría descartada', show(sum('dropped')), 'Contador acumulado desde arranque'));
+ $('topology').replaceChildren(); $('node-cards').replaceChildren();
+ for (const node of overview.nodes) {
+  const box = document.createElement('div'); box.className = 'node'; box.textContent = node.id;
+  const caption = document.createElement('span'); caption.textContent = node.role; box.append(caption);
+  const route = document.createElement('span'); route.textContent = node.id.startsWith('rh-game') ? `Gateway → worker: ${show(value('logical_received_bytes_s', 'rh-gateway', node.id))} B/s · worker → gateway: ${show(value('logical_sent_bytes_s', 'rh-gateway', node.id))} B/s` : node.id === 'rh-events' ? 'Agentes → Kafka → consumidor del panel' : node.id === 'rh-coordinator' ? 'Gateway y workers → API de coordinación' : node.id === 'rh-observability' ? 'Prometheus ← exporters · panel ← eventos' : 'Jugadores ⇄ gateway ⇄ workers'; box.append(route); $('topology').append(box);
+  const stamp = value('freshness', node.id), stale = stamp === null || Date.now() / 1000 - stamp > 20;
+  const c = card(node.id, stale ? 'Sin datos recientes' : value('service_up', node.id) === 1 ? 'Servicio activo' : 'Servicio inactivo', `${node.role} · ${node.instanceId || 'laboratorio'} · ${node.version || 'versión pendiente de recolección'}`);
+  const list = document.createElement('dl');
+  for (const [label, v] of [['CPU %', value('host_cpu', node.id) === null ? null : value('host_cpu', node.id) * 100], ['Memoria bytes', value('memory_used_bytes', node.id)], ['Disco libre bytes', value('disk_available_bytes', node.id)], ['Salas', value('rooms', node.id)], ['Conexiones worker', value('players', node.id)], ['Capacidad salas', value('capacity', node.id)], ['Drenaje (1=sí)', value('draining', node.id)], ['Event loop p99 ms', value('event_loop_p99_ms', node.id)], ['Simulación máx. ms', value('simulation_max_ms', node.id)], ['Reinicios servicio', value('restarts', node.id)]]) { const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = label; dd.textContent = show(v); list.append(dt, dd); }
+  const cloud = document.createElement('p'), aws = overview.aws?.nodes?.[node.id]; cloud.textContent = aws ? 'CloudWatch (intervalo 5 min): ' + Object.entries(aws).map(([k,v]) => k + ': ' + (v ? format(v.value) + ' ' + v.unit + ' · ' + new Date(v.timestamp).toLocaleTimeString() + (Date.now() - v.timestamp > 900000 ? ' (atrasado)' : '') : 'sin muestras')).join(' / ') : 'CloudWatch: sin muestras'; c.append(list, cloud); $('node-cards').append(c);
+ }
+ $('kafka').textContent = `${overview.kafka.up ? 'Consumidor conectado' : 'Consumidor desconectado'} · lag: ${show(value('kafka_lag'))} eventos · cola agentes: ${show(sum('queue'))}`;
+ $('traffic-cards').replaceChildren(card('RTT p50', `${show(value('rtt_p50_ms'))} ms`), card('RTT p95', `${show(value('rtt_p95_ms'))} ms`), card('RTT p99', `${show(value('rtt_p99_ms'))} ms`));
+ for (const id of ['node-a', 'node-b']) if (!$(id).options.length) for (const node of overview.nodes) { const o = document.createElement('option'); o.value = node.id; o.textContent = node.id; $(id).append(o); } if (!$('node-b').dataset.ready) { $('node-b').selectedIndex = Math.min(1, $('node-b').options.length - 1); $('node-b').dataset.ready = 'yes'; }
+}
+async function chart() {
+ const data = await api(`history?metric=${encodeURIComponent($('metric').value)}&seconds=${$('interval').value}`);
+ const series = (data.data?.result || []).filter(r => [$('node-a').value, $('node-b').value].includes(r.metric.node));
+ const ctx = $('chart').getContext('2d'), w = 1000, h = 300; ctx.clearRect(0, 0, w, h);
+ const points = series.flatMap(r => r.values).filter(p => Number.isFinite(Number(p[1])));
+ if (!points.length) { $('chart-status').textContent = 'Sin muestras para los servidores e intervalo seleccionados.'; return; }
+ const first = Math.min(...points.map(p => p[0])), last = Math.max(...points.map(p => p[0])), max = Math.max(1, ...points.map(p => Number(p[1])));
+ ctx.strokeStyle = '#355063'; ctx.strokeRect(50, 15, w - 70, h - 45); ctx.fillStyle = '#a9bdca'; ctx.fillText(format(max), 2, 22); ctx.fillText('0', 24, h - 30);
+ for (const [i, s] of series.entries()) { ctx.strokeStyle = i % 2 ? '#efbd76' : '#65d9c2'; ctx.beginPath(); let begun = false; for (const [at, n] of s.values) { if (!Number.isFinite(Number(n))) { begun = false; continue; } const x = 50 + (at - first) / Math.max(1, last - first) * (w - 70), y = h - 30 - Number(n) / max * (h - 45); if (!begun) ctx.moveTo(x, y); else ctx.lineTo(x, y); begun = true; } ctx.stroke(); }
+ $('chart-status').textContent = `${$('metric').selectedOptions[0].textContent} · ${series.map(s => s.metric.node + (s.metric.peer ? ' → ' + s.metric.peer : '')).join(' / ')} · ${new Date(first * 1000).toLocaleTimeString()}–${new Date(last * 1000).toLocaleTimeString()}`;
+}
+async function refresh() {
+ if (!session || polling || document.hidden) return; polling = true;
+ try { overview = await api('overview'); render(); if (current === 'events') events('event-list', await api(`events?seconds=${$('interval').value}`)); if (current === 'security') { if (session.role !== 'admin') $('security-list').textContent = 'Esta vista requiere rol administrador.'; else events('security-list', (await api('security')).events); } if (current === 'traffic' && Date.now() - chartAt > 10000) { await chart(); chartAt = Date.now(); } }
+ catch (e) { $('freshness').textContent = e.message; $('freshness').className = 'bad'; } finally { polling = false; }
+}
+async function signedIn() { session = await api('session'); $('identity').textContent = `${session.username} · ${session.role}`; $('login').hidden = true; $('dashboard').hidden = false; await refresh(); }
+$('login-form').addEventListener('submit', async e => { e.preventDefault(); const fields = Object.fromEntries(new FormData(e.target)); try { await api('login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(fields) }); e.target.reset(); $('login-error').textContent = ''; await signedIn(); } catch (e) { $('login-error').textContent = e.message; } });
+$('logout').onclick = async () => { await api('logout', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }); location.reload(); };
+for (const button of document.querySelectorAll('[data-tab]')) button.onclick = () => { current = button.dataset.tab; for (const id of ['overview', 'nodes', 'traffic', 'events', 'security']) $(id).hidden = id !== current; for (const b of document.querySelectorAll('[data-tab]')) b.classList.toggle('active', b === button); chartAt = 0; void refresh(); };
+for (const id of ['metric', 'interval', 'node-a', 'node-b']) $(id).onchange = () => { chartAt = 0; void refresh(); };
+void signedIn().catch(() => {}); setInterval(refresh, 5000);
