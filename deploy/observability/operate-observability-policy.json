@@ -1,0 +1,28 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssm:SendCommand",
+        "ssm:StartSession"
+      ],
+      "Resource": [
+        "arn:aws:ec2:us-east-2:670036769494:instance/i-0d5651c3f279e29b3",
+        "arn:aws:ssm:us-east-2::document/AWS-RunShellScript",
+        "arn:aws:ssm:us-east-2::document/AWS-StartSSHSession",
+        "arn:aws:ssm:us-east-2::document/AWS-StartPortForwardingSession"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:DescribeStacks",
+        "cloudformation:DescribeStackEvents",
+        "cloudformation:DescribeStackResources",
+        "cloudformation:GetTemplate"
+      ],
+      "Resource": "arn:aws:cloudformation:us-east-2:670036769494:stack/redhorizon-observability/*"
+    }
+  ]
+}

@@ -35,10 +35,10 @@ Solo borrar los subdirectorios de claves de prueba identificados en `lab.json`, 
 ## 2. Preparar AWS después de la aprobación
 
 1. Repetir inspección de cuota, tipos, AMI y créditos con `inspect-costs.py`. El script de inspección usa el perfil AWS vigente; no cambia permisos ni recursos.
-2. Solicitar cuota Standard On-Demand de 20 vCPU y esperar aprobación. Actualmente 16; hacen falta 18. No detener `redhorizon_last` ni `superkanes` para liberar cuota.
+2. La configuración compartida agrega 2 vCPU: 14 existentes + 2 = cuota actual de 16. No requiere aumento. No detener `redhorizon_last` ni `superkanes` para liberar cuota.
 3. Crear el límite IAM `RedHorizonObservabilityRuntimeBoundary` con `deploy/observability/runtime-boundary.json`, mediante identidad administrativa de bootstrap. Es un límite de permisos, no credenciales.
 4. Conceder temporalmente a un rol dedicado la política revisable `provisioner-policy.json`. No dar ese permiso de provisión a las máquinas. `iam:CreateRole` exige el límite anterior; las identidades runtime quedan limitadas a SSM y lectura básica de métricas, y únicamente la VM de observabilidad recibe GetMetricStatistics en su política efectiva.
-5. Conservar `rh-cluster-operator` para operación y SSM. Verificar que puede administrar las dos instancias nuevas etiquetadas `Project=RedHorizonCluster`; extender únicamente recursos/documentos necesarios si su política actual enumera IDs. Retirar permisos de provisión al completar el stack. No usar root en código, servidores, artefactos ni variables persistentes.
+5. Conservar `rh-cluster-operator` para operación y SSM. Verificar que puede administrar la instancia nueva etiquetadas `Project=RedHorizonCluster`; extender únicamente recursos/documentos necesarios si su política actual enumera IDs. Retirar permisos de provisión al completar el stack. No usar root en código, servidores, artefactos ni variables persistentes.
 
 Provisión explícita, después de lo anterior:
 
@@ -46,7 +46,7 @@ Provisión explícita, después de lo anterior:
 python3 scripts/observability/provision.py --approved-monthly-usd 141 --profile rh-cluster-operator --ami ami-096d6538c463eb1db
 ```
 
-Si el rol dedicado de provisión tiene otro perfil, usarlo en `--profile`. El script rechaza root, cuota insuficiente, duplicación de nodos y AMI ajena a Canonical. Genera dos PEM únicas bajo `llaveredhorizon` (directorio 700/archivos 600), importa solo públicas y crea el stack `redhorizon-observability`. No imprime claves. Si falla CloudFormation, inspeccionar eventos y recursos retenidos; no repetir creando otra flota.
+Si el rol dedicado de provisión tiene otro perfil, usarlo en `--profile`. El script rechaza root, cuota insuficiente, duplicación de nodos y AMI ajena a Canonical. Genera una PEM única bajo `llaveredhorizon` (directorio 700/archivos 600), importa solo públicas y crea el stack `redhorizon-observability`. No imprime claves. Si falla CloudFormation, inspeccionar eventos y recursos retenidos; no repetir creando otra flota.
 
 Esperar `CREATE_COMPLETE` mediante consultas de estado; después:
 
@@ -55,7 +55,7 @@ python3 scripts/observability/inventory.py
 python3 scripts/observability/render-config.py .cluster-local/observability/inventory.json .cluster-local/observability/config
 ```
 
-El inventario nuevo tiene exactamente los cinco nodos previos más dos nuevos. El antiguo no se sustituye. Verificar los IDs, nombres y SG antes de cualquier escritura remota. Nunca usar `inventory-fixture.json` de pruebas para desplegar.
+El inventario nuevo tiene exactamente los cinco nodos previos más una VM nueva y una identidad lógica rh-events en esa misma VM. El antiguo no se sustituye. Verificar los IDs, nombres y SG antes de cualquier escritura remota. Nunca usar `inventory-fixture.json` de pruebas para desplegar.
 
 ## 3. Certificados, acceso y artefacto
 
@@ -83,12 +83,12 @@ El paquete contiene runtime Node Linux 22.23.5 con checksum fijado, dependencias
 Usar `stage.py` con inventario, artefacto, SHA/revisión y directorios privados. Ejemplo estructural — reemplazar REVISION y rutas por los artefactos reales:
 
 ```sh
-python3 scripts/observability/stage.py .cluster-local/observability/inventory.json .cluster-local/observability/artifacts/redhorizon-observability-REVISION.tar.gz --config .cluster-local/observability/config --pki /Users/dylanrodriguez/Documents/redhorizon/llaveredhorizon/observability-FECHA-UNICA --access /Users/dylanrodriguez/Documents/redhorizon/llaveredhorizon/observability-acceso-FECHA-UNICA --revision REVISION --hosts rh-events rh-observability rh-gateway rh-game-01 rh-game-02 rh-game-03 rh-coordinator
+python3 scripts/observability/stage.py .cluster-local/observability/inventory.json .cluster-local/observability/artifacts/redhorizon-observability-REVISION.tar.gz --config .cluster-local/observability/config --pki /Users/dylanrodriguez/Documents/redhorizon/llaveredhorizon/observability-FECHA-UNICA --access /Users/dylanrodriguez/Documents/redhorizon/llaveredhorizon/observability-acceso-FECHA-UNICA --revision REVISION --hosts rh-observability rh-gateway rh-game-01 rh-game-02 rh-game-03 rh-coordinator
 ```
 
 Transporte: SSH/SCP dentro de Session Manager, con clave de host obtenida mediante SSM y verificación estricta. No abre 22 en Security Groups ni transporta claves en parámetros SSM. Usa la PEM correspondiente solo localmente. Staging no reinicia `redhorizon-cluster` ni modifica Nginx. El instalador retira las copias de claves/usuarios de staging después de instalarlas. Una ejecución fallida exige inspección; no sobreescribe una release existente.
 
-El agente usa el usuario de servicio existente y socket `/run/redhorizon-observer/ingest.sock` con permisos 660. CPUQuota 10% y MemoryMax 128M aíslan la recolección. Solo las dos VM nuevas instalan Docker; contenedores sin root/capabilities, filesystem de imagen de solo lectura y volúmenes dedicados. Redis sigue como estaba.
+El agente usa el usuario de servicio existente y socket `/run/redhorizon-observer/ingest.sock` con permisos 660. CPUQuota 10% y MemoryMax 128M aíslan la recolección. Solo la VM nueva instala Docker; contenedores sin root/capabilities, filesystem de imagen de solo lectura y volúmenes dedicados. Redis sigue como estaba.
 
 Arrancar broker, comprobar TLS y almacenamiento, y aplicar topics/ACL/cuotas con el script específico:
 
@@ -134,8 +134,8 @@ La entrega AWS requiere probar con una partida de prueba real: dos clientes en l
 
 ## Apagado del laboratorio AWS
 
-Apagar exclusivamente `rh-observability` y `rh-events` usando sus IDs confirmados del inventario nuevo. Retirar `/ops/` de Nginx con reload, detener agentes si ya no se desean reintentos, conservar juego/coordinador y retirar permisos de provisión temporales. No usar comodines de nombres ni apagar todas las instancias con etiqueta Project.
+Apagar exclusivamente `rh-observability` usando su ID confirmado; `rh-events` comparte esa misma EC2. Retirar `/ops/` de Nginx con reload, detener agentes si ya no se desean reintentos, conservar juego/coordinador y retirar permisos de provisión temporales. No usar comodines de nombres ni apagar todas las instancias con etiqueta Project.
 
-EC2 detenidas conservan EBS facturable; las IP públicas automáticas cambian al volver a iniciar. Las IP privadas persisten en stop/start. Revalidar inventario/SSM. Para eliminar definitivamente: copia autorizada de datos, desactivar protección de terminación solo en esas dos EC2, terminar, revisar y eliminar únicamente sus volúmenes retenidos si ya no hacen falta y retirar reglas/SG/roles de la ampliación. Una eliminación de stack con Retain no hace ese trabajo automáticamente.
+EC2 detenidas conservan EBS facturable; las IP públicas automáticas cambian al volver a iniciar. Las IP privadas persisten en stop/start. Revalidar inventario/SSM. Para eliminar definitivamente: copia autorizada de datos, desactivar protección de terminación solo en esa EC2, terminar, revisar y eliminar únicamente sus volúmenes retenidos si ya no hacen falta y retirar reglas/SG/roles de la ampliación. Una eliminación de stack con Retain no hace ese trabajo automáticamente.
 
 No declarar terminado hasta registrar pruebas AWS, URL operativa, inventario definitivo y medición real. Véase [PRUEBAS](PRUEBAS.md).

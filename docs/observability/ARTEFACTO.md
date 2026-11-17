@@ -1,18 +1,14 @@
-# Artefacto preparado para despliegue
+# Artefacto desplegado
 
-**No desplegado en AWS.** El presupuesto de [COSTOS.md](COSTOS.md) ya está aprobado; requiere cuota suficiente y completar [RUNBOOK.md](RUNBOOK.md).
+Revisión de runtime y panel: `c32a58f60c44644e59a4f65c0cb2fce5098957ab`.
 
-- Revisión de código: `3c9a02d4be540f0178712111f5ab6f671fe4e343`.
-- Archivo local: `.cluster-local/observability/artifacts/redhorizon-observability-3c9a02d4be540f0178712111f5ab6f671fe4e343.tar.gz`.
-- Tamaño: 65,885,066 bytes.
-- SHA-256: `770fdade8b436b2d415454b5893babc6a5abc12181dfe2e5b1bdff1a3396bfa8`.
-- Node Linux x64: 22.23.5, archivo oficial verificado por checksum.
-- Kafka: 4.4.0, digest `sha256:833b867a9585a141da455dc2b57431c65cbccb27f11c91f694444cca9f777e0f`.
-- Prometheus: 3.16.0, digest fijado en la unidad systemd.
-- Plantilla: exactamente dos nuevas `c7i-flex.large`, sin gestionar las instancias existentes.
+- Node Linux 22.23.5, SHA-256 comprobado antes de empaquetar.
+- Kafka 4.4.0 y Prometheus 3.16.0 fijados por digest en unidades systemd.
+- Dependencias instaladas desde package-lock.json fuera de las EC2.
+- Observabilidad se instala en `/srv/redhorizon-observability/releases/<revision>`.
+- Backend del juego actualizado mediante delta verificado de 17 archivos (382.263 bytes), preservando Node, dependencias y frontend de la versión anterior. No compila en máquinas de juego.
+- El Nginx público conserva el frontend separado `46db0d794527c7bb084fab4db518f544c7efc723` y sus arreglos de texturas/animación.
+- CloudFormation agrega una m7i-flex.large de 8 GiB con EBS gp3 cifrado de 70 GiB. Kafka comparte VM; no se duplica la medición física.
+- Certificados, usuarios y llaves se distribuyen por separado, nunca dentro de artefactos o Git.
 
-La inspección del tar confirmó runtime, panel, bootstrap Kafka, plantilla correcta y ausencia de archivos PEM, claves privadas, usuarios y datos de inscripción MFA. No se subió el binario a un bucket ni se creó almacenamiento de pago. El paquete anterior fue apartado en `artifacts/superseded/` y **no debe desplegarse**.
-
-Las modificaciones posteriores a esta revisión que solo documenten el checksum no alteran el código empaquetado. La entrega de código, IaC y procedimientos está en `main`; este artefacto local está excluido de Git.
-
-Incluye el mapa de flujo de servidores, flechas asociadas a tráfico medido y estados sin muestras. Se verificó su carga en Chromium sin repetir la batería completa.
+El mapa SVG incluye gateway, tres workers, coordinador, Kafka y observabilidad. Las flechas solo se animan con actividad medida reciente; valores ausentes se indican como tales.

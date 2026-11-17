@@ -8,6 +8,7 @@ p=argparse.ArgumentParser();p.add_argument('inventory');p.add_argument('artifact
 assert len(a.revision)==40 and all(c in '0123456789abcdef' for c in a.revision)
 nodes=json.loads(Path(a.inventory).read_text())['nodes'];allowed={'rh-gateway','rh-game-01','rh-game-02','rh-game-03','rh-coordinator','rh-observability','rh-events'}
 assert set(nodes)==allowed and set(a.hosts)<=allowed
+assert all(not nodes[name].get('physicalId') for name in a.hosts), 'Deploy physical hosts only, never a shared service alias'
 artifact=Path(a.artifact).resolve();pki=Path(a.pki).resolve();access=Path(a.access).resolve();config=Path(a.config).resolve()
 assert pki.is_relative_to(KEYS.resolve()) and access.is_relative_to(KEYS.resolve())
 digest=hashlib.file_digest(artifact.open('rb'),'sha256').hexdigest();os.environ['RH_TRANSPORT']='ssm'
