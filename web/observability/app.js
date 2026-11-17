@@ -15,8 +15,10 @@ function events(target, entries) {
 function render() {
  renderFlowMap($('flow-map'), overview);
  $('freshness').className = overview.stale ? 'bad' : 'good'; $('freshness').textContent = `${overview.mode} · ${overview.stale ? 'Datos atrasados o ausentes' : 'Recolección activa'} · última consulta ${overview.collectedAt ? new Date(overview.collectedAt).toLocaleTimeString() : 'sin datos'} · actualización cada 5 s`;
+ const httpRows = rows('nginx_responses').filter(r => r.metric.endpoint === 'http');
+ const httpRate = httpRows.length ? httpRows.reduce((n, r) => n + Number(r.value[1]), 0) : null;
  const sum = name => rows(name).length ? rows(name).reduce((n, r) => n + Number(r.value[1]), 0) : null;
- $('summary').replaceChildren(card('Salas activas', show(sum('rooms')), 'Distribuidas entre los tres workers'), card('Jugadores', show(sum('players')), 'Jugadores reportados por workers'), card('Conexiones del juego', show(value('connections')), 'Conexiones observadas en el gateway'), card('RTT p95', `${show(value('rtt_p95_ms'))} ms`, 'Ping/pong de transporte · ventana 5 min'), card('Telemetría descartada', show(sum('dropped') === null && sum('application_dropped') === null ? null : (sum('dropped') || 0) + (sum('application_dropped') || 0)), 'Contador acumulado desde arranque'));
+ $('summary').replaceChildren(card('Salas multijugador', show(sum('rooms')), 'Distribuidas entre los tres workers'), card('Jugadores multijugador', show(sum('players')), 'Solo conexiones al backend; no incluye expediciones individuales'), card('Conexiones WSS', show(value('connections')), 'Conexiones observadas en el gateway'), card('RTT p95', `${show(value('rtt_p95_ms'))} ms`, 'Ping/pong de transporte · ventana 5 min'), card('Solicitudes web/s', show(httpRate), 'Nginx · media de 1 min · peticiones, no personas ni partidas'), card('Modo individual', 'No medido', 'Iniciar expedición se ejecuta en el navegador; no envía presencia al clúster'), card('Telemetría descartada', show(sum('dropped') === null && sum('application_dropped') === null ? null : (sum('dropped') || 0) + (sum('application_dropped') || 0)), 'Contador acumulado desde arranque'));
  $('topology').replaceChildren(); $('node-cards').replaceChildren();
  for (const node of overview.nodes) {
   const box = document.createElement('div'); box.className = 'node'; box.textContent = node.id;

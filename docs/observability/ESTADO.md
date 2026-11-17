@@ -93,3 +93,9 @@ PEM nueva: `/Users/dylanrodriguez/Documents/redhorizon/llaveredhorizon/rh-observ
 [Pruebas y límites](PRUEBAS.md) · [Costos](COSTOS.md) · [Recuperación y apagado](DESPLIEGUE-COMPARTIDO.md).
 
 ![Panel AWS durante la partida real de dos clientes](panel-aws.png)
+
+## Alcance de los contadores de juego
+
+«Iniciar expedición» ejecuta el modo individual en el navegador, sin WebSocket al backend. El panel no tiene presencia del navegador para ese modo: cero jugadores multijugador no demuestra que nadie esté jugando individualmente. Se identifican explícitamente esos contadores y se muestran solicitudes HTTP/s de Nginx por separado; no se convierten peticiones ni IP en personas.
+
+Inspección del 17/11/2026: seis agentes con muestras recientes, gateway con cero conexiones y los tres workers con cero salas/jugadores; backend antiguo con cero salas. No se reiniciaron procesos de juego durante esta revisión. No se pudo determinar desde el servidor el modo o URL de los amigos del propietario.
