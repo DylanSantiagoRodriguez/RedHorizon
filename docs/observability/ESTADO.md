@@ -13,8 +13,8 @@ Se conservaron las cinco EC2, el servicio actual, los datos, DNS y las instancia
 | rh-game-02 | i-0ee8a3a9d7cf9a1f6, t3.small | Misma instrumentación, conservando capacidad medida. |
 | rh-game-03 | i-0173a548389b00fb6, t3.small | Misma instrumentación, conservando capacidad medida. |
 | rh-coordinator | i-06bb1fd55f4634ed3, t3.micro; Redis loopback | Solicitudes API, eventos y métricas del host. No se exportan códigos ni tokens. |
-| rh-observability | **Nueva, no creada**; t3.medium / 30 GiB | Prometheus, panel Node, SQLite de eventos, consumidor Kafka y consultas básicas CloudWatch. |
-| rh-events | **Nueva, no creada**; t3.medium / 40 GiB | Un broker/controlador Kafka KRaft con mTLS, ACL, cuotas y retención limitada. |
+| rh-observability | **Nueva, no creada**; c7i-flex.large / 30 GiB | Prometheus, panel Node, SQLite de eventos, consumidor Kafka y consultas básicas CloudWatch. |
+| rh-events | **Nueva, no creada**; c7i-flex.large / 40 GiB | Un broker/controlador Kafka KRaft con mTLS, ACL, cuotas y retención limitada. |
 
 Gateway existente: `i-050759a4168f12f3b`, t3.micro. Inventario previo: [INVENTORY](../cluster/INVENTORY.md); el inventario operativo utilizado se conserva en `.cluster-local/inventory.json`. La ampliación genera su propio inventario sin reemplazar el de cinco nodos.
 
@@ -61,7 +61,7 @@ Se mantienen commits y push a `main` con la identidad Git configurada del propie
 
 ## Pendientes que impiden declarar la plataforma lista
 
-1. Aprobar [el presupuesto incremental concreto](COSTOS.md): propuesta USD 78/mes antes de impuestos.
+1. Aprobar [el presupuesto incremental concreto](COSTOS.md): propuesta USD 141/mes antes de impuestos.
 2. Obtener cuota regional suficiente: 16 actuales frente a 18 vCPU necesarios; solicitar 20 sin detener las instancias ajenas.
 3. Instalar el límite de permisos y habilitar provisión acotada en una identidad dedicada; no usar root en máquinas ni código.
 4. Crear las dos EC2, reconciliar IP/IDs, generar las nuevas PEM y la PKI de observabilidad en el directorio autorizado. **Todavía no existen PEM de recuperación para estas dos EC2.**

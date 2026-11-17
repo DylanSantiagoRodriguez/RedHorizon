@@ -3,7 +3,7 @@
 import argparse,datetime,json,os,subprocess
 from pathlib import Path
 p=argparse.ArgumentParser();p.add_argument('--approved-monthly-usd',required=True,type=float);p.add_argument('--profile',default='rh-cluster-operator');p.add_argument('--ami',required=True);a=p.parse_args()
-assert a.approved_monthly_usd>=78.0,'Review the concrete USD 78/month estimate before provisioning'
+assert a.approved_monthly_usd>=141.0,'Review the concrete USD 141/month estimate before provisioning'
 def aws(*args):return json.loads(subprocess.check_output(['aws',*args,'--profile',a.profile,'--region','us-east-2','--output','json','--no-cli-pager']))
 identity=aws('sts','get-caller-identity');assert ':assumed-role/' in identity['Arn'],'Use a dedicated role, not root or static user credentials'
 quota=aws('service-quotas','get-service-quota','--service-code','ec2','--quota-code','L-1216C47A')['Quota']['Value']
@@ -12,7 +12,8 @@ assert any(i['InstanceId']=='i-0db322d7e36dea80a' for i in instances)
 assert not any(t.get('Value') in ['rh-observability','rh-events'] for i in instances for t in i.get('Tags',[]) if t['Key']=='Name'),'New nodes already exist; inspect and resume rather than duplicate'
 types=aws('ec2','describe-instance-types','--instance-types',*sorted({i['InstanceType'] for i in instances}))['InstanceTypes'];cpus={t['InstanceType']:t['VCpuInfo']['DefaultVCpus'] for t in types}
 assert sum(cpus[i['InstanceType']] for i in instances)+4<=quota,'Insufficient regional vCPU quota; request increase separately'
-image=aws('ec2','describe-images','--image-ids',a.ami)['Images'][0];assert image['OwnerId']=='099720109477' and image['Architecture']=='x86_64' and image['State']=='available'
+chosen=aws('ec2','describe-instance-types','--instance-types','c7i-flex.large')['InstanceTypes'][0];assert chosen['FreeTierEligible'] and chosen['MemoryInfo']['SizeInMiB']>=4096
+image=aws('ec2','describe-images','--image-ids',a.ami)['Images'][0];assert image['OwnerId']=='099720109477' and image['Architecture']=='x86_64' and image['State']=='available' and image.get('FreeTierEligible')
 root=Path('/Users/dylanrodriguez/Documents/redhorizon/llaveredhorizon');root.mkdir(mode=0o700,exist_ok=True,parents=True);root.chmod(0o700);os.umask(0o077)
 suffix=datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ');parameters=[{'ParameterKey':'UbuntuAmi','ParameterValue':a.ami}]
 for logical in ['Observability','Events']:

@@ -9,7 +9,7 @@ def query(name,args):
  else: result=json.loads(p.stdout)
  (out/(name+'.json')).write_text(json.dumps(result,indent=2));return result
 query('quota',['service-quotas','get-service-quota','--service-code','ec2','--quota-code','L-1216C47A','--region','us-east-2'])
-query('offerings',['ec2','describe-instance-type-offerings','--region','us-east-2','--location-type','availability-zone','--filters','Name=instance-type,Values=t3.medium','Name=location,Values=us-east-2b'])
+query('offerings',['ec2','describe-instance-type-offerings','--region','us-east-2','--location-type','availability-zone','--filters','Name=instance-type,Values=c7i-flex.large','Name=location,Values=us-east-2b'])
 query('account-plan',['freetier','get-account-plan-state','--region','us-east-1'])
 query('ami',['ssm','get-parameter','--name','/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id','--region','us-east-2'])
 now=datetime.datetime.now(datetime.timezone.utc).date()

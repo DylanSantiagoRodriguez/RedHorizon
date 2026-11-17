@@ -49,7 +49,7 @@ group.initial.rebalance.delay.ms=0
 '''
 (out/'server.properties').write_text(props)
 (out/'admin.properties').write_text('security.protocol=SSL\nssl.keystore.type=PEM\nssl.keystore.location=/tls/rh-kafka-admin.bundle.pem\nssl.truststore.type=PEM\nssl.truststore.location=/tls/ca.crt\nssl.endpoint.identification.algorithm=https\n')
-image='apache/kafka@sha256:0bc1bb2478f45b6cea78864df86acdc11e8df2c5172477819a4d12942cbe5d40'
+image='apache/kafka@sha256:833b867a9585a141da455dc2b57431c65cbccb27f11c91f694444cca9f777e0f'
 # Bind only localhost. A dedicated container is recreated only by explicit cleanup.
 container='rh-observability-kafka-lab'
 assert subprocess.run(['docker','inspect',container],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode!=0,'Existing lab: stop/remove it explicitly before recreating'

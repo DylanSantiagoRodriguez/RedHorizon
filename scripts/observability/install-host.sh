@@ -30,6 +30,7 @@ if [ "$role" != agent ]; then
   DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io unattended-upgrades
   install -d -m 0755 /etc/needrestart/conf.d /etc/systemd/journald.conf.d
   printf '\044nrconf{restart} = "l";\n' >/etc/needrestart/conf.d/99-redhorizon.conf
+  printf 'APT::Periodic::Update-Package-Lists "1";\nAPT::Periodic::Unattended-Upgrade "1";\n' >/etc/apt/apt.conf.d/20auto-upgrades
   printf 'Unattended-Upgrade::Automatic-Reboot "false";\n' >/etc/apt/apt.conf.d/99-redhorizon-no-reboot
   printf '[Journal]\nSystemMaxUse=100M\nMaxRetentionSec=7day\n' >/etc/systemd/journald.conf.d/redhorizon-observability.conf
   systemctl enable --now docker
@@ -39,7 +40,7 @@ if [ "$role" = events ]; then
   install -m 0644 "$input/server.properties" "$units/start-kafka.sh" /etc/redhorizon-kafka/
   install -m 0644 "$input/ca.crt" /etc/redhorizon-kafka/tls/
   install -m 0400 -o 1000 -g 1000 "$input/rh-events.bundle.pem" /etc/redhorizon-kafka/tls/
-  docker pull apache/kafka@sha256:0bc1bb2478f45b6cea78864df86acdc11e8df2c5172477819a4d12942cbe5d40
+  docker pull apache/kafka@sha256:833b867a9585a141da455dc2b57431c65cbccb27f11c91f694444cca9f777e0f
   install -m 0644 "$units/redhorizon-kafka.service" /etc/systemd/system/
 fi
 if [ "$role" = observability ]; then

@@ -8,7 +8,7 @@ s=aws('cloudformation','describe-stacks','--stack-name','redhorizon-observabilit
 out={o['OutputKey']:o['OutputValue'] for o in s['Outputs']};i=json.loads(Path('.cluster-local/inventory.json').read_text())
 assert set(i['nodes'])=={'rh-gateway','rh-game-01','rh-game-02','rh-game-03','rh-coordinator'}
 for logical in ['Observability','Events']:
- id='rh-'+logical.lower();i['nodes'][id]={'instanceId':out[logical],'privateIp':out[logical+'PrivateIp'],'publicIp':out[logical+'PublicIp'],'instanceType':'t3.medium','securityGroupId':out[logical+'Group']}
+ id='rh-'+logical.lower();i['nodes'][id]={'instanceId':out[logical],'privateIp':out[logical+'PrivateIp'],'publicIp':out[logical+'PublicIp'],'instanceType':'c7i-flex.large','securityGroupId':out[logical+'Group']}
 actual=aws('ec2','describe-instances','--instance-ids',*[n['instanceId'] for n in i['nodes'].values()])
 for r in actual['Reservations']:
  for n in r['Instances']:

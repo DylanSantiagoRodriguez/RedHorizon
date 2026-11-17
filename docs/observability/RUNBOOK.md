@@ -43,7 +43,7 @@ Solo borrar los subdirectorios de claves de prueba identificados en `lab.json`, 
 Provisión explícita, después de lo anterior:
 
 ```sh
-python3 scripts/observability/provision.py --approved-monthly-usd 78 --profile rh-cluster-operator --ami ami-096d6538c463eb1db
+python3 scripts/observability/provision.py --approved-monthly-usd 141 --profile rh-cluster-operator --ami ami-096d6538c463eb1db
 ```
 
 Si el rol dedicado de provisión tiene otro perfil, usarlo en `--profile`. El script rechaza root, cuota insuficiente, duplicación de nodos y AMI ajena a Canonical. Genera dos PEM únicas bajo `llaveredhorizon` (directorio 700/archivos 600), importa solo públicas y crea el stack `redhorizon-observability`. No imprime claves. Si falla CloudFormation, inspeccionar eventos y recursos retenidos; no repetir creando otra flota.
@@ -76,7 +76,7 @@ Después de commits y pruebas, con árbol limpio:
 bash scripts/observability/package.sh /Users/dylanrodriguez/Documents/redhorizon/RedHorizon/.cluster-local/observability/artifacts
 ```
 
-El paquete contiene runtime Node Linux 22.23.5 con checksum fijado, dependencias de lockfile, código/panel y configuración. Prometheus 3.16.0 y Kafka 4.1.1 están fijados por digest. No hay compilación en servidores de partidas. El paquete **no contiene PEM, CA privada ni usuarios**. Guardar su SHA-256 con la evidencia del despliegue.
+El paquete contiene runtime Node Linux 22.23.5 con checksum fijado, dependencias de lockfile, código/panel y configuración. Prometheus 3.16.0 y Kafka 4.4.0 están fijados por digest. No hay compilación en servidores de partidas. El paquete **no contiene PEM, CA privada ni usuarios**. Guardar su SHA-256 con la evidencia del despliegue.
 
 ## 4. Desplegar servicios adicionales
 

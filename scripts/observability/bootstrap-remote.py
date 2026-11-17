@@ -31,7 +31,7 @@ PROPS
 '''
  for identity in ['rh-gateway','rh-game-01','rh-game-02','rh-game-03','rh-coordinator','rh-observability','rh-events','rh-panel-consumer']:
   quota='consumer_byte_rate=1048576,request_percentage=10' if identity=='rh-panel-consumer' else 'producer_byte_rate=262144,request_percentage=5'
-  args=['docker','run','--rm','--network','host','--user','1000:1000','--read-only','--cap-drop','ALL','--security-opt','no-new-privileges','--memory','512m','--cpus','0.5','--tmpfs','/tmp:rw,noexec,nosuid,size=32m','--tmpfs','/opt/kafka/logs:rw,nosuid,size=16m,uid=1000','-v',remote+':/admin:ro','apache/kafka@sha256:0bc1bb2478f45b6cea78864df86acdc11e8df2c5172477819a4d12942cbe5d40','/opt/kafka/bin/kafka-configs.sh','--bootstrap-server',node['privateIp']+':9093','--command-config','/admin/admin.properties','--alter','--entity-type','users','--entity-name','CN='+identity,'--add-config',quota]
+  args=['docker','run','--rm','--network','host','--user','1000:1000','--read-only','--cap-drop','ALL','--security-opt','no-new-privileges','--memory','512m','--cpus','0.5','--tmpfs','/tmp:rw,noexec,nosuid,size=32m','--tmpfs','/opt/kafka/logs:rw,nosuid,size=16m,uid=1000','-v',remote+':/admin:ro','apache/kafka@sha256:833b867a9585a141da455dc2b57431c65cbccb27f11c91f694444cca9f777e0f','/opt/kafka/bin/kafka-configs.sh','--bootstrap-server',node['privateIp']+':9093','--command-config','/admin/admin.properties','--alter','--entity-type','users','--entity-name','CN='+identity,'--add-config',quota]
   script+=shlex.join(args)+'\n'
  # Config files are root-created, readable only by temporary CLI UID.
  script=script.replace('/srv/redhorizon-observability/current/node/bin/node', 'chown -R 1000:1000 '+remote+'\n/srv/redhorizon-observability/current/node/bin/node',1)

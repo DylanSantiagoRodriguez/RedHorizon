@@ -24,7 +24,7 @@ Fecha: **17/11/2026**. Entorno aislado en la estación de trabajo, con Kafka y P
 | Prometheus y Nginx | `promtool check config` y `nginx -t` aprobados; Nginx se verificó sobre una copia de su configuración real. No se recargó producción. |
 | Dependencias runtime | `npm audit --omit=dev`: **0 vulnerabilidades informadas** en el momento de la consulta. No equivale a ausencia garantizada de CVE. |
 
-La prueba del broker detectó y corrigió problemas del harness; la prueba con Node 22 detectó el timeout de fetch mayor que el de solicitud y un estado optimista del consumidor. La entrega usa `maxWaitTimeInMs=500` frente a requestTimeout=2000 y marca consumo activo mediante ingreso real al grupo. No se ocultan los fallos iniciales presentando únicamente un arranque como recuperación.
+La prueba del broker detectó y corrigió problemas del harness; la prueba con Node 22 detectó el timeout de fetch mayor que el de solicitud y un estado optimista del consumidor. La entrega final fija Kafka 4.4.0 por digest, después de revisar [los avisos de Apache](https://kafka.apache.org/community/cve-list/) y sustituir la imagen inicial anterior a esas correcciones. No se instaló la imagen anterior en AWS. La revisión de avisos no sustituye un escaneo completo de las dependencias de la imagen. La entrega usa `maxWaitTimeInMs=500` frente a requestTimeout=2000 y marca consumo activo mediante ingreso real al grupo. No se ocultan los fallos iniciales presentando únicamente un arranque como recuperación.
 
 ## Comparación de impacto local
 
@@ -57,7 +57,7 @@ El SDK consultó CloudWatch con `rh-cluster-operator`, sin errores, para las cin
 
 Es actividad real del clúster previo en esa ventana, no consumo causado por la plataforma nueva ni costo facturado. Timestamp y métricas completas: `.cluster-local/observability/cloudwatch-sample.json`.
 
-El endpoint público HTTPS `/health` respondió `ok: true` con el backend existente. Ninguna prueba de caída/carga se ejecutó contra usuarios o EC2 de producción. No se cambiaron instancias, SG, DNS, roles ni servicios AWS durante esta etapa.
+El endpoint público HTTPS `/health` respondió `ok: true` con el backend existente. Ninguna prueba de caída/carga se ejecutó contra usuarios o EC2 de producción. No se cambiaron instancias, SG, DNS, roles ni servicios AWS durante esta etapa. DescribeInstanceTypes confirmó C7i-flex.large elegible y T3.medium no elegible para el plan Free; se corrigió la propuesta y su presupuesto antes de provisionar.
 
 ## Evidencias y reproducción
 
@@ -69,6 +69,8 @@ El endpoint público HTTPS `/health` respondió `ok: true` con el backend existe
 - Todos bajo `.cluster-local/observability/`, fuera de Git. Los comandos reproducibles están en [RUNBOOK](RUNBOOK.md).
 
 ![Panel del laboratorio con métricas de partidas reales](panel-laboratorio.png)
+
+Última ejecución integral sobre Kafka 4.4.0: **2026-11-17 21:19:07 UTC**, con RTT medido, recuperación de Kafka y del colector aprobados.
 
 La captura identifica **laboratorio local**. No contiene credenciales ni representa máquinas nuevas desplegadas.
 

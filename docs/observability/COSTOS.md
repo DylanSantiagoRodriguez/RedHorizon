@@ -8,20 +8,20 @@ Linux On-Demand, 730 horas/mes, dos nodos en `us-east-2b`, EBS gp3 con rendimien
 
 | Recurso | Supuesto | USD/mes |
 |---|---|---:|
-| rh-observability | t3.medium, 2 vCPU / 4 GiB, USD 0,0416/h | 30,37 |
-| rh-events | t3.medium, 2 vCPU / 4 GiB, USD 0,0416/h | 30,37 |
+| rh-observability | c7i-flex.large, 2 vCPU / 4 GiB, USD 0,08479/h | 61,90 |
+| rh-events | c7i-flex.large, 2 vCPU / 4 GiB, USD 0,08479/h | 61,90 |
 | EBS cifrado | 30 + 40 GiB gp3 × USD 0,08 | 5,60 |
 | IPv4 públicas para salida | 2 × 730 h × USD 0,005; sin entrada pública | 7,30 |
-| **Base incremental** | Cálculo antes de redondear filas | **73,64** |
+| **Base incremental** | Cálculo antes de redondear filas | **136,69** |
 | Tráfico administrativo saliente | Reserva de 10 GB × USD 0,09, sin descontar franquicia compartida | 0,90 |
-| API CloudWatch | Hasta 289.080 GetMetricStatistics/mes × USD 0,01/1.000 si la franquicia está agotada | 2,89 |
-| **Escenario conservador** | Sin impuestos | **77,43** |
+| API CloudWatch | Hasta 254.040 GetMetricStatistics/mes × USD 0,01/1.000 si la franquicia está agotada | 2,54 |
+| **Escenario conservador** | Sin impuestos | **140,13** |
 
-**Importe propuesto para autorización: USD 78/mes adicionales, antes de impuestos**, bajo esos supuestos. Es una estimación, no un límite automático de factura. Tráfico mayor, recursos retenidos, reintentos adicionales o cambios de arquitectura pueden aumentarlo. No hay NAT Gateway, ALB, MSK, Cognito, CloudWatch Logs ni monitoreo detallado nuevos.
+**Importe propuesto para autorización: USD 141/mes adicionales, antes de impuestos**, bajo esos supuestos. Es una estimación, no un límite automático de factura. Tráfico mayor, recursos retenidos, reintentos adicionales o cambios de arquitectura pueden aumentarlo. No hay NAT Gateway, ALB, MSK, Cognito, CloudWatch Logs ni monitoreo detallado nuevos.
 
-Los 100 GB de salida gratuita se comparten a nivel de cuenta/servicios/regiones; no se presupuestan como disponibles. GetMetricStatistics permite aprovechar la franquicia compartida de un millón de solicitudes; no se usa GetMetricData. Se consultan tres métricas de la principal y cinco de cada T3, cada cinco minutos; los reintentos son limitados. CloudWatch puede retrasar muestras.
+Los 100 GB de salida gratuita se comparten a nivel de cuenta/servicios/regiones; no se presupuestan como disponibles. GetMetricStatistics permite aprovechar la franquicia compartida de un millón de solicitudes; no se usa GetMetricData. Se consultan tres métricas de cada C7i-flex/M7i-flex y cinco de cada T3, cada cinco minutos; los reintentos son limitados. CloudWatch puede retrasar muestras.
 
-T3 queda en modo **standard**, sin cargos Unlimited por créditos excedentes. Si agota créditos, puede reducir rendimiento: hay que observar CPUCreditBalance antes de aumentar carga.
+Las dos nuevas C7i-flex no usan créditos T3 ni llevan CreditSpecification. Las T3 existentes conservan su configuración y sus métricas de créditos; esta ampliación no cambia su modo. La familia Flex tiene rendimiento base y capacidad de ráfaga: medir CPU sostenida, no prometer rendimiento ilimitado.
 
 ## Créditos y cuotas comprobados
 
@@ -30,12 +30,16 @@ T3 queda en modo **standard**, sin cargos Unlimited por créditos excedentes. Si
 - Vencimiento informado: **2027-05-10 20:16:19 UTC**.
 - Ese saldo es compartido con los recursos existentes; no cubre un mes completo de esta ampliación por sí solo.
 - Cuota regional Standard On-Demand: **16 vCPU**, ajustable. Las siete EC2 actualmente encendidas consumen 14 vCPU; agregar las dos propuestas requiere **18**. Solicitar 20 antes de provisionar, sin detener las instancias ajenas.
-- `t3.medium` figura disponible como tipo ofertado en `us-east-2b`; no equivale a reservar capacidad física.
+- `c7i-flex.large` figura ofertado en `us-east-2b`; no equivale a reservar capacidad física. DescribeInstanceTypes confirmó 2 vCPU/4 GiB y FreeTierEligible=true. Para `t3.medium` confirmó FreeTierEligible=false. El dry-run de t3.medium comprobó autorización IAM, no resuelve esa elegibilidad ni autoriza consumo. Se cambió la propuesta a C7i-flex para conservar el plan actual, sin pasar la cuenta a Paid.
 - AMI Canonical observada: `ami-096d6538c463eb1db`, Ubuntu 24.04 amd64. Verificar nuevamente dueño, estado y versión al ejecutar.
 - Cost Explorer rechazó la consulta: **“User not enabled for cost explorer access”**. No hay cifra verificada de gasto acumulado; no se activó un servicio de facturación para obtenerla.
 - Consumo AWS incremental de esta implementación: **ningún recurso nuevo creado**.
 
 Las respuestas completas están en `.cluster-local/observability/`, excluidas de Git. `inspect-costs.py` permite repetir la inspección sin mutaciones.
+
+## Alternativa más barata que no se ejecuta automáticamente
+
+Dos t3.medium tendrían base aproximada de USD 73,64/mes y un escenario de USD 78/mes con reservas, pero no figuran elegibles para el plan Free de esta cuenta. No se cambia el plan de facturación para utilizarlas. La propuesta que se solicita aprobar es la compatible con el plan actual: USD 141/mes de consumo incremental estimado. Los créditos son compartidos y se agotan; no se promete que continúen los recursos después de agotarlos.
 
 ## Por qué dos máquinas y estos tamaños
 
@@ -53,7 +57,8 @@ Al detener ambas EC2 cesa cómputo; las IPv4 automáticas se liberan, pero **EBS
 
 ## Fuentes
 
-- Precio t3.medium consultado en AWS Pricing API, Ohio/Linux/Shared; evidencia local `observability-pricing.json`.
+- Precio c7i-flex.large consultado en AWS Pricing API, Ohio/Linux/Shared; evidencia local `c7i-pricing.json`. El precio alternativo t3.medium está en `observability-pricing.json`.
+- [Tipos elegibles y duración del plan Free](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-free-tier-usage.html).
 - [EBS gp3 y precio base](https://aws.amazon.com/ebs/general-purpose/).
 - [IPv4 y NAT Gateway](https://aws.amazon.com/vpc/pricing/).
 - [Transferencia de EC2](https://aws.amazon.com/ec2/pricing/on-demand/).

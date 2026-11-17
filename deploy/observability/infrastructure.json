@@ -560,7 +560,7 @@
         "ImageId": {
           "Ref": "UbuntuAmi"
         },
-        "InstanceType": "t3.medium",
+        "InstanceType": "c7i-flex.large",
         "KeyName": {
           "Ref": "ObservabilityKeyName"
         },
@@ -571,9 +571,6 @@
           "HttpTokens": "required",
           "HttpEndpoint": "enabled",
           "HttpPutResponseHopLimit": 1
-        },
-        "CreditSpecification": {
-          "CPUCredits": "standard"
         },
         "DisableApiTermination": true,
         "NetworkInterfaces": [
@@ -673,7 +670,7 @@
         "ImageId": {
           "Ref": "UbuntuAmi"
         },
-        "InstanceType": "t3.medium",
+        "InstanceType": "c7i-flex.large",
         "KeyName": {
           "Ref": "EventsKeyName"
         },
@@ -684,9 +681,6 @@
           "HttpTokens": "required",
           "HttpEndpoint": "enabled",
           "HttpPutResponseHopLimit": 1
-        },
-        "CreditSpecification": {
-          "CPUCredits": "standard"
         },
         "DisableApiTermination": true,
         "NetworkInterfaces": [

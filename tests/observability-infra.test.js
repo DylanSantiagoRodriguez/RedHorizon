@@ -4,7 +4,7 @@ const template = JSON.parse(readFileSync(new URL('../deploy/observability/infras
 it('adds exactly two protected nodes without taking ownership of existing instances or adding paid network services', () => {
  const resources = Object.values(template.Resources), nodes = resources.filter(r => r.Type === 'AWS::EC2::Instance'); expect(nodes).toHaveLength(2);
  expect(nodes.map(r => r.Properties.Tags.find(t => t.Key === 'Name').Value).sort()).toEqual(['rh-events','rh-observability']);
- for (const r of nodes) { expect(r.DeletionPolicy).toBe('Retain'); expect(r.Properties.MetadataOptions.HttpTokens).toBe('required'); expect(r.Properties.CreditSpecification.CPUCredits).toBe('standard'); expect(r.Properties.BlockDeviceMappings.every(v => v.Ebs.Encrypted)).toBe(true); }
+ for (const r of nodes) { expect(r.DeletionPolicy).toBe('Retain'); expect(r.Properties.MetadataOptions.HttpTokens).toBe('required'); expect(r.Properties.InstanceType).toBe('c7i-flex.large'); expect(r.Properties.CreditSpecification).toBeUndefined(); expect(r.Properties.BlockDeviceMappings.every(v => v.Ebs.Encrypted)).toBe(true); }
  expect(resources.some(r => /NatGateway|LoadBalancer|MSK|Cognito|EIP/.test(r.Type))).toBe(false);
 });
 it('limits every added ingress rule to a source security group and the three private service ports', () => {

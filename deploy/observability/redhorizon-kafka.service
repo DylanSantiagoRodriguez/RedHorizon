@@ -6,7 +6,7 @@ Requires=docker.service
 Restart=on-failure
 RestartSec=15
 ExecStartPre=-/usr/bin/docker rm redhorizon-kafka
-ExecStart=/usr/bin/docker run --rm --name redhorizon-kafka --network host --log-driver json-file --log-opt max-size=10m --log-opt max-file=3 --user 1000:1000 --read-only --cap-drop ALL --security-opt no-new-privileges --memory 2500m --cpus 1.5 --pids-limit 256 --tmpfs /tmp:rw,noexec,nosuid,size=128m --tmpfs /opt/kafka/logs:rw,nosuid,size=64m,uid=1000 -e "KAFKA_HEAP_OPTS=-Xms256m -Xmx768m" -v /etc/redhorizon-kafka:/config:ro -v /var/lib/redhorizon-kafka:/var/lib/kafka/data apache/kafka@sha256:0bc1bb2478f45b6cea78864df86acdc11e8df2c5172477819a4d12942cbe5d40 bash /config/start-kafka.sh
+ExecStart=/usr/bin/docker run --rm --name redhorizon-kafka --network host --log-driver json-file --log-opt max-size=10m --log-opt max-file=3 --user 1000:1000 --read-only --cap-drop ALL --security-opt no-new-privileges --memory 2500m --cpus 1.5 --pids-limit 256 --tmpfs /tmp:rw,noexec,nosuid,size=128m --tmpfs /opt/kafka/logs:rw,nosuid,size=64m,uid=1000 -e "KAFKA_HEAP_OPTS=-Xms256m -Xmx768m" -v /etc/redhorizon-kafka:/config:ro -v /var/lib/redhorizon-kafka:/var/lib/kafka/data apache/kafka@sha256:833b867a9585a141da455dc2b57431c65cbccb27f11c91f694444cca9f777e0f bash /config/start-kafka.sh
 ExecStop=/usr/bin/docker stop --time 20 redhorizon-kafka
 TimeoutStopSec=30
 [Install]
