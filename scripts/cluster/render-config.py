@@ -17,6 +17,6 @@ for name in ids:
     else:
         capacity=nodes[name].get('measuredCapacity',0)
         assert isinstance(capacity,int) and 0 <= capacity <= 256
-        c.update(host=nodes[name]['privateIp'],port=8787,coordinator=coordinator,origins=[i['origin']],capacity=capacity,statusFile='/run/redhorizon-cluster/status.json',tickHz=60,snapshotHz=20,maxConnections=256,perIp=12)
+        c.update(host=nodes[name]['privateIp'],port=8787,coordinator=coordinator,origins=[i['origin']],capacity=capacity,statusFile='/run/redhorizon-cluster/status.json',tickHz=60,snapshotHz=10,maxConnections=256,perIp=12)
     (out/(name+'.json')).write_text(json.dumps(c,indent=2)+'\n')
 (out/'hosts.json').write_text(json.dumps({n:nodes[n]['privateIp'] for n in ids},indent=2)+'\n')

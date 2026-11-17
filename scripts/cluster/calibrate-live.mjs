@@ -54,5 +54,5 @@ try {
   rtts.sort((a, b) => a - b);
   const report = { at: new Date().toISOString(), durationSeconds: 120, logicalBytes, wireBytes: sockets.reduce((n, s) => n + (s._socket?.bytesRead || 0), 0), compression: sockets.map(s => s.extensions), rooms: rooms.map(r => ({ worker: r.serverId, players: r.members.length, maxEnemies: Math.max(...r.members.map(w => w.maxEnemies)), snapshots: r.members[0].snapshots, finalStatus: r.members[0].last.get('snapshot')?.status })), rttP95Ms: rtts[Math.floor(rtts.length * .95)], rttP99Ms: rtts[Math.floor(rtts.length * .99)], samples: rtts.length, connectedAtEnd: sockets.filter(s => s.readyState === WebSocket.OPEN).length, failures };
   writeFileSync('.cluster-local/live-calibration.json', JSON.stringify(report, null, 2)); console.log(JSON.stringify(report));
-  if (failures.length || report.connectedAtEnd !== 12 || rooms.some(r => r.members.some(s => s.snapshots < 100))) throw new Error('Calibration acceptance failed');
+  if (failures.length || report.connectedAtEnd !== 12 || report.rttP95Ms > 400 || report.rttP99Ms > 800 || rooms.some(r => r.members.some(s => s.snapshots < 100))) throw new Error('Calibration acceptance failed');
 } finally { clearInterval(inputTimer); for (const ws of sockets) { send(ws, { type: 'leave' }); ws.close(); } }

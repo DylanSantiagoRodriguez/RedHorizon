@@ -12,20 +12,31 @@ export function createServer({ buildId = GAME_VERSION, host = '127.0.0.1', port 
   let closing = false, draining = false;
   const lag = monitorEventLoopDelay({ resolution: 20 }); lag.enable();
   const metrics = { messages: 0, rejected: 0, bytesIn: 0, bytesOut: 0, stepMs: 0 };
+  let stepCount = 0, stepTotalMs = 0, stepMaxMs = 0;
   let cpuPrevious = process.cpuUsage(), cpuAt = performance.now();
-  const clients = new Map(), limits = new Map();
+  const clients = new Map(), limits = new Map(), encodedMessages = new WeakMap();
   const status = () => {
     const cpuNow = process.cpuUsage(), time = performance.now();
     const cpu = (cpuNow.user - cpuPrevious.user + cpuNow.system - cpuPrevious.system) / Math.max(1, (time - cpuAt) * 1000);
     cpuPrevious = cpuNow; cpuAt = time;
     const p99 = Number.isFinite(lag.percentile(99)) ? lag.percentile(99) / 1e6 : 0;
     lag.reset();
-    return { ...metrics, rooms: manager.rooms.size, players: clients.size, rss: process.memoryUsage().rss, eventLoopP99Ms: p99, cpu, draining, load: Math.max(cpu, p99 / 100) };
+    const steps = { stepCount, stepMeanMs: stepCount ? stepTotalMs / stepCount : 0, stepMaxMs };
+    stepCount = 0; stepTotalMs = 0; stepMaxMs = 0;
+    return { ...metrics, ...steps, rooms: manager.rooms.size, players: clients.size, rss: process.memoryUsage().rss, eventLoopP99Ms: p99, cpu, draining, load: Math.max(cpu, p99 / 100) };
   };
   const send = (socket, message) => {
     if (socket.readyState !== WebSocket.OPEN) return;
     if (socket.bufferedAmount > maxBuffered) { socket.close(1008, 'Cliente lento'); socket.terminate(); return; }
-    const payload = JSON.stringify(message.type === 'welcome' && cluster ? { ...message, serverId: cluster.id } : message); metrics.bytesOut += Buffer.byteLength(payload); socket.send(payload);
+    // A room broadcasts the same immutable DTO to every member. Encode it once;
+    // millimetre precision on the wire does not alter authoritative simulation.
+    let payload = encodedMessages.get(message);
+    if (!payload) {
+      payload = JSON.stringify(message.type === 'welcome' && cluster ? { ...message, serverId: cluster.id } : message,
+        message.type === 'snapshot' ? (key, value) => typeof value === 'number' && !Number.isInteger(value) ? Math.round(value * 1000) / 1000 : value : undefined);
+      encodedMessages.set(message, payload);
+    }
+    metrics.bytesOut += Buffer.byteLength(payload); socket.send(payload);
   };
   const manager = new RoomManager({ tickHz, maxRooms, send, healthPerPlayer, upgradeMs });
   const handler = (req, res) => { if (cluster && peer(req) !== 'rh-gateway') return res.writeHead(403).end(); if (req.url !== '/health') return res.writeHead(404).end(); res.writeHead(closing ? 503 : 200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify({ ok: !closing, protocol: PROTOCOL_VERSION, gameVersion: GAME_VERSION, buildId, rooms: manager.rooms.size, draining })); };
@@ -87,7 +98,7 @@ export function createServer({ buildId = GAME_VERSION, host = '127.0.0.1', port 
   const timer = setInterval(() => {
     const now = performance.now(); accumulator += Math.min(.25, (now - last) / 1000); last = now;
     let steps = 0;
-    while (accumulator >= 1 / tickHz && steps++ < 15) { const stepAt = performance.now(); manager.step(1 / tickHz); metrics.stepMs = performance.now() - stepAt; accumulator -= 1 / tickHz; snapshotAccumulator += 1 / tickHz; }
+    while (accumulator >= 1 / tickHz && steps++ < 15) { const stepAt = performance.now(); manager.step(1 / tickHz); metrics.stepMs = performance.now() - stepAt; stepCount++; stepTotalMs += metrics.stepMs; stepMaxMs = Math.max(stepMaxMs, metrics.stepMs); accumulator -= 1 / tickHz; snapshotAccumulator += 1 / tickHz; }
     if (snapshotAccumulator >= 1 / snapshotHz) { snapshotAccumulator %= 1 / snapshotHz; manager.snapshots(); }
   }, 1000 / tickHz / 2);
   const heartbeat = setInterval(() => {
