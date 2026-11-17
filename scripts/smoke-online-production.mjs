@@ -1,10 +1,11 @@
+import { smokeFetch, browserResolveArgs } from './lib/smoke-network.mjs';
 import { chromium, expect } from '@playwright/test';
 
 // Uses the published UI and public WebSocket only; no QA globals or fixtures.
 const url = process.env.SMOKE_URL || 'http://127.0.0.1:4173/';
-const health = await fetch(new URL('/health', url)).then(r => r.json());
+const health = await smokeFetch(new URL('/health', url)).then(r => r.json());
 if (!health.ok) throw new Error('Backend no disponible');
-const browser = await chromium.launch({ channel: 'chromium', headless: true, args: ['--enable-webgl', '--enable-unsafe-swiftshader'] });
+const browser = await chromium.launch({ channel: 'chromium', headless: true, args: ['--enable-webgl', '--enable-unsafe-swiftshader', ...browserResolveArgs(url)] });
 const errors = [], peers = [];
 try {
   for (let i = 0; i < 2; i++) {

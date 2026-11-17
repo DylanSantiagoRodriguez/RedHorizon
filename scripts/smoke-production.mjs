@@ -1,3 +1,4 @@
+import { smokeFetch, browserResolveArgs } from './lib/smoke-network.mjs';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { chromium, expect: baseExpect } = require('@playwright/test');
@@ -7,14 +8,14 @@ const url = process.env.SMOKE_URL || 'http://127.0.0.1:4173/';
 let ready = false;
 for (let attempt = 0; attempt < 30; attempt++) {
   try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(3000) });
+    const response = await smokeFetch(url);
     if (response.ok) { ready = true; break; }
   } catch { /* Preview may still be starting. */ }
   await new Promise(resolve => setTimeout(resolve, 1000));
 }
 if (!ready) throw new Error(`Site not ready: ${url}`);
 
-const browser = await chromium.launch({ headless: true, args: ['--enable-webgl', '--enable-unsafe-swiftshader'] });
+const browser = await chromium.launch({ headless: true, args: ['--enable-webgl', '--enable-unsafe-swiftshader', ...browserResolveArgs(url)] });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   const errors = [], failed = [], loadedModels = [];

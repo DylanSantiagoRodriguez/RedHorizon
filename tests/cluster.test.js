@@ -9,6 +9,7 @@ beforeAll(async () => { h = await harness(); }, 30000);
 afterAll(async () => { await h?.close(); }, 15000);
 it('routes multiple rooms to distinct workers, pins two players, and reconnects during coordinator outage', async () => {
   const a = await h.connect(); a.send(JSON.stringify(hello('create'))); const wa = await message(a, 'welcome');
+  expect(a.extensions).toContain('permessage-deflate');
   const b = await h.connect(); b.send(JSON.stringify({ ...hello('join'), code: wa.code })); const wb = await message(b, 'welcome');
   expect(wb.serverId).toBe(wa.serverId); expect(wb.code).toBe(wa.code);
   const c = await h.connect(); c.send(JSON.stringify(hello('create'))); const wc = await message(c, 'welcome'); expect(wc.serverId).not.toBe(wa.serverId);

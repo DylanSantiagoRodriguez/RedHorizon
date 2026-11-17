@@ -8,10 +8,15 @@ import { Limiter } from './limiter.js';
 // Only the initial message consults the coordinator; active sockets are independent.
 export function createGateway({ coordinator, workers, tls, origins, port = 8788, maxConnections = 256, trustProxy = false, buildId = GAME_VERSION }) {
   for (const [id, url] of Object.entries(workers)) if (!/^rh-game-0[123]$/.test(id) || new URL(url).protocol !== 'wss:') throw new Error('Invalid worker allowlist');
-  const limiter = new Limiter(), pairs = new Map(); let rejected = 0;
-  const server = http.createServer((req, res) => { if (req.url !== '/health') return res.writeHead(404).end(); res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: true, buildId, connections: pairs.size, rejected })); });
-  const wss = new WebSocketServer({ noServer: true, maxPayload: 4096, perMessageDeflate: false });
-  const fail = (socket, code) => { rejected++; if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'error', code, message: ERRORS[code] || ERRORS.UNAVAILABLE })); socket.close(1008, code); };
+  const limiter = new Limiter(), pairs = new Map(), rejectionReasons = {}; let rejected = 0;
+  const server = http.createServer((req, res) => { if (req.url !== '/health') return res.writeHead(404).end(); res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: true, buildId, connections: pairs.size, rejected, rejectionReasons })); });
+  // Compress public snapshots, with no shared compression history. Small identity
+  // messages remain uncompressed; inbound decompressed messages still have a 4 KiB cap.
+  const wss = new WebSocketServer({ noServer: true, maxPayload: 4096, perMessageDeflate: {
+    threshold: 1024, serverNoContextTakeover: true, clientNoContextTakeover: true,
+    concurrencyLimit: 4, zlibDeflateOptions: { level: 1, memLevel: 7 },
+  } });
+  const fail = (socket, code, reason = code) => { rejected++; rejectionReasons[reason] = (rejectionReasons[reason] || 0) + 1; if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'error', code, message: ERRORS[code] || ERRORS.UNAVAILABLE })); socket.close(1008, code); };
   server.on('upgrade', (req, socket, head) => {
     const ip = trustProxy ? req.headers['x-real-ip'] : req.socket.remoteAddress;
     const url = new URL(req.url, 'http://localhost');
@@ -27,8 +32,8 @@ export function createGateway({ coordinator, workers, tls, origins, port = 8788,
     let messages = 0, window = Date.now();
     client.on('message', async (data, binary) => {
       if (Date.now() - window >= 1000) { messages = 0; window = Date.now(); }
-      if (++messages > 150 || binary) return fail(client, 'LIMIT');
-      if (pair.ready) { if (pair.upstream.bufferedAmount > 65536) return fail(client, 'LIMIT'); pair.upstream.send(data.toString()); return; }
+      if (++messages > 150 || binary) return fail(client, 'LIMIT', 'message_rate_or_binary');
+      if (pair.ready) { if (pair.upstream.bufferedAmount > 65536) return fail(client, 'LIMIT', 'upstream_backpressure'); pair.upstream.send(data, { binary: false }); return; }
       if (pair.selecting) return fail(client, 'INVALID');
       pair.selecting = true;
       try {
@@ -46,7 +51,7 @@ export function createGateway({ coordinator, workers, tls, origins, port = 8788,
         const upstream = pair.upstream = new WebSocket(workers[assignment.worker], { ...tls, rejectUnauthorized: true, origin, headers, handshakeTimeout: 3000, maxPayload: 2 * 1024 * 1024, perMessageDeflate: false });
         upstream.on('error', () => fail(client, 'UNAVAILABLE'));
         upstream.on('open', () => { if (client.readyState !== WebSocket.OPEN) return upstream.terminate(); pair.ready = true; clearTimeout(timeout); upstream.send(JSON.stringify(m)); });
-        upstream.on('message', data => { if (client.readyState !== WebSocket.OPEN) return; if (client.bufferedAmount > 1024 * 1024) return fail(client, 'LIMIT'); client.send(data.toString()); });
+        upstream.on('message', data => { if (client.readyState !== WebSocket.OPEN) return; if (client.bufferedAmount > 1024 * 1024) return fail(client, 'LIMIT', 'downstream_backpressure'); client.send(data, { binary: false }); });
         upstream.on('close', () => client.close(1012, 'Servidor desconectado'));
       } catch (error) { fail(client, Object.hasOwn(ERRORS, error.code) ? error.code : 'UNAVAILABLE'); }
     });
