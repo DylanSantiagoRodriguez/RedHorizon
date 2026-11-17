@@ -1,30 +1,10 @@
-# Red Horizon: plan de cinco EC2
+# Red Horizon: arquitectura de cinco EC2
 
-Estado: implementación local en preparación; recursos nuevos, identidad IAM operativa, DNS y migración **pendientes de presupuesto aprobado**. No se han creado instancias, pares AWS ni modificado grupos existentes.
+Estado al 16 de noviembre de 2026 (Bogotá): cuatro EC2 nuevas creadas y principal conservada. Ver [inventario real](INVENTORY.md), [validación](VALIDATION.md), [costos](COSTS.md) y [operación](RUNBOOK.md). El DNS lo cambia el propietario.
 
-## Inventario comprobado el 16 de noviembre de 2026
+Cuenta `670036769494`, región `us-east-2`, VPC `vpc-0acc002bf61620138`, subred `subnet-0fde15f950925cb60`, AZ `us-east-2b`. Cuota estándar: 16 vCPU; las siete EC2 de la cuenta suman 14. Cuatro nodos Ubuntu 24.04 Canonical, AMI `ami-096d6538c463eb1db`; la principal conserva Ubuntu 26.04.
 
-Cuenta `670036769494`, región `us-east-2`, perfil `default` autenticado como root.
-
-| Función | Instancia | Tipo | Estado |
-|---|---|---|---|
-| rh-game-01 | i-0db322d7e36dea80a / RedHorizon | m7i-flex.large | Existente; conservar |
-| rh-gateway | Por crear | t3.micro | Presupuesto pendiente |
-| rh-game-02 | Por crear | t3.small | Presupuesto pendiente |
-| rh-game-03 | Por crear | t3.small | Presupuesto pendiente |
-| rh-coordinator | Por crear | t3.micro | Presupuesto pendiente |
-
-Fuera del alcance: `i-040ec54792a8b4446` (redhorizon_last), `i-0b97588c8e4e85881` (superkanes). Total futuro de la cuenta: **7 EC2**, de las que 5 corresponden a esta arquitectura.
-
-VPC `vpc-0acc002bf61620138`, subred `subnet-0fde15f950925cb60`, AZ `us-east-2b`, ruta pública mediante IGW existente. Tipo t3.micro y t3.small disponibles en esa AZ según API; disponibilidad instantánea no garantizada. Cuota On-Demand estándar: 16 vCPU; uso previsto de la cuenta: 14.
-
-AMI candidata fijada: `ami-096d6538c463eb1db`, Canonical `099720109477`, Ubuntu 24.04 amd64, imagen `20261108`. Revalidar antes de lanzar. El sistema operativo de la principal no se reemplaza con esta AMI.
-
-La principal tiene Node/Caddy/timer activos, escucha de juego en loopback, revisión desplegada `fe29dd62d420bd961e05b0ae8df37fd5d41743bf` y cero salas en el instante de consulta. Su disco gp3 de 8 GiB **no está cifrado**, el filesystem está al 80 %. No cambiarlo en caliente: la transición al volumen cifrado requiere copia, snapshot cifrado, volumen y parada planificada con rollback. Reservar espacio para los dos despliegues durante la convivencia.
-
-El SG actual `sg-07ad97ea1e7355e62` permite 22/80/443 públicos y es compartido por las tres instancias existentes. **No editar sus reglas**. Crear SG exclusivos, adjuntar primero a la principal para pruebas y retirar el SG compartido únicamente después del cambio de tráfico y de validar SSM. Adjuntar un SG nuevo no elimina permisos del anterior.
-
-No hay nodos registrados en SSM ni usuarios IAM dedicados. Solo se observaron roles vinculados a servicios. El rol operativo preparado requiere crear/configurar una identidad IAM con MFA; no contiene claves de acceso. Root no debe ser la identidad operativa diaria.
+Las instancias redhorizon_last y superkanes y su grupo compartido no se modificaron. La principal salió de ese grupo; conserva temporalmente Game + Gateway durante la transición. Su disco activo es ahora gp3 cifrado de 20 GiB; el original se conserva separado. Las cinco usan IMDSv2 y SSM. Operación diaria con `rh-cluster-operator`, sin credenciales de root en EC2.
 
 ## Arquitectura y red
 

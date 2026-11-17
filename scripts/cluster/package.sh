@@ -25,6 +25,6 @@ import { writeFileSync } from 'node:fs';
 writeFileSync(process.argv[2], JSON.stringify({ commit: process.argv[3], builtAt: new Date().toISOString() }));
 JS
 archive="$output/redhorizon-cluster-$(date -u +%Y%m%dT%H%M%SZ).tar.gz"
-tar -czf "$archive" -C "$stage" runtime frontend node
+COPYFILE_DISABLE=1 tar -czf "$archive" -C "$stage" runtime frontend node
 shasum -a 256 "$archive" >"$archive.sha256"
 printf 'Artifact: %s\n' "$archive"

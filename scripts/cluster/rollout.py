@@ -9,6 +9,7 @@ import argparse
 import hashlib
 import json
 import shlex
+import time
 from pathlib import Path
 from remote import ssh, upload
 
@@ -41,7 +42,10 @@ for name in args.hosts:
     config=f'install -m 0640 -o root -g redhorizon-cluster {remote}{name}.json /etc/redhorizon-cluster/cluster.json' if worker else ':'
     print('Activating '+name,flush=True)
     activate='python3 '+remote+'activate-delta.py' if args.delta else 'bash '+remote+'activate.sh'
-    result=ssh(name,node,f'set -euo pipefail\n{stop}\n{config}\n{activate} {shlex.quote(remote+artifact.name)} {digest} {args.release}\nsleep 6\ncat /srv/redhorizon-cluster/current/runtime/release.json')
+    result=ssh(name,node,f'set -euo pipefail\n{stop}\n{config}\n{activate} {shlex.quote(remote+artifact.name)} {digest} {args.release}\nsleep 6\ncat /srv/redhorizon-cluster/current/runtime/release.json',check=False)
+    if result.returncode:
+        Path('.cluster-local/'+name+'-rollout-error.log').write_text(result.stdout+'\n'+result.stderr)
+        raise RuntimeError(name+' activation stopped; inspect private rollout log before retrying')
     manifest=json.loads(result.stdout.splitlines()[-1])
     def health():
         if worker:
@@ -60,7 +64,20 @@ for name in args.hosts:
         assert health()['ok'];rolled_back=True
         ssh(name,node,f'set -e\nsystemctl stop redhorizon-cluster\nln -s /srv/redhorizon-cluster/releases/{args.release} /srv/redhorizon-cluster/restore-check\nmv -Tf /srv/redhorizon-cluster/restore-check /srv/redhorizon-cluster/current\nsystemctl start redhorizon-cluster\nsleep 6')
         assert health()['buildId']==manifest['commit']
-    if worker: ssh(name,node,'bash '+remote+'reopen-host.sh')
+    if worker:
+        ssh(name,node,'bash '+remote+'reopen-host.sh')
+        # Listening is not enough: a restarted incarnation is fenced until the
+        # preceding heartbeat expires. Wait for the actual directory admission.
+        time.sleep(2)
+        boot=json.loads(ssh(name,node,'cat /run/redhorizon-cluster/status.json').stdout)['boot']
+        expected=json.loads((Path('.cluster-local/config')/(name+'.json')).read_text())['capacity']
+        for _ in range(8):
+            code=f'import json,sys;print(json.dumps(json.load(sys.stdin)["workers"].get("{name}",{{}})))'
+            command='redis-cli --raw GET rh:directory:v1 | python3 -c '+shlex.quote(code)
+            registered=json.loads(ssh('rh-coordinator',nodes['rh-coordinator'],command).stdout)
+            if registered.get('boot')==boot and not registered['draining'] and registered['capacity']==expected and time.time()*1000-registered['seen']<15000:break
+            time.sleep(3)
+        else:raise RuntimeError(name+' not admitted by coordinator after reopening')
     evidence.append({'host':name,'release':args.release,'sha256':digest,'commit':manifest['commit'],'previous':old,'healthy':True,'rollbackChecked':rolled_back})
     evidence_path.write_text(json.dumps(evidence,indent=2))
     print(name+' healthy; '+('reopened' if worker else 'entry restored'),flush=True)

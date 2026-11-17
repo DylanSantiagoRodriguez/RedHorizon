@@ -2,28 +2,28 @@
 """Host-side activation: no build, no downloads, no secrets in release artifacts."""
 import argparse,hashlib,json,os,re,subprocess,tarfile
 from pathlib import Path,PurePosixPath
-p=argparse.ArgumentParser();p.add_argument('archive');p.add_argument('sha256');p.add_argument('release');a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('archive');p.add_argument('sha256');p.add_argument('release');p.add_argument('--resume-verification',action='store_true');a=p.parse_args()
 assert os.geteuid()==0 and re.fullmatch(r'[a-zA-Z0-9._-]+',a.release)
 assert hashlib.file_digest(open(a.archive,'rb'),'sha256').hexdigest()==a.sha256
 assert subprocess.run(['systemctl','is-active','--quiet','redhorizon-cluster']).returncode!=0
 base=Path('/srv/redhorizon-cluster');previous=(base/'current').resolve();target=base/'releases'/a.release
-assert not target.exists()
+assert target.exists() == a.resume_verification
 with tarfile.open(a.archive,'r:gz') as archive:
  manifest=json.load(archive.extractfile('delta.json'))
  assert json.loads((previous/'runtime/release.json').read_text())['commit'] in manifest['baseCommits']
  def path(name):
   parts=PurePosixPath(name).parts
-  assert parts and parts[0] in ['runtime','frontend','node'] and '..' not in parts and not name.startswith('/')
+  assert parts and (parts[0] in ['runtime','frontend','node'] or len(parts)==1 and parts[0] in ['._runtime','._frontend','._node']) and '..' not in parts and not name.startswith('/')
   result=target.joinpath(*parts)
   # Never traverse inherited symlinks while writing.
   for ancestor in result.parents:
    if ancestor==target:break
    assert not ancestor.is_symlink()
   return result
- subprocess.run(['cp','-al',str(previous),str(target)],check=True)
- for name in manifest['removed']:
+ if not a.resume_verification:subprocess.run(['cp','-al',str(previous),str(target)],check=True)
+ for name in ([] if a.resume_verification else manifest['removed']):
   destination=path(name);destination.unlink(missing_ok=True)
- for name in manifest['changed']:
+ for name in ([] if a.resume_verification else manifest['changed']):
   m=archive.getmember(name);destination=path(name);destination.parent.mkdir(parents=True,exist_ok=True)
   # Unlink first: writing through inherited hard links would mutate rollback data.
   destination.unlink(missing_ok=True)

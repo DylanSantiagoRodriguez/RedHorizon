@@ -1,6 +1,6 @@
 # Inventario AWS del despliegue
 
-Estado al 16 de noviembre de 2026: cuatro nodos creados; configuración y validación en curso. DNS sigue apuntando a la principal.
+Estado al 16 de noviembre de 2026: cinco nodos en ejecución; cuatro nuevos y la principal conservada. DNS sigue apuntando a la principal y su cambio corresponde al propietario.
 
 | Función | Instancia | Tipo | IP privada | IP pública |
 |---|---|---|---|---|
@@ -23,4 +23,8 @@ La PKI interna está en `llaveredhorizon/cluster-20261116`; se distribuye solo e
 
 Perfil operativo: `rh-cluster-operator`. Su usuario dedicado solo puede asumir el rol acotado a los cinco IDs. Credenciales de origen en el archivo estándar local de AWS, sin imprimirlas ni copiarlas a EC2. Root se usó para bootstrap de IAM y CloudFormation; no puede asumir roles directamente. MFA del operador humano sigue requiriendo enrolamiento del propietario.
 
-Pendientes: instalar/verificar runtime, calibrar capacidades, terminar endurecimiento, retirar SSH temporal, validar candidato por HTTPS/WSS, cifrar disco principal con mantenimiento y completar DNS.
+Los cinco nodos tienen SSM Online, IMDSv2 obligatorio/hop 1 y discos activos gp3 cifrados de 20 GiB. Se retiraron las tres reglas SSH temporales. La principal conserva Game + Gateway durante la transición; los otros workers solo Game.
+
+Volumen principal activo: `vol-0ad96b0c2a48bea88`. Original conservado, separado y sin cifrar: `vol-0cb0eae776043b3fd`. Snapshot previo consistente: `snap-06ec86622619fd83b`; tarea `replacevol-00235f7ae161bf7aa` completada. El reinicio mantuvo IP y datos, comprobados con hashes y salud.
+
+HTTPS público en Nginx: certificado propio de Let’s Encrypt para apex y www, vence 14 de febrero de 2027; `certbot.timer` activo y renovación simulada aprobada. PKI interna de 90 días: requiere rotación operativa antes del vencimiento; la CA permanece en el Mac.
