@@ -1,3 +1,4 @@
+import { renderFlowMap } from './flow-map.js';
 const $ = id => document.getElementById(id);
 let current = 'overview', session, overview, polling = false, chartAt = 0;
 const format = n => Number.isFinite(Number(n)) ? Number(n).toLocaleString('es', { maximumFractionDigits: 2 }) : 'Sin muestras';
@@ -12,6 +13,7 @@ function events(target, entries) {
  $(target).replaceChildren(table); if (!entries.length) $(target).textContent = 'Sin eventos recibidos en este intervalo.';
 }
 function render() {
+ renderFlowMap($('flow-map'), overview);
  $('freshness').className = overview.stale ? 'bad' : 'good'; $('freshness').textContent = `${overview.mode} · ${overview.stale ? 'Datos atrasados o ausentes' : 'Recolección activa'} · última consulta ${overview.collectedAt ? new Date(overview.collectedAt).toLocaleTimeString() : 'sin datos'} · actualización cada 5 s`;
  const sum = name => rows(name).length ? rows(name).reduce((n, r) => n + Number(r.value[1]), 0) : null;
  $('summary').replaceChildren(card('Salas activas', show(sum('rooms')), 'Distribuidas entre los tres workers'), card('Jugadores', show(sum('players')), 'Jugadores reportados por workers'), card('Conexiones del juego', show(value('connections')), 'Conexiones observadas en el gateway'), card('RTT p95', `${show(value('rtt_p95_ms'))} ms`, 'Ping/pong de transporte · ventana 5 min'), card('Telemetría descartada', show(sum('dropped') === null && sum('application_dropped') === null ? null : (sum('dropped') || 0) + (sum('application_dropped') || 0)), 'Contador acumulado desde arranque'));

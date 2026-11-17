@@ -38,7 +38,7 @@ export async function createPanel(config) {
   const store = new EventStore(config.dbPath), auth = new Auth(config.users, store), metrics = new Metrics();
   let consumer, admin, poll, consuming = false, brokerUp = false, kafkaCheckedAt = 0, lastErrorAt = 0;
   const requestLimits = new Limiter(256), offsets = new Map(), cloud = config.awsMetrics ? awsMetrics(config.nodes) : null;
-  const files = new Map([['/ops/', ['index.html', 'text/html']], ['/ops/app.js', ['app.js', 'text/javascript']], ['/ops/style.css', ['style.css', 'text/css']]]);
+  const files = new Map([['/ops/', ['index.html', 'text/html']], ['/ops/app.js', ['app.js', 'text/javascript']], ['/ops/flow-map.js', ['flow-map.js', 'text/javascript']], ['/ops/style.css', ['style.css', 'text/css']]]);
   const send = (res, code, data) => { res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(data)); };
   const token = req => /(?:^|;\s*)__Host-rhops=([a-f0-9]{64})(?:;|$)/.exec(req.headers.cookie || '')?.[1];
   const originOK = req => req.headers.origin === config.origin && req.headers['content-type']?.split(';')[0] === 'application/json';
