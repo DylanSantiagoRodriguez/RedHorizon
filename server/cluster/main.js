@@ -37,6 +37,7 @@ else {
   }
 }
 await app.listen();
+if (/^[a-f0-9]{40}$/.test(config.buildId || '')) telemetry?.metrics.set('rh_application_build_info', 1, { revision: config.buildId });
 telemetry?.emit('deployment.changed', { revision: config.buildId });
 telemetry?.start(() => app.sample?.());
 if (reportWorker) { await reportWorker(); heartbeat = setInterval(reportWorker, 5000); }

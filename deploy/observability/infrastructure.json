@@ -1,0 +1,802 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Red Horizon observability: two additive nodes, no NAT/ALB/MSK; existing instances remain unmanaged.",
+  "Parameters": {
+    "VpcId": {
+      "Type": "AWS::EC2::VPC::Id",
+      "Default": "vpc-0acc002bf61620138"
+    },
+    "SubnetId": {
+      "Type": "AWS::EC2::Subnet::Id",
+      "Default": "subnet-0fde15f950925cb60"
+    },
+    "UbuntuAmi": {
+      "Type": "AWS::EC2::Image::Id",
+      "Description": "Verified Canonical Ubuntu 24.04 amd64 in us-east-2"
+    },
+    "GatewayGroup": {
+      "Type": "AWS::EC2::SecurityGroup::Id",
+      "Default": "sg-0929579efb3434239"
+    },
+    "GameGroup": {
+      "Type": "AWS::EC2::SecurityGroup::Id",
+      "Default": "sg-09a457a3eab1df5bd"
+    },
+    "CoordinatorGroup": {
+      "Type": "AWS::EC2::SecurityGroup::Id",
+      "Default": "sg-01d10d3f03ff7797f"
+    },
+    "ObservabilityKeyName": {
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "EventsKeyName": {
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    }
+  },
+  "Resources": {
+    "ObservabilityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "GroupDescription": "Red Horizon private Observability",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "RedHorizonCluster"
+          },
+          {
+            "Key": "Component",
+            "Value": "Observability"
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 80,
+            "ToPort": 80,
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "EventsGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "GroupDescription": "Red Horizon private Events",
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "RedHorizonCluster"
+          },
+          {
+            "Key": "Component",
+            "Value": "Observability"
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 80,
+            "ToPort": 80,
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "PanelIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "ObservabilityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 8444,
+        "ToPort": 8444,
+        "SourceSecurityGroupId": {
+          "Ref": "GatewayGroup"
+        }
+      }
+    },
+    "PanelOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "GatewayGroup"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 8444,
+        "ToPort": 8444,
+        "DestinationSecurityGroupId": {
+          "Fn::GetAtt": [
+            "ObservabilityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "MetricsGatewayIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "GatewayGroup"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 9400,
+        "ToPort": 9400,
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "ObservabilityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "MetricsGatewayOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "ObservabilityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 9400,
+        "ToPort": 9400,
+        "DestinationSecurityGroupId": {
+          "Ref": "GatewayGroup"
+        }
+      }
+    },
+    "KafkaGatewayIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "EventsGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 9093,
+        "ToPort": 9093,
+        "SourceSecurityGroupId": {
+          "Ref": "GatewayGroup"
+        }
+      }
+    },
+    "KafkaGatewayOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "GatewayGroup"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 9093,
+        "ToPort": 9093,
+        "DestinationSecurityGroupId": {
+          "Fn::GetAtt": [
+            "EventsGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "MetricsGameIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "GameGroup"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 9400,
+        "ToPort": 9400,
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "ObservabilityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "MetricsGameOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "ObservabilityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 9400,
+        "ToPort": 9400,
+        "DestinationSecurityGroupId": {
+          "Ref": "GameGroup"
+        }
+      }
+    },
+    "KafkaGameIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "EventsGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 9093,
+        "ToPort": 9093,
+        "SourceSecurityGroupId": {
+          "Ref": "GameGroup"
+        }
+      }
+    },
+    "KafkaGameOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "GameGroup"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 9093,
+        "ToPort": 9093,
+        "DestinationSecurityGroupId": {
+          "Fn::GetAtt": [
+            "EventsGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "MetricsCoordinatorIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "CoordinatorGroup"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 9400,
+        "ToPort": 9400,
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "ObservabilityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "MetricsCoordinatorOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "ObservabilityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 9400,
+        "ToPort": 9400,
+        "DestinationSecurityGroupId": {
+          "Ref": "CoordinatorGroup"
+        }
+      }
+    },
+    "KafkaCoordinatorIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "EventsGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 9093,
+        "ToPort": 9093,
+        "SourceSecurityGroupId": {
+          "Ref": "CoordinatorGroup"
+        }
+      }
+    },
+    "KafkaCoordinatorOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "CoordinatorGroup"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 9093,
+        "ToPort": 9093,
+        "DestinationSecurityGroupId": {
+          "Fn::GetAtt": [
+            "EventsGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "MetricsObservabilityIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "ObservabilityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 9400,
+        "ToPort": 9400,
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "ObservabilityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "MetricsObservabilityOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "ObservabilityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 9400,
+        "ToPort": 9400,
+        "DestinationSecurityGroupId": {
+          "Fn::GetAtt": [
+            "ObservabilityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "KafkaObservabilityIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "EventsGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 9093,
+        "ToPort": 9093,
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "ObservabilityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "KafkaObservabilityOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "ObservabilityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 9093,
+        "ToPort": 9093,
+        "DestinationSecurityGroupId": {
+          "Fn::GetAtt": [
+            "EventsGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "MetricsEventsIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "EventsGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 9400,
+        "ToPort": 9400,
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "ObservabilityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "MetricsEventsOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "ObservabilityGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 9400,
+        "ToPort": 9400,
+        "DestinationSecurityGroupId": {
+          "Fn::GetAtt": [
+            "EventsGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "KafkaEventsIn": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "EventsGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 9093,
+        "ToPort": 9093,
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "EventsGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "KafkaEventsOut": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "EventsGroup",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 9093,
+        "ToPort": 9093,
+        "DestinationSecurityGroupId": {
+          "Fn::GetAtt": [
+            "EventsGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "ObservabilityRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "PermissionsBoundary": "arn:aws:iam::670036769494:policy/RedHorizonObservabilityRuntimeBoundary",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+        ],
+        "Policies": [
+          {
+            "PolicyName": "ReadBasicMetrics",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": "cloudwatch:GetMetricStatistics",
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "RedHorizonCluster"
+          },
+          {
+            "Key": "Component",
+            "Value": "Observability"
+          }
+        ]
+      }
+    },
+    "ObservabilityProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Roles": [
+          {
+            "Ref": "ObservabilityRole"
+          }
+        ]
+      }
+    },
+    "Observability": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "UbuntuAmi"
+        },
+        "InstanceType": "t3.medium",
+        "KeyName": {
+          "Ref": "ObservabilityKeyName"
+        },
+        "IamInstanceProfile": {
+          "Ref": "ObservabilityProfile"
+        },
+        "MetadataOptions": {
+          "HttpTokens": "required",
+          "HttpEndpoint": "enabled",
+          "HttpPutResponseHopLimit": 1
+        },
+        "CreditSpecification": {
+          "CPUCredits": "standard"
+        },
+        "DisableApiTermination": true,
+        "NetworkInterfaces": [
+          {
+            "DeviceIndex": "0",
+            "AssociatePublicIpAddress": true,
+            "SubnetId": {
+              "Ref": "SubnetId"
+            },
+            "GroupSet": [
+              {
+                "Fn::GetAtt": [
+                  "ObservabilityGroup",
+                  "GroupId"
+                ]
+              }
+            ]
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeSize": 30,
+              "VolumeType": "gp3",
+              "Encrypted": true,
+              "DeleteOnTermination": false
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "RedHorizonCluster"
+          },
+          {
+            "Key": "Component",
+            "Value": "Observability"
+          },
+          {
+            "Key": "Name",
+            "Value": "rh-observability"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": "#!/bin/bash\nset -euo pipefail\nsystemctl enable --now snap.amazon-ssm-agent.amazon-ssm-agent.service\n"
+        }
+      },
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
+    },
+    "EventsRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "PermissionsBoundary": "arn:aws:iam::670036769494:policy/RedHorizonObservabilityRuntimeBoundary",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ec2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+        ],
+        "Policies": [],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "RedHorizonCluster"
+          },
+          {
+            "Key": "Component",
+            "Value": "Observability"
+          }
+        ]
+      }
+    },
+    "EventsProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Roles": [
+          {
+            "Ref": "EventsRole"
+          }
+        ]
+      }
+    },
+    "Events": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "UbuntuAmi"
+        },
+        "InstanceType": "t3.medium",
+        "KeyName": {
+          "Ref": "EventsKeyName"
+        },
+        "IamInstanceProfile": {
+          "Ref": "EventsProfile"
+        },
+        "MetadataOptions": {
+          "HttpTokens": "required",
+          "HttpEndpoint": "enabled",
+          "HttpPutResponseHopLimit": 1
+        },
+        "CreditSpecification": {
+          "CPUCredits": "standard"
+        },
+        "DisableApiTermination": true,
+        "NetworkInterfaces": [
+          {
+            "DeviceIndex": "0",
+            "AssociatePublicIpAddress": true,
+            "SubnetId": {
+              "Ref": "SubnetId"
+            },
+            "GroupSet": [
+              {
+                "Fn::GetAtt": [
+                  "EventsGroup",
+                  "GroupId"
+                ]
+              }
+            ]
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeSize": 40,
+              "VolumeType": "gp3",
+              "Encrypted": true,
+              "DeleteOnTermination": false
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Project",
+            "Value": "RedHorizonCluster"
+          },
+          {
+            "Key": "Component",
+            "Value": "Observability"
+          },
+          {
+            "Key": "Name",
+            "Value": "rh-events"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": "#!/bin/bash\nset -euo pipefail\nsystemctl enable --now snap.amazon-ssm-agent.amazon-ssm-agent.service\n"
+        }
+      },
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain"
+    }
+  },
+  "Outputs": {
+    "Observability": {
+      "Value": {
+        "Ref": "Observability"
+      }
+    },
+    "ObservabilityPrivateIp": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Observability",
+          "PrivateIp"
+        ]
+      }
+    },
+    "ObservabilityPublicIp": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Observability",
+          "PublicIp"
+        ]
+      }
+    },
+    "ObservabilityGroup": {
+      "Value": {
+        "Fn::GetAtt": [
+          "ObservabilityGroup",
+          "GroupId"
+        ]
+      }
+    },
+    "Events": {
+      "Value": {
+        "Ref": "Events"
+      }
+    },
+    "EventsPrivateIp": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Events",
+          "PrivateIp"
+        ]
+      }
+    },
+    "EventsPublicIp": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Events",
+          "PublicIp"
+        ]
+      }
+    },
+    "EventsGroup": {
+      "Value": {
+        "Fn::GetAtt": [
+          "EventsGroup",
+          "GroupId"
+        ]
+      }
+    }
+  }
+}

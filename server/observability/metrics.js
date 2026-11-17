@@ -4,7 +4,7 @@ export class Metrics {
   set(name, value, labels = {}) {
     if (!/^rh_[a-z0-9_]+$/.test(name) || !Number.isFinite(value)) return;
     const entries = Object.entries(labels).sort();
-    if (entries.some(([k, v]) => !['peer', 'reason', 'le', 'endpoint', 'event'].includes(k) || !/^[a-zA-Z0-9_.+-]{1,64}$/.test(String(v)))) return;
+    if (entries.some(([k, v]) => !['peer', 'reason', 'le', 'endpoint', 'event', 'revision'].includes(k) || !/^[a-zA-Z0-9_.+-]{1,64}$/.test(String(v)))) return;
     const key = name + JSON.stringify(entries);
     if (!this.values.has(key) && this.values.size >= this.limit) return;
     this.values.set(key, { name, labels: Object.fromEntries(entries), value });

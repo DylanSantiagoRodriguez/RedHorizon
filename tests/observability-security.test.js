@@ -45,3 +45,9 @@ it('protects panel APIs with server-side roles, MFA, origin checks and read-only
   expect((await fetch(base + '/ops/api/history?metric=arbitrary&seconds=300', { headers })).status).toBe(400);
  } finally { await panel.close(); }
 });
+it('emits one room closure with measured duration and an internal identifier', async () => {
+ const { RoomManager } = await import('../server/RoomManager.js'); let now = 1000; const events = [];
+ const manager = new RoomManager({ now: () => now, send() {}, telemetry: { emit: (type,data) => events.push({ type,data }) } });
+ const { room, member } = manager.create({}, 'test'); now += 2500; manager.disconnect(room, member, true); manager.retire(room);
+ expect(events.map(e => e.type)).toEqual(['room.created','room.closed']); expect(events[1].data.durationSeconds).toBe(2.5); expect(events[1].data.roomId).toBe(events[0].data.roomId); expect(JSON.stringify(events)).not.toContain(room.code);
+});

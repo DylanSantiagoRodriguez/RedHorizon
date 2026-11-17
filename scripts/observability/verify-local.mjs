@@ -17,7 +17,7 @@ import { harness, hello, message, waitFor } from '../../tests/cluster/harness.js
 const lab = JSON.parse(readFileSync('.cluster-local/observability/lab.json')), out = '.cluster-local/observability';
 const names = ['rh-gateway', 'rh-game-01', 'rh-game-02', 'rh-game-03', 'rh-coordinator'];
 const kafka = identity => ({ brokers: [lab.broker], tlsDir: lab.keys, identity });
-const agents = [], telemetry = {}, sockets = [], results = { scope: 'Isolated local laboratory; no production traffic; no synthetic metrics presented as AWS', startedAt: new Date().toISOString() };
+const agentConfigs = [], agents = [], telemetry = {}, sockets = [], results = { scope: 'Isolated local laboratory; no production traffic; no synthetic metrics presented as AWS', startedAt: new Date().toISOString() };
 let h, panel, browser, probe, promStarted = false, kafkaStopped = false;
 const docker = args => execFileSync('docker', args, { stdio: ['ignore', 'pipe', 'pipe'], timeout: 30000 });
 const delay = ms => new Promise(r => setTimeout(r, ms));
@@ -25,14 +25,14 @@ const until = async (fn, ms = 30000) => { const end = Date.now() + ms; while (Da
 try {
  for (const [i, id] of names.entries()) {
   const socketPath = `/tmp/rhobs-${process.pid}-${i}.sock`;
-  agents.push(await createAgent({ id, tlsDir: lab.keys, kafka: kafka(id), host: '0.0.0.0', port: 19400 + i, socketPath, sample: async metrics => { metrics.set('rh_lab_process_memory_bytes', process.memoryUsage().rss); } }));
+  const agentConfig = { id, tlsDir: lab.keys, kafka: kafka(id), host: '0.0.0.0', port: 19400 + i, socketPath, sample: async metrics => { metrics.set('rh_lab_process_memory_bytes', process.memoryUsage().rss); } }; agentConfigs.push(agentConfig); agents.push(await createAgent(agentConfig));
   telemetry[id] = new Telemetry(id, { socketPath });
  }
  h = await harness({ telemetry });
  for (const id of names) telemetry[id].start(() => {
   if (id === 'rh-gateway') h.gateway.sample();
   const worker = h.workers.find(w => w.id === id);
-  if (worker) { const s = worker.app.status(); for (const k of ['rooms', 'players', 'stepMaxMs', 'eventLoopP99Ms']) telemetry[id].metrics.set('rh_game_' + k.replace(/[A-Z]/g, c => '_' + c.toLowerCase()), s[k]); telemetry[id].metrics.set('rh_game_capacity', 2); }
+  if (worker) { const s = worker.app.status(); void worker.report().catch(() => {}); for (const k of ['rooms', 'players', 'stepMaxMs', 'eventLoopP99Ms']) telemetry[id].metrics.set('rh_game_' + k.replace(/[A-Z]/g, c => '_' + c.toLowerCase()), s[k]); telemetry[id].metrics.set('rh_game_capacity', 2); }
  });
  const jobs = names.map((id, i) => ({ job_name: id, scheme: 'https', static_configs: [{ targets: [`host.docker.internal:${19400 + i}`] }], tls_config: { ca_file: '/tls/ca.crt', cert_file: '/tls/rh-observability.crt', key_file: '/tls/rh-observability.key', server_name: id } }));
  jobs.push({ job_name: 'panel', static_configs: [{ targets: ['host.docker.internal:19410'] }] });
@@ -51,11 +51,13 @@ try {
  results.lifecycleThroughKafka = true;
  await until(async () => { await panel.collect(); const r = await fetch('http://127.0.0.1:19090/api/v1/query?query=sum(rh_game_players)'); const j = await r.json(); return Number(j.data.result[0]?.value[1]) === 6; }); results.realGameMetrics = { rooms: 3, players: 6, workers: 3 };
  await until(async () => { const r = await fetch('http://127.0.0.1:19090/api/v1/query?query=rh_gateway_connections'); const j = await r.json(); return Number(j.data.result[0]?.value[1]) === 6; });
- await delay(12000); await panel.collect();
+ await until(async () => { const url = new URL('http://127.0.0.1:19090/api/v1/query'); url.searchParams.set('query', 'histogram_quantile(0.95, sum by (le,node) (rate(rh_websocket_transport_rtt_ms_bucket[5m])))'); const r = await fetch(url); const j = await r.json(); return j.data.result.some(r => Number.isFinite(Number(r.value[1])) && Number(r.value[1]) > 0); }); await panel.collect(); results.measuredWebSocketRTT = true;
  // Exporter identity checks include authenticated but unauthorized callers.
  const scrape = identity => new Promise((resolve, reject) => { const req = https.get('https://127.0.0.1:19400/metrics', { ...tlsFiles(lab.keys, identity), timeout: 3000 }, r => { r.resume(); r.on('end', () => resolve(r.statusCode)); }); req.on('error', reject); });
  assert.equal(await scrape('rh-observability'), 200); assert.equal(await scrape('rh-game-01'), 403);
  await assert.rejects(new Promise((resolve, reject) => { const req = https.get('https://127.0.0.1:19400/metrics', { ca: readFileSync(lab.keys + '/ca.crt') }, resolve); req.on('error', reject); })); results.exporterMutualTLS = true;
+ const protectedPanel = await createPanel({ tls: tlsFiles(lab.keys, 'rh-observability'), host: '127.0.0.1', port: 0, metricsPort: 0, origin: 'https://redhorizon.lat', prometheus: 'http://127.0.0.1:19090', nodes: [], users: { reader: { ...await passwordHash(password), totpSecret: secret, role: 'reader' } } });
+ try { const request = identity => new Promise((resolve,reject) => { https.get(`https://127.0.0.1:${protectedPanel.server.address().port}/ops/api/session`, tlsFiles(lab.keys, identity), r => { r.resume(); r.on('end', () => resolve(r.statusCode)); }).on('error', reject); }); assert.equal(await request('rh-gateway'), 401); assert.equal(await request('rh-game-01'), 403); results.panelMutualTLS = true; } finally { await protectedPanel.close(); }
  probe = producerTransport(kafka('rh-game-01'));
  const e = operationalEvent('rh-game-01', 'connection.reconnected'); await probe.send([e, e], AbortSignal.timeout(10000));
  await until(() => panel.metrics.snapshot().some(r => r.name === 'rh_events_duplicates_total' && r.value > 0));
@@ -69,7 +71,7 @@ try {
  await page.waitForFunction(() => document.querySelector('#summary').textContent.includes('6'));
  const overview = await page.evaluate(async () => (await fetch('/ops/api/overview')).json()); assert.equal(overview.kafka.up, true); assert(overview.metrics.kafka_lag.length > 0); assert.equal(Number(overview.metrics.connections[0].value[1]), 6); writeFileSync(out + '/overview.json', JSON.stringify(overview, null, 2));
  mkdirSync(out + '/screenshots', { recursive: true }); await page.screenshot({ path: out + '/screenshots/overview.png', fullPage: true });
- assert.equal(errors.length, 0); results.browserAuthenticatedRealData = true;
+ await page.getByRole('button', { name: 'Tráfico y latencia', exact: true }).click(); await page.locator('#metric').selectOption('logical_sent_bytes_s'); await page.waitForFunction(() => document.querySelector('#chart-status').textContent.includes('rh-gateway')); await page.getByRole('button', { name: 'Servidores', exact: true }).click(); await page.locator('#node-cards .card').first().waitFor(); await page.getByRole('button', { name: 'Actividad', exact: true }).click(); await page.locator('#event-list table tr').first().waitFor(); await page.getByRole('button', { name: 'Seguridad', exact: true }).click(); await page.locator('#security-metrics .card').first().waitFor(); assert.equal(errors.length, 0); results.browserAuthenticatedRealData = true;
  // Kill only this isolated broker. Established game simulation must continue.
  docker(['pause', lab.container]); kafkaStopped = true;
  const before = sockets[0].messages.filter(m => m.type === 'snapshot').length;
@@ -80,6 +82,8 @@ try {
  await delay(5000); const recovery = operationalEvent('rh-game-01', 'connection.reconnected');
  await until(async () => { try { await probe.send([recovery], AbortSignal.timeout(5000)); return true; } catch { return false; } }, 45000);
  await until(() => panel.store.events(0, true).some(e => e.eventId === recovery.eventId), 45000); results.kafkaRecovery = true;
+ const oldCount = panel.store.events(0,true).filter(e => e.type === 'connection.reconnected' && e.source === 'rh-game-02').length;
+ await agents[2].close(); telemetry['rh-game-02'].emit('connection.reconnected'); await telemetry['rh-game-02'].events.flush(); assert(telemetry['rh-game-02'].events.dropped > 0); agents[2] = await createAgent(agentConfigs[2]); telemetry['rh-game-02'].emit('connection.reconnected'); await telemetry['rh-game-02'].events.flush(); await until(() => panel.store.events(0,true).filter(e => e.type === 'connection.reconnected' && e.source === 'rh-game-02').length > oldCount); results.collectorRecovery = true;
  results.containers = docker(['stats', '--no-stream', '--format', '{{json .}}', lab.container, 'rh-observability-prometheus-lab']).toString().trim().split('\n').map(JSON.parse);
  results.finishedAt = new Date().toISOString(); writeFileSync(out + '/verification.json', JSON.stringify(results, null, 2)); console.log(JSON.stringify(results, null, 2));
 } finally {

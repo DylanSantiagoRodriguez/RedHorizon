@@ -1,3 +1,4 @@
+import { nginxMetrics } from './nginx-metrics.js';
 import https from 'node:https';
 import http from 'node:http';
 import { readFile, mkdir, chmod, unlink, statfs } from 'node:fs/promises';
@@ -23,10 +24,11 @@ export async function hostMetrics(metrics, { procRoot = '/proc', disk = '/', ser
 }
 export async function createAgent(config) {
   if (!/^rh-(gateway|game-0[123]|coordinator|observability|events)$/.test(config.id)) throw new Error('Invalid node');
+  const nginxSample = config.nginxLog ? nginxMetrics(config.nginxLog) : null;
   const metrics = new Metrics(), transport = config.transport || producerTransport(config.kafka);
   const queue = new EventQueue({ send: transport.send, timeoutMs: 2500, capacity: 256, batchSize: 32 });
-  if (config.revisionFile) { const manifest = JSON.parse(await readFile(config.revisionFile, 'utf8')); if (['rh-events', 'rh-observability'].includes(config.id)) queue.publish(config.id, 'deployment.changed', { revision: manifest.commit }); }
-  let appRows = [], lastApp = 0, busy = false;
+  if (config.revisionFile) { const manifest = JSON.parse(await readFile(config.revisionFile, 'utf8')); if (['rh-events', 'rh-observability'].includes(config.id)) { queue.publish(config.id, 'deployment.changed', { revision: manifest.commit }); metrics.set('rh_service_build_info', 1, { revision: manifest.commit }); } }
+  let appRows = [], lastApp = 0, busy = false, certificatesAt = 0;
   const socketPath = config.socketPath || '/run/redhorizon-observer/ingest.sock';
   await mkdir(socketPath.slice(0, socketPath.lastIndexOf('/')), { recursive: true, mode: 0o750 });
   await unlink(socketPath).catch(e => { if (e.code !== 'ENOENT') throw e; });
@@ -38,7 +40,7 @@ export async function createAgent(config) {
       const body = JSON.parse(Buffer.concat(chunks));
       if (body.source !== config.id || !Array.isArray(body.events) || body.events.length > 32 || !Array.isArray(body.metrics) || body.metrics.length > 512) throw new Error('Invalid report');
       const accepted = new Metrics();
-      for (const row of body.metrics) accepted.set(row.name, row.value, row.labels);
+      for (const row of body.metrics) if (/^rh_(game_|gateway_|coordinator_|application_|process_|tls_|handshake_|websocket_|collector_)/.test(row.name)) accepted.set(row.name, row.value, row.labels);
       appRows = accepted.snapshot(); lastApp = Date.now();
       for (const raw of body.events) { try { const event = validEvent(raw); if (event.source !== config.id) throw new Error('Source'); if (queue.items.length < queue.capacity) queue.items.push(event); else queue.dropped++; } catch { metrics.inc('rh_events_invalid_total'); } }
       res.writeHead(202).end();
@@ -52,13 +54,14 @@ export async function createAgent(config) {
     if (!req.socket.authorized || req.socket.getPeerCertificate().subject.CN !== 'rh-observability') return res.writeHead(403).end();
     if (req.url !== '/metrics') return res.writeHead(404).end();
     metrics.set('rh_application_report_timestamp_seconds', lastApp / 1000);
+    if (transport.stats) { metrics.set('rh_kafka_produced_events_total', transport.stats.events); metrics.set('rh_kafka_produced_bytes_total', transport.stats.bytes); metrics.set('rh_kafka_last_send_timestamp_seconds', transport.stats.lastSentAt / 1000); metrics.set('rh_kafka_producer_errors_total', transport.stats.errors); }
     metrics.set('rh_events_pending', queue.items.length); metrics.set('rh_events_dropped_total', queue.dropped); metrics.set('rh_events_delivered_total', queue.delivered);
-    res.writeHead(200, { 'Content-Type': 'text/plain; version=0.0.4' }); res.end(prometheus([...metrics.snapshot(), ...appRows], config.id));
+    res.writeHead(200, { 'Content-Type': 'text/plain; version=0.0.4' }); res.end(prometheus([...metrics.snapshot(), ...(Date.now() - lastApp <= 15000 ? appRows : [])], config.id));
   });
   server.on('tlsClientError', () => metrics.inc('rh_exporter_tls_failures_total'));
   server.maxConnections = 8; server.requestTimeout = 2000; server.headersTimeout = 2000;
   await new Promise(resolve => server.listen(config.port || 9400, config.host, resolve));
-  const sample = async () => { if (busy) return; busy = true; try { await (config.sample || hostMetrics)(metrics, config); metrics.set('rh_host_sample_timestamp_seconds', Date.now() / 1000); } catch { metrics.inc('rh_host_sample_errors_total'); } finally { busy = false; } };
+  const sample = async () => { if (busy) return; busy = true; try { await (config.sample || hostMetrics)(metrics, config); if (nginxSample) await nginxSample(metrics); if (Date.now() - certificatesAt > 60000) { for (const item of (config.certificates || []).slice(0, 8)) { try { const cert = new X509Certificate(await readFile(item.path)); metrics.set('rh_certificate_named_expires_seconds', Date.parse(cert.validTo) / 1000, { endpoint: item.purpose }); } catch { metrics.inc('rh_certificate_read_errors_total', 1, { endpoint: item.purpose }); } } certificatesAt = Date.now(); } metrics.set('rh_host_sample_timestamp_seconds', Date.now() / 1000); } catch { metrics.inc('rh_host_sample_errors_total'); } finally { busy = false; } };
   await sample(); const timer = setInterval(sample, 5000), flush = setInterval(() => { void queue.flush(); }, 2000); timer.unref(); flush.unref();
   return { server, ingest, metrics, queue, close: async () => { clearInterval(timer); clearInterval(flush); await Promise.all([new Promise(r => { server.closeAllConnections(); server.close(r); }), new Promise(r => { ingest.closeAllConnections(); ingest.close(r); })]); await transport.close(); await unlink(socketPath).catch(() => {}); } };
 }

@@ -1,0 +1,202 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "sts:GetCallerIdentity",
+        "ec2:Describe*",
+        "servicequotas:GetServiceQuota",
+        "cloudformation:ValidateTemplate"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:CreateStack",
+        "cloudformation:DescribeStacks",
+        "cloudformation:DescribeStackEvents",
+        "cloudformation:DescribeStackResources",
+        "cloudformation:GetTemplate",
+        "cloudformation:UpdateTerminationProtection"
+      ],
+      "Resource": "arn:aws:cloudformation:us-east-2:670036769494:stack/redhorizon-observability/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:ImportKeyPair"
+      ],
+      "Resource": "arn:aws:ec2:us-east-2:670036769494:key-pair/rh-*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:RunInstances"
+      ],
+      "Resource": "arn:aws:ec2:us-east-2:670036769494:instance/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/Project": "RedHorizonCluster",
+          "aws:RequestTag/Component": "Observability"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:RunInstances"
+      ],
+      "Resource": [
+        "arn:aws:ec2:us-east-2::image/*",
+        "arn:aws:ec2:us-east-2:670036769494:subnet/subnet-0fde15f950925cb60",
+        "arn:aws:ec2:us-east-2:670036769494:security-group/*",
+        "arn:aws:ec2:us-east-2:670036769494:key-pair/rh-observability-*",
+        "arn:aws:ec2:us-east-2:670036769494:key-pair/rh-events-*",
+        "arn:aws:ec2:us-east-2:670036769494:network-interface/*",
+        "arn:aws:ec2:us-east-2:670036769494:volume/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": [
+        "arn:aws:ec2:us-east-2:670036769494:instance/*",
+        "arn:aws:ec2:us-east-2:670036769494:volume/*",
+        "arn:aws:ec2:us-east-2:670036769494:network-interface/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": "RunInstances"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateSecurityGroup"
+      ],
+      "Resource": [
+        "arn:aws:ec2:us-east-2:670036769494:security-group/*",
+        "arn:aws:ec2:us-east-2:670036769494:vpc/vpc-0acc002bf61620138"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": "arn:aws:ec2:us-east-2:670036769494:security-group/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": "CreateSecurityGroup"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:AuthorizeSecurityGroupEgress",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupEgress"
+      ],
+      "Resource": [
+        "arn:aws:ec2:us-east-2:670036769494:security-group/sg-0929579efb3434239",
+        "arn:aws:ec2:us-east-2:670036769494:security-group/sg-09a457a3eab1df5bd",
+        "arn:aws:ec2:us-east-2:670036769494:security-group/sg-01d10d3f03ff7797f"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:AuthorizeSecurityGroupEgress",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupEgress",
+        "ec2:DeleteSecurityGroup"
+      ],
+      "Resource": "arn:aws:ec2:us-east-2:670036769494:security-group/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/Component": "Observability"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:ModifyInstanceAttribute",
+        "ec2:TerminateInstances"
+      ],
+      "Resource": "arn:aws:ec2:us-east-2:670036769494:instance/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/Component": "Observability"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetRole",
+        "iam:DeleteRole",
+        "iam:TagRole",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:GetRolePolicy"
+      ],
+      "Resource": "arn:aws:iam::670036769494:role/redhorizon-observability-*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy"
+      ],
+      "Resource": "arn:aws:iam::670036769494:role/redhorizon-observability-*",
+      "Condition": {
+        "ArnEquals": {
+          "iam:PolicyARN": "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateInstanceProfile",
+        "iam:GetInstanceProfile",
+        "iam:DeleteInstanceProfile",
+        "iam:AddRoleToInstanceProfile",
+        "iam:RemoveRoleFromInstanceProfile",
+        "iam:TagInstanceProfile"
+      ],
+      "Resource": "arn:aws:iam::670036769494:instance-profile/redhorizon-observability-*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iam:PassRole"
+      ],
+      "Resource": "arn:aws:iam::670036769494:role/redhorizon-observability-*",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "ec2.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iam:CreateRole",
+      "Resource": "arn:aws:iam::670036769494:role/redhorizon-observability-*",
+      "Condition": {
+        "StringEquals": {
+          "iam:PermissionsBoundary": "arn:aws:iam::670036769494:policy/RedHorizonObservabilityRuntimeBoundary"
+        }
+      }
+    }
+  ]
+}

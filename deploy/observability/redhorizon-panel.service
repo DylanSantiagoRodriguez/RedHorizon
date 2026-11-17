@@ -1,0 +1,32 @@
+[Unit]
+Description=Red Horizon read-only administrative panel
+After=network-online.target redhorizon-prometheus.service
+[Service]
+User=redhorizon-panel
+Group=redhorizon-panel
+WorkingDirectory=/srv/redhorizon-observability/current/runtime
+Environment=RH_OBSERVABILITY_CONFIG=/etc/redhorizon-panel/panel.json
+Environment=AWS_REGION=us-east-2
+ExecStart=/srv/redhorizon-observability/current/node/bin/node server/observability/panel.js
+Restart=on-failure
+RestartSec=10
+StateDirectory=redhorizon-panel
+StateDirectoryMode=0700
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+UMask=0077
+MemoryMax=512M
+TasksMax=64
+LimitNOFILE=1024
+TimeoutStopSec=20
+[Install]
+WantedBy=multi-user.target

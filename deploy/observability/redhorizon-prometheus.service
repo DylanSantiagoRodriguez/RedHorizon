@@ -1,0 +1,13 @@
+[Unit]
+Description=Red Horizon private Prometheus
+After=docker.service network-online.target
+Requires=docker.service
+[Service]
+Restart=on-failure
+RestartSec=10
+ExecStartPre=-/usr/bin/docker rm redhorizon-prometheus
+ExecStart=/usr/bin/docker run --rm --name redhorizon-prometheus --network host --log-driver json-file --log-opt max-size=10m --log-opt max-file=3 --user 65534:65534 --read-only --cap-drop ALL --security-opt no-new-privileges --memory 1200m --cpus 1 --pids-limit 128 --tmpfs /tmp:rw,noexec,nosuid,size=32m -v /etc/redhorizon-prometheus:/etc/prometheus:ro -v /var/lib/redhorizon-prometheus:/prometheus prom/prometheus@sha256:e04987641b57704f408e31f6373ba4138ecf27cb4a165d24aabb6c38fddd0f06 --config.file=/etc/prometheus/prometheus.json --web.listen-address=127.0.0.1:9090 --storage.tsdb.path=/prometheus --storage.tsdb.retention.time=7d --storage.tsdb.retention.size=10GB --query.max-concurrency=8 --query.max-samples=1000000 --query.timeout=5s
+ExecStop=/usr/bin/docker stop --time 15 redhorizon-prometheus
+TimeoutStopSec=25
+[Install]
+WantedBy=multi-user.target

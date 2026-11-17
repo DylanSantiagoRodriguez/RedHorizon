@@ -15,17 +15,17 @@ export function kafkaClient({ brokers, tlsDir, identity }) {
 }
 export function producerTransport(config) {
   const producer = kafkaClient(config).producer({ idempotent: true, maxInFlightRequests: 1, retry: { retries: 2 }, createPartitioner: Partitioners.DefaultPartitioner });
-  let ready = false, connecting = null;
+  let ready = false, connecting = null; const stats = { events: 0, bytes: 0, lastSentAt: 0, errors: 0 };
   return {
-    producer,
+    producer, stats,
     async send(batch, signal) {
       if (signal.aborted) throw new Error('Cancelled');
       if (!ready) { connecting ||= producer.connect().then(() => { ready = true; }).finally(() => { connecting = null; }); await connecting; }
       if (signal.aborted) throw new Error('Cancelled');
       const groups = new Map();
       for (const value of batch) { const event = validEvent(value), topic = topicFor(event); if (!groups.has(topic)) groups.set(topic, []); groups.get(topic).push({ key: event.data.roomId || event.source, value: JSON.stringify(event) }); }
-      try { await producer.sendBatch({ topicMessages: [...groups].map(([topic, messages]) => ({ topic, messages })), acks: -1, timeout: 2000 }); }
-      catch (e) { ready = false; throw e; }
+      try { await producer.sendBatch({ topicMessages: [...groups].map(([topic, messages]) => ({ topic, messages })), acks: -1, timeout: 2000 }); stats.events += batch.length; stats.bytes += [...groups.values()].flat().reduce((n,m) => n + Buffer.byteLength(m.value), 0); stats.lastSentAt = Date.now(); }
+      catch (e) { ready = false; stats.errors++; throw e; }
     },
     close: () => producer.disconnect(),
   };

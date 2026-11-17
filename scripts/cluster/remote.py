@@ -46,16 +46,16 @@ def pin_host(name,node):
     path.write_text(node['publicIp']+' '+public_key+'\n');path.chmod(0o600)
     return path
 
-def options(name):
+def options(name,node=None):
     result=['-i',str(key_for(name)),'-o','BatchMode=yes','-o','StrictHostKeyChecking=yes','-o',f'UserKnownHostsFile={LOCAL/(name+".known_hosts")}','-o','ConnectTimeout=30','-o','ServerAliveInterval=15','-o','ServerAliveCountMax=4']
     if os.environ.get('RH_TRANSPORT','ssm')=='ssm':
-        node=json.loads((LOCAL/'inventory.json').read_text())['nodes'][name]
+        node=node or json.loads((LOCAL/'inventory.json').read_text())['nodes'][name]
         proxy=['aws','ssm','start-session','--target',node['instanceId'],'--document-name','AWS-StartSSHSession','--parameters','portNumber=22','--region',REGION,'--profile',PROFILE]
         result+=['-o','ProxyCommand='+shlex.join(proxy)]
     return result
 
 def ssh(name,node,script,check=True):
-    return subprocess.run(['ssh',*options(name),'ubuntu@'+node['publicIp'],'sudo bash -s'],input=script,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=check)
+    return subprocess.run(['ssh',*options(name,node),'ubuntu@'+node['publicIp'],'sudo bash -s'],input=script,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=check)
 
 def upload(name,node,paths,directory):
-    subprocess.run(['scp',*options(name),*map(str,paths),'ubuntu@'+node['publicIp']+':'+directory],check=True,stdout=subprocess.DEVNULL)
+    subprocess.run(['scp',*options(name,node),*map(str,paths),'ubuntu@'+node['publicIp']+':'+directory],check=True,stdout=subprocess.DEVNULL)

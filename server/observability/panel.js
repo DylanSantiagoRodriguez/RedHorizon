@@ -9,6 +9,9 @@ import { EventStore } from './store.js';
 import { kafkaClient, TOPICS } from './kafka.js';
 import { Metrics, prometheus } from './metrics.js';
 const queries = {
+  nginx_rejected: 'rh_nginx_rate_rejected_total', nginx_responses: 'rate(rh_nginx_responses_total[1m])', nginx_log_dropped: 'rh_nginx_log_dropped_bytes_total',
+  kafka_produced_bytes_s: 'rate(rh_kafka_produced_bytes_total[1m])', kafka_consumed_bytes_s: 'rate(rh_kafka_consumed_bytes_total[1m])',
+  version: 'rh_application_build_info or rh_service_build_info',
   coordinator_request_bytes_s: 'rate(rh_coordinator_request_bytes_total[1m])',
   coordinator_response_bytes_s: 'rate(rh_coordinator_response_bytes_total[1m])',
   host_cpu: '1 - rate(rh_host_cpu_idle_ticks[1m]) / rate(rh_host_cpu_total_ticks[1m])',
@@ -26,14 +29,14 @@ const queries = {
   rtt_p99_ms: 'histogram_quantile(0.99, sum by (le,node) (rate(rh_websocket_transport_rtt_ms_bucket[5m])))',
   service_up: 'rh_service_up', restarts: 'rh_service_restarts_total', exporter_up: 'up',
   freshness: 'rh_host_sample_timestamp_seconds', app_freshness: 'rh_application_report_timestamp_seconds',
-  certificate_expires: 'rh_certificate_expires_seconds', dropped: 'rh_events_dropped_total', queue: 'rh_events_pending',
-  tls_failures: 'rh_tls_failures_total', handshake_rejected: 'rh_handshake_rejected_total',
+  certificate_expires: 'rh_certificate_expires_seconds', certificates: 'rh_certificate_named_expires_seconds', dropped: 'rh_events_dropped_total', application_dropped: 'rh_application_telemetry_dropped_total', queue: 'rh_events_pending',
+  tls_failures: 'rh_tls_failures_total', exporter_tls_failures: 'rh_exporter_tls_failures_total', handshake_rejected: 'rh_handshake_rejected_total',
   kafka_lag: 'rh_kafka_consumer_lag', kafka_up: 'rh_kafka_consumer_up',
 };
 export async function createPanel(config) {
   if (!config.development && (!config.tls || !config.origin?.startsWith('https://'))) throw new Error('Production requires TLS and HTTPS origin');
   const store = new EventStore(config.dbPath), auth = new Auth(config.users, store), metrics = new Metrics();
-  let consumer, admin, poll, consuming = false, brokerUp = false, lastErrorAt = 0;
+  let consumer, admin, poll, consuming = false, brokerUp = false, kafkaCheckedAt = 0, lastErrorAt = 0;
   const requestLimits = new Limiter(256), offsets = new Map(), cloud = config.awsMetrics ? awsMetrics(config.nodes) : null;
   const files = new Map([['/ops/', ['index.html', 'text/html']], ['/ops/app.js', ['app.js', 'text/javascript']], ['/ops/style.css', ['style.css', 'text/css']]]);
   const send = (res, code, data) => { res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(data)); };
@@ -71,7 +74,7 @@ export async function createPanel(config) {
       if (!requestLimits.take(session.username, 40, 4)) return send(res, 429, { error: 'Too many requests' });
       if (req.method !== 'GET') return send(res, 405, { error: 'Read only' });
       if (path === '/ops/api/session') return send(res, 200, { username: session.username, role: session.role });
-      if (path === '/ops/api/overview') return send(res, 200, { nodes: config.nodes.map(n => ({ ...n, version: store.version(n.id) || n.version || null })), aws: cloud?.state || null, metrics: snapshot, collectedAt: collectionAt, stale: Date.now() - collectionAt > 15000, lastErrorAt, kafka: { up: consuming && brokerUp, offsets: [...offsets] }, mode: config.development ? 'laboratorio local' : 'AWS' });
+      if (path === '/ops/api/overview') return send(res, 200, { nodes: config.nodes.map(n => ({ ...n, version: snapshot?.version?.find(r => r.metric.node === n.id)?.metric.revision || store.version(n.id) || n.version || null })), aws: cloud?.state || null, metrics: snapshot, collectedAt: collectionAt, stale: Date.now() - collectionAt > 15000, lastErrorAt, kafka: { up: consuming && brokerUp, checkedAt: kafkaCheckedAt, offsets: [...offsets] }, mode: config.development ? 'laboratorio local' : 'AWS' });
       if (path === '/ops/api/events') { const seconds = Math.min(604800, Math.max(60, Number(url.searchParams.get('seconds')) || 3600)); return send(res, 200, store.events(Date.now() - seconds * 1000, session.role === 'admin')); }
       if (path === '/ops/api/security') { if (session.role !== 'admin') return send(res, 403, { error: 'Administrator required' }); return send(res, 200, { events: store.events(Date.now() - 3600000, true).filter(e => e.type === 'security.rejected'), telemetry: metrics.snapshot() }); }
       if (path === '/ops/api/history') {
@@ -85,16 +88,18 @@ export async function createPanel(config) {
     } catch { if (!res.headersSent) send(res, 503, { error: 'Datos temporalmente no disponibles' }); else res.end(); }
   };
   const server = config.development ? http.createServer(handler) : https.createServer({ ...config.tls, requestCert: true, rejectUnauthorized: true, minVersion: 'TLSv1.2' }, handler);
+  server.on('tlsClientError', () => metrics.inc('rh_panel_tls_failures_total'));
   server.maxConnections = 32; server.requestTimeout = 5000; server.headersTimeout = 5000;
   await new Promise(r => server.listen(config.port ?? 8444, config.development ? '127.0.0.1' : config.host, r));
   const exposition = http.createServer((req, res) => { if (req.url !== '/metrics') return res.writeHead(404).end(); res.setHeader('Content-Type', 'text/plain; version=0.0.4'); res.end(prometheus(metrics.snapshot(), 'rh-observability')); });
   await new Promise(r => exposition.listen(config.metricsPort ?? 9401, '127.0.0.1', r));
   if (config.kafka) {
-    const client = kafkaClient(config.kafka); consumer = client.consumer({ groupId: 'rh-panel-v1', maxBytes: 65536, maxBytesPerPartition: 65536, sessionTimeout: 10000, retry: { retries: 2, restartOnFailure: async () => true } }); admin = client.admin();
-    const start = async () => { try { await consumer.connect(); await consumer.subscribe({ topics: TOPICS, fromBeginning: true }); await consumer.run({ eachMessage: async ({ topic, partition, message }) => { try { if (message.value.length > 16384) throw new Error('Oversized'); const changed = store.add(JSON.parse(message.value), topic); metrics.inc(changed ? 'rh_events_consumed_total' : 'rh_events_duplicates_total'); } catch { metrics.inc('rh_events_invalid_total'); } offsets.set(`${topic}:${partition}`, message.offset); } }); consuming = true; } catch { consuming = false; } };
-    consumer.on(consumer.events.CRASH, () => { consuming = false; }); consumer.on(consumer.events.GROUP_JOIN, () => { consuming = true; });
+    const client = kafkaClient(config.kafka); consumer = client.consumer({ groupId: 'rh-panel-v1', maxBytes: 65536, maxBytesPerPartition: 65536, maxWaitTimeInMs: 500, heartbeatInterval: 1000, sessionTimeout: 10000, retry: { retries: 2, restartOnFailure: async () => false } }); admin = client.admin();
+    let starting = false;
+    const start = async () => { if (starting || consuming) return; starting = true; try { await consumer.connect(); await consumer.subscribe({ topics: TOPICS, fromBeginning: true }); await consumer.run({ eachMessage: async ({ topic, partition, message }) => { try { metrics.inc('rh_kafka_consumed_bytes_total', message.value?.length || 0); if (message.value.length > 16384) throw new Error('Oversized'); const changed = store.add(JSON.parse(message.value), topic); metrics.inc(changed ? 'rh_events_consumed_total' : 'rh_events_duplicates_total'); } catch { metrics.inc('rh_events_invalid_total'); } offsets.set(`${topic}:${partition}`, message.offset); } }); } catch { consuming = false; } finally { starting = false; } };
+    consumer.on(consumer.events.CRASH, event => { consuming = false; metrics.set('rh_kafka_consumer_up', 0); metrics.inc('rh_kafka_consumer_errors_total', 1, { reason: event.payload.error.name }); }); consumer.on(consumer.events.DISCONNECT, () => { consuming = false; }); consumer.on(consumer.events.GROUP_JOIN, () => { consuming = true; });
     void start(); let polling = false;
-    poll = setInterval(async () => { if (polling) return; polling = true; try { if (!consuming) await start(); await admin.connect(); let lag = 0; const committed = await admin.fetchOffsets({ groupId: 'rh-panel-v1', topics: TOPICS }); const saved = new Map(committed.flatMap(t => t.partitions.map(p => [`${t.topic}:${p.partition}`, Number(p.offset)]))); for (const topic of TOPICS) { const end = await admin.fetchTopicOffsets(topic); for (const part of end) lag += Math.max(0, Number(part.offset) - Math.max(Number(offsets.get(`${topic}:${part.partition}`) ?? -1) + 1, saved.get(`${topic}:${part.partition}`) ?? 0)); } metrics.set('rh_kafka_consumer_lag', lag); brokerUp = true; metrics.set('rh_kafka_consumer_up', Number(consuming)); } catch { brokerUp = false; metrics.set('rh_kafka_consumer_up', 0); } finally { polling = false; } }, 10000); poll.unref();
+    poll = setInterval(async () => { if (polling) return; polling = true; try { if (!consuming) await start(); await admin.connect(); let lag = 0; const committed = await admin.fetchOffsets({ groupId: 'rh-panel-v1', topics: TOPICS }); const saved = new Map(committed.flatMap(t => t.partitions.map(p => [`${t.topic}:${p.partition}`, Number(p.offset)]))); for (const topic of TOPICS) { const end = await admin.fetchTopicOffsets(topic); for (const part of end) lag += Math.max(0, Number(part.offset) - Math.max(Number(offsets.get(`${topic}:${part.partition}`) ?? -1) + 1, saved.get(`${topic}:${part.partition}`) ?? 0)); } metrics.set('rh_kafka_consumer_lag', lag); brokerUp = true; kafkaCheckedAt = Date.now(); metrics.set('rh_kafka_consumer_up', Number(consuming)); } catch { brokerUp = false; metrics.set('rh_kafka_consumer_up', 0); } finally { polling = false; } }, 10000); poll.unref();
   }
   const sample = setInterval(collect, 5000), prune = setInterval(() => store.prune(), 60000); sample.unref(); prune.unref(); void collect();
   return { server, auth, store, metrics, collect, close: async () => { cloud?.close(); clearInterval(sample); clearInterval(prune); clearInterval(poll); await consumer?.disconnect(); await admin?.disconnect(); await Promise.all([new Promise(r => { server.closeAllConnections(); server.close(r); }), new Promise(r => { exposition.closeAllConnections(); exposition.close(r); })]); store.close(); } };

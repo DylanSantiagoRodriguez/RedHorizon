@@ -25,10 +25,10 @@ export async function harness({ origin = 'http://127.0.0.1:5173', gatewayPort = 
   await new Promise((resolve, reject) => { const timeout = setTimeout(() => reject(new Error('Redis startup timeout')), 5000); redis.once('error', reject); redis.stdout.on('data', data => { if (data.toString().includes('Ready to accept connections')) { clearTimeout(timeout); resolve(); } }); });
   const coord = await createCoordinator({ tls: tlsFiles(keyDir, 'rh-coordinator'), telemetry: telemetry['rh-coordinator'], redisUrl: `redis://127.0.0.1:${redisPort}`, workers: names.slice(2), port: 0 });
   const address = await coord.listen(), endpoint = `https://127.0.0.1:${address.port}`;
-  const gatewayApi = apiClient(endpoint, tlsFiles(keyDir, 'rh-gateway'));
+  const gatewayApi = apiClient(endpoint, tlsFiles(keyDir, 'rh-gateway'), telemetry['rh-gateway']);
   const workers = [], urls = {}, sockets = [];
   for (const id of names.slice(2)) {
-    const api = apiClient(endpoint, tlsFiles(keyDir, id)), boot = randomUUID();
+    const api = apiClient(endpoint, tlsFiles(keyDir, id), telemetry[id]), boot = randomUUID();
     const app = createServer({ telemetry: telemetry[id], port: 0, origins: [origin], cluster: { id, tls: tlsFiles(keyDir, id), admit: async (code, token) => { await api('/activate', { code, token, boot }); return code; } } });
     const a = await app.listen(); urls[id] = `wss://127.0.0.1:${a.port}/ws`;
     const report = (capacity = 2) => api('/heartbeat', { boot, capacity, load: 0, draining: app.status().draining, rooms: [...app.manager.rooms.keys()] });

@@ -1,0 +1,32 @@
+[Unit]
+Description=Red Horizon bounded telemetry agent
+After=network-online.target
+[Service]
+User=redhorizon-cluster
+Group=redhorizon-cluster
+WorkingDirectory=/srv/redhorizon-observability/current/runtime
+Environment=RH_OBSERVER_CONFIG=/etc/redhorizon-observer/agent.json
+ExecStart=/srv/redhorizon-observability/current/node/bin/node server/observability/agent.js
+Restart=on-failure
+RestartSec=10
+RuntimeDirectory=redhorizon-observer
+RuntimeDirectoryMode=0750
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+UMask=0077
+MemoryMax=128M
+CPUQuota=10%
+TasksMax=32
+LimitNOFILE=256
+TimeoutStopSec=10
+[Install]
+WantedBy=multi-user.target
