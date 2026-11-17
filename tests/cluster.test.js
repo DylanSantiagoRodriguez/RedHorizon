@@ -2,11 +2,26 @@ import { beforeAll, afterAll, expect, it } from 'vitest';
 import https from 'node:https';
 import { WebSocket } from 'ws';
 import { randomBytes } from 'node:crypto';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { harness, hello, message, waitFor } from './cluster/harness.js';
 import { tlsFiles, apiClient } from '../server/cluster/transport.js';
 let h;
 beforeAll(async () => { h = await harness(); }, 30000);
 afterAll(async () => { await h?.close(); }, 15000);
+it('accepts generated service identities with strict X.509 validation', async () => {
+  const script = `import http.client,ssl,sys
+context=ssl.create_default_context(cafile=sys.argv[1]+'/ca.crt')
+context.verify_flags |= ssl.VERIFY_X509_STRICT
+context.load_cert_chain(sys.argv[1]+'/rh-gateway.crt',sys.argv[1]+'/rh-gateway.key')
+connection=http.client.HTTPSConnection('127.0.0.1',int(sys.argv[2]),context=context,timeout=3)
+connection.request('POST','/lookup',body='{}',headers={'Content-Type':'application/json'})
+assert connection.getresponse().status==400
+connection.close()
+print('strict mTLS verified')`;
+  const { stdout } = await promisify(execFile)('python3', ['-c', script, h.keyDir, new URL(h.endpoint).port]);
+  expect(stdout.trim()).toBe('strict mTLS verified');
+});
 it('routes multiple rooms to distinct workers, pins two players, and reconnects during coordinator outage', async () => {
   const a = await h.connect(); a.send(JSON.stringify(hello('create'))); const wa = await message(a, 'welcome');
   expect(a.extensions).toContain('permessage-deflate');

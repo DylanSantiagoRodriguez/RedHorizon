@@ -66,7 +66,8 @@ try {
   for (const ws of sockets) if (ws.readyState === WebSocket.OPEN) send(ws, { type: 'leave' });
   await delay(1000);
   await control('rh-game-03', 'systemctl restart redhorizon-cluster'); drained = false;
-  const report = { result: 'passed', candidateIp: process.env.SMOKE_RESOLVE_IP, checks, at: new Date().toISOString() };
+  const report = { result: 'passed', candidateIp: process.env.SMOKE_RESOLVE_IP,
+    assignments: rooms.map(r => ({ code: r.welcome.code, worker: r.welcome.serverId, players: 2 })), checks, at: new Date().toISOString() };
   writeFileSync('.cluster-local/live-fault-checks.json', JSON.stringify(report, null, 2)); console.log(JSON.stringify(report));
 } finally {
   for (const ws of sockets) { if (ws.readyState === WebSocket.OPEN) send(ws, { type: 'leave' }); ws.close(); }
