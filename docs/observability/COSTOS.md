@@ -11,7 +11,7 @@ La cuota de 16 vCPU impide las dos EC2 inicialmente propuestas. Se implementa **
 | IPv4 de salida | 730 h × 0,005 | 3,65 |
 | Salida administrativa | Reserva 10 GB × 0,09 | 0,90 |
 | API CloudWatch | Reserva conservadora 254.040 consultas × 0,01/1.000 | 2,54 |
-| **Estimación incremental** | Antes de impuestos | **82,59** |
+| **Estimación incremental** | Antes de impuestos | **82,60** |
 
 Sin NAT Gateway, ALB, MSK, almacenamiento de logs CloudWatch ni monitoreo detallado nuevos. IPv4 solo para salida; los servicios nuevos no aceptan tráfico público. Comunicación privada en la misma zona. No se descuentan franquicias compartidas; más tráfico o almacenamiento retenido pueden aumentar el importe. El presupuesto no es un límite automático de facturación.
 

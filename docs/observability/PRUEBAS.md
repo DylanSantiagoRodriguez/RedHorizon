@@ -74,13 +74,34 @@ El endpoint público HTTPS `/health` respondió `ok: true` con el backend existe
 
 La captura identifica **laboratorio local**. No contiene credenciales ni representa máquinas nuevas desplegadas.
 
-## Validaciones aún pendientes
+## Validación AWS — 17/11/2026
 
-- Arranque y permisos efectivos de IAM/SSM en las dos EC2 propuestas, puertos desde Internet/VPC y conexión privada completa.
-- URL pública `/ops/`, credenciales reales inscritas, TLS extremo a extremo vía Nginx y roles del propietario.
-- Activación por drenaje del backend, despliegue secuencial y rollback sobre las nuevas máquinas; la sintaxis/configuración local no demuestra ese procedimiento remoto.
-- Comparación de latencia/CPU/memoria antes/después con carga representativa, retención de 24–72 h y alertas operativas atendidas por una persona.
-- Recuperación de pérdida completa de disco: no hay réplica ni backup externo automático.
-- GitHub Actions: bloqueado por facturación de GitHub, sin ejecutar jobs. La evidencia publicada corresponde a ejecución local, no a CI remoto verde.
+- CloudFormation `redhorizon-observability`: CREATE_COMPLETE. EC2 `i-0d5651c3f279e29b3` en ejecución, IMDSv2 obligatorio, EBS gp3 cifrado de 70 GiB.
+- Kafka 4.4.0, Prometheus 3.16.0, panel y agente arrancados. Bootstrap real: **21 topics, 92 ACL y cuotas para ocho identidades**. Material administrativo temporal retirado.
+- URL HTTPS `/ops/` responde y `/ops/api/overview` sin sesión devuelve **401**.
+- Exporter rechaza certificado ausente y devuelve **403** para identidad autenticada sin permiso; panel privado devuelve **403** a identidad distinta de gateway.
+- Comprobación TCP externa: puertos 22, 8444, 9090, 9093 y 9400 del nuevo host no accesibles. Listeners de Prometheus y controlador Kafka en loopback.
+- Cinco actualizaciones de backend secuenciales registradas como saludables; workers drenados/reabiertos. Gateway y coordinador se actualizaron sin túneles activos. Frontend estático preservado.
+- Antes de la prueba funcional, host nuevo: 7.776 MiB totales, 6.423 MiB disponibles; panel y agente sin reinicios. Es una observación inicial, no capacidad certificada bajo carga sostenida.
 
-Estas limitaciones impiden declarar listo el despliegue AWS. La siguiente acción facturable requiere aprobar [COSTOS](COSTOS.md).
+Evidencia local: `broker-bootstrap.log`, `private-tls-check.log`, `public-port-check.json`, inventario y logs de staging en `.cluster-local/observability/`; versiones/salud en `.cluster-local/rollouts.json`.
+
+### Prueba pública funcional aprobada
+
+- MFA admin/reader: login correcto; acceso anónimo 401 y detalle de seguridad reader 403.
+- Navegador Chromium: gráfico SVG visible y cero errores JavaScript.
+- Dos clientes WSS: misma sala/worker `rh-game-01`, inicio de partida y snapshots autoritativos.
+- Panel: métricas reales de dos jugadores, seis exporters y datos recientes; evento `room.created` recibido por Kafka, consumidor conectado.
+- Estado final: `/health` saludable, cero conexiones y rechazos. Cuatro servicios nuevos activos y sin reinicios; Prometheus reporta seis exporters y panel como `up=1`.
+- Memoria nueva VM al finalizar: 7.776 MiB totales, 6.536 MiB disponibles. Sin prueba de saturación.
+- Evidencia: `deployed-smoke.json`, `deployed-service-health.log` y `deployed-flow.png` locales; captura pública sanitizada en `panel-aws.png`.
+- Para adaptar el host compartido se ejecutaron tres pruebas focalizadas de infraestructura y lint, aprobadas. No se repitió la batería de 208 pruebas ni las pruebas de fallos locales anteriores.
+
+## Limitaciones y seguimiento
+
+- Medir latencia/CPU/memoria con carga representativa y retención de 24–72 h; la prueba breve de dos clientes no sustituye una prueba de capacidad.
+- No se inyectan fallos ni saturación en producción. Las pruebas de pérdida/recuperación Kafka, colector, duplicados y errores corresponden al laboratorio documentado arriba.
+- Sin réplica ni backup externo automático para pérdida completa del disco nuevo; panel y Kafka comparten un único punto de fallo.
+- No hay alertas externas atendidas automáticamente ni OIDC corporativo; autenticación local con MFA y panel de lectura.
+- GitHub Actions continúa bloqueado por facturación; no se presenta como CI remoto aprobado.
+- Cost Explorer no habilitado: costo acumulado real no disponible. La estimación aprobada y las métricas no son una factura.

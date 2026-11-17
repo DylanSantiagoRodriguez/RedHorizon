@@ -1,20 +1,20 @@
-# Observabilidad de Red Horizon — estado verificable
+# Observabilidad de Red Horizon — despliegue AWS
 
-**Implementada y probada localmente; presupuesto aprobado; despliegue AWS pendiente de ampliación de cuota.** Fecha: 17/11/2026. No hay una URL administrativa pública activa. La ruta prevista es `https://redhorizon.lat/ops/`, únicamente después de desplegar y comprobar el acceso.
+**Panel desplegado y comprobado extremo a extremo en https://redhorizon.lat/ops/.** Fecha: 17/11/2026. API privada sin sesión: HTTP 401.
 
-Se conservaron las cinco EC2, el servicio actual, los datos, DNS y las instancias `redhorizon_last` y `superkanes`. La comprobación HTTPS pública de `/health` respondió `ok: true` con la versión existente `e1fb054af8a3a06f379a3d931ce18630f8e43583`. El código nuevo no está activo en producción.
+Una EC2 nueva `i-0d5651c3f279e29b3`, m7i-flex.large de 8 GiB, comparte Kafka, Prometheus y panel. Se conservan las cinco VM del juego y las dos instancias ajenas. [Inventario y arquitectura](DESPLIEGUE-COMPARTIDO.md). Presupuesto aprobado USD 141; estimación compartida USD 82,60/mes.
 
-## Componentes preparados
+## Componentes
 
-| VM | Función existente o nueva | Observabilidad preparada |
+| VM | Función existente o nueva | Observabilidad |
 |---|---|---|
 | rh-gateway | Nginx HTTPS/WSS y router Node | Bytes/mensajes lógicos por worker, transporte del proxy, RTT ping/pong, conexiones/rechazos, eventos y logs HTTP sin URL/IP/tokens. Proxy mTLS para `/ops/`. |
 | rh-game-01 | Principal i-0db322d7e36dea80a, m7i-flex.large | Salas/jugadores, simulación, event loop, capacidad/drenaje, creación/cierre/reconexión y agente. |
 | rh-game-02 | i-0ee8a3a9d7cf9a1f6, t3.small | Misma instrumentación, conservando capacidad medida. |
 | rh-game-03 | i-0173a548389b00fb6, t3.small | Misma instrumentación, conservando capacidad medida. |
 | rh-coordinator | i-06bb1fd55f4634ed3, t3.micro; Redis loopback | Solicitudes API, eventos y métricas del host. No se exportan códigos ni tokens. |
-| rh-observability | **Nueva, no creada**; c7i-flex.large / 30 GiB | Prometheus, panel Node, SQLite de eventos, consumidor Kafka y consultas básicas CloudWatch. |
-| rh-events | **Nueva, no creada**; c7i-flex.large / 40 GiB | Un broker/controlador Kafka KRaft con mTLS, ACL, cuotas y retención limitada. |
+| rh-observability | i-0d5651c3f279e29b3; m7i-flex.large / 70 GiB | Prometheus, panel Node, SQLite de eventos, consumidor Kafka y consultas básicas CloudWatch. |
+| rh-events | Servicio compartido en rh-observability, no otra VM | Un broker/controlador Kafka KRaft con mTLS, ACL, cuotas y retención limitada. |
 
 Gateway existente: `i-050759a4168f12f3b`, t3.micro. Inventario previo: [INVENTORY](../cluster/INVENTORY.md); el inventario operativo utilizado se conserva en `.cluster-local/inventory.json`. La ampliación genera su propio inventario sin reemplazar el de cinco nodos.
 
@@ -27,8 +27,8 @@ flowchart LR
   C -->|loopback| R[Redis]
   A[Administrador con contraseña + TOTP] -->|HTTPS /ops/| G
   G -->|mTLS 8444| O[rh-observability: panel]
-  P[Prometheus en rh-observability] -->|mTLS 9400| E[Agentes en las siete VM]
-  E -->|mTLS + ACL 9093| K[rh-events: Kafka]
+  P[Prometheus en rh-observability] -->|mTLS 9400| E[Agentes en las seis VM]
+  E -->|mTLS + ACL 9093| K[Kafka en rh-observability, identidad rh-events]
   K -->|consumo autenticado| O
   O -->|loopback| P
 ```
@@ -43,7 +43,7 @@ Prometheus cubre series temporales. Se eligió panel propio para integrar topolo
 
 No se encontró un user pool Cognito en la cuenta. Se preparó autenticación local de servidor con **scrypt + TOTP obligatorio**, sesiones aleatorias de 30 minutos, cookies Secure/HttpOnly/SameSite, protección por origen y límites de intentos. Roles `reader` y `admin`; solo admin consulta detalle de seguridad. No se creó un proveedor OIDC de pago. Si se integra un proveedor corporativo después, sustituir el acceso local con una migración validada.
 
-Exporters y panel privado exigen mTLS con identidad permitida. Kafka exige certificado y ACL por productor/topic/grupo. Prometheus y métricas del panel escuchan en loopback. Security Groups separados para las dos VM nuevas; no se añade SSH público. La PKI de observabilidad es independiente de la del juego.
+Exporters y panel privado exigen mTLS con identidad permitida. Kafka exige certificado y ACL por productor/topic/grupo. Prometheus y métricas del panel escuchan en loopback. Security Groups separados para métricas y eventos, asociados a la misma VM nueva; no se añade SSH público. La PKI de observabilidad es independiente de la del juego.
 
 No se registra contenido de partidas, IP individual, contraseñas, tokens ni códigos utilizables de sala. Los eventos usan UUID internos. Etiquetas de métricas acotadas; cada proceso admite hasta 512 series propias, con versión desplegada constante por proceso. Los logs nuevos de Nginx solo incluyen tiempo, estado, bytes, duración, resultado del límite y categoría fija de ruta.
 
@@ -55,7 +55,7 @@ No se registra contenido de partidas, IP individual, contraseñas, tokens ni có
 - `deploy/observability/`: CloudFormation, límite de permisos IAM, política de provisión temporal, unidades systemd y Nginx.
 - `scripts/observability/`: laboratorio, pruebas, configuración, empaquetado, provisión protegida por presupuesto explícito, inventario y despliegue adicional por SSM.
 
-La plantilla fue validada por CloudFormation. Prometheus y la configuración Nginx resultante de la configuración real también pasaron sus verificadores. Los scripts de provisión y despliegue **no se han ejecutado contra AWS** y aún requieren la validación de permisos/arranque en las nuevas EC2.
+La plantilla fue validada por CloudFormation. Prometheus y la configuración Nginx resultante de la configuración real también pasaron sus verificadores. CloudFormation terminó en CREATE_COMPLETE y la VM responde por SSM. Kafka, Prometheus y panel están activos; topics, ACL y cuotas fueron aplicados. Los puertos públicos 22/8444/9090/9093/9400 no resultan accesibles.
 
 Se mantienen commits y push a `main` con la identidad Git configurada del propietario. GitHub Actions está bloqueado por la facturación de GitHub; las comprobaciones comunicadas se ejecutaron localmente, no se presentan como CI remoto aprobado.
 
@@ -77,3 +77,17 @@ Sin alta disponibilidad: gateway, coordinador, panel/almacenamiento y broker ún
 Se añadió un mapa SVG de las siete VM y sus rutas: WSS, asignación al coordinador, agentes → Kafka → panel y acceso administrativo. Las flechas usan tráfico medido; con muestras ausentes/atrasadas no se simula movimiento. El navegador verificó siete VM y ausencia de errores. No se repitió la batería completa: solo lint de los archivos modificados y esta comprobación visual funcional.
 
 La solicitud de cuota se conserva en `.cluster-local/observability/quota-request.json`. Cuando la cuota aplicada sea suficiente, continuar la provisión y el RUNBOOK con el presupuesto ya aprobado; no pedir nuevamente autorización económica. No cambiar el plan de cuenta ni detener instancias para eludir la cuota.
+
+## Comprobación final del despliegue
+
+Prueba real del 17/11/2026: dos clientes WSS en una sala de `rh-game-01`, snapshots autoritativos, una sala/dos jugadores visibles en el panel, evento de creación producido/consumido por Kafka y gráfico renderizado sin errores JavaScript. Seis exporters y el endpoint de métricas del panel saludables. Kafka conectado con lag observado cero. Al salir, `/health` respondió `ok: true`, cero conexiones y cero rechazos.
+
+La vista muestra seis VM físicas y Kafka como servicio compartido. La captura breve aún indica RTT sin muestras; ese percentil requiere pings y muestras suficientes, no se sustituye por datos ficticios. Se observaron cinco descartes de telemetría durante el arranque escalonado, cuando aún faltaban agentes; el contador permanece visible.
+
+Acceso: usuario `admin` o `reader`, contraseña y código del autenticador. Abrir **localmente** `/Users/dylanrodriguez/Documents/redhorizon/llaveredhorizon/observability-access-20261117/enrollment.json` para obtener la contraseña e inscribir la URI TOTP en el autenticador. No pegar ese archivo en chat ni Git. La cuenta reader no puede consultar el detalle reservado de seguridad.
+
+PEM nueva: `/Users/dylanrodriguez/Documents/redhorizon/llaveredhorizon/rh-observability-20261117T221150Z.pem`, permisos 600. Administración por perfil `rh-cluster-operator` y Session Manager. Permisos temporales de provisión retirados tras crear el stack; acceso operativo limitado al nuevo ID.
+
+[Pruebas y límites](PRUEBAS.md) · [Costos](COSTOS.md) · [Recuperación y apagado](DESPLIEGUE-COMPARTIDO.md).
+
+![Panel AWS durante la partida real de dos clientes](panel-aws.png)
