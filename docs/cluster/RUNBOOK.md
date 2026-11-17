@@ -41,7 +41,7 @@ La configuración no secreta está en `/etc/redhorizon-cluster/cluster.json`. `r
 
 HTTPS público: `/etc/letsencrypt/live/redhorizon.lat/`, Certbot webroot `/var/lib/letsencrypt`, timer habilitado y hook de recarga Nginx. La emisión real y `certbot renew --dry-run` pasaron. Durante la transición el origen anterior deja llegar los desafíos al gateway; después del DNS llegan directamente. No copiar claves privadas a logs o Git.
 
-Certificados internos: 90 días, CA de 365 días guardada solo en `llaveredhorizon/cluster-20261116`. Antes de febrero de 2027, emitir nuevos certificados de servicio firmados por esa CA en un directorio nuevo dentro de llaveredhorizon; mantener CN fijo y SAN con IP privada del inventario. Distribuir únicamente el certificado/clave del host y el certificado público de CA. Rotar cada worker drenado; gateway/coordinador necesitan mantenimiento. Una rotación de CA exige primero confiar en ambas CA, luego cambiar identidades y finalmente retirar la anterior. No hay renovación ni revocación automática de esta PKI interna.
+Certificados internos: 90 días, CA de 365 días guardada solo en `llaveredhorizon/cluster-20261117-strict`. Antes de febrero de 2027, emitir nuevos certificados de servicio firmados por esa CA en un directorio nuevo dentro de llaveredhorizon; mantener CN fijo y SAN con IP privada del inventario. Distribuir únicamente el certificado/clave del host y el certificado público de CA. Rotar cada worker drenado; gateway/coordinador necesitan mantenimiento. Una rotación de CA exige primero confiar en ambas CA, luego cambiar identidades y finalmente retirar la anterior. No hay renovación ni revocación automática de esta PKI interna.
 
 ## DNS y transición
 
@@ -82,3 +82,13 @@ python3 scripts/cluster/stop-lab.py --execute
 ```
 
 El script exige cero salas drenadas y cero túneles, y solo detiene las cuatro EC2 nuevas; excluye la principal y las otras dos instancias. EBS sigue facturando. Al arrancar cambian las IP públicas automáticas: regenerar inventario, fijar nuevamente claves de host mediante SSM y corregir DNS. Las IP privadas suelen conservarse, pero deben verificarse. CloudFormation tiene Retain/protección: borrar el stack no equivale a limpiar todos los recursos. No borrar volúmenes originales como parte de una limpieza automática.
+
+## Comprobación privada y rotación de PKI en candidato vacío
+
+`python3 scripts/cluster/verify-private-network.py` ejecuta las sondas dentro de cada EC2 mediante SSM. Usa las IP privadas, valida SAN y cadenas X.509 estrictas y comprueba rutas permitidas y denegadas. No requiere resolver ni cambiar el dominio de la aplicación. Los códigos 400/405 son respuestas esperadas a peticiones de prueba que no crean salas; 403 y los fallos TLS/red también son éxitos cuando la prueba exige denegar el acceso.
+
+La PKI activa desde el 17/11/2026 es `llaveredhorizon/cluster-20261117-strict`. El generador declara CA v3, Basic Constraints/Key Usage críticos y SKI/AKI explícitos; no depende de valores por defecto de LibreSSL. La prueba de regresión usa `VERIFY_X509_STRICT`, conforme al comportamiento documentado por [Python](https://docs.python.org/3/library/ssl.html) y las extensiones de [OpenSSL](https://docs.openssl.org/3.0/man5/x509v3_config/).
+
+Para una futura rotación con todo el clúster vacío, generar otra PKI en un directorio nuevo y usar `rotate-idle-pki.py RUTA --execute`. Comprueba cero conexiones/salas, prepara solo la identidad de cada host, valida las cadenas y claves, detiene los cinco servicios de clúster, sustituye certificados y arranca de nuevo. Conserva los anteriores por host para rollback. Es mantenimiento del candidato, no rotación sin interrupciones de producción. No toca Caddy ni el backend legado. La CA privada nunca sale del Mac.
+
+Después de restaurar un snapshot antiguo de la principal, reinstalar la PKI actual antes de habilitar admisión: ese snapshot conserva la identidad anterior, ya no aceptada por el clúster.

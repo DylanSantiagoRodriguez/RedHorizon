@@ -8,7 +8,8 @@ import { PROTOCOL_VERSION, GAME_VERSION } from '../../src/network/protocol.js';
 const inventory = JSON.parse(readFileSync('.cluster-local/inventory.json', 'utf8'));
 const expectedWorkers = (process.env.RH_CALIBRATION_WORKERS || 'rh-game-01,rh-game-02,rh-game-03').split(',');
 if (!expectedWorkers.length || expectedWorkers.length > 3 || expectedWorkers.some(id => !/^rh-game-0[123]$/.test(id))) throw new Error('Invalid calibration workers');
-if (process.env.RH_CLUSTER_TEST_ISOLATED !== '1' || process.env.SMOKE_RESOLVE_IP !== inventory.nodes['rh-gateway'].publicIp || (await lookup('redhorizon.lat')).address === process.env.SMOKE_RESOLVE_IP) throw new Error('Isolated candidate required');
+const targetIp = inventory.nodes['rh-gateway'][process.env.RH_CLUSTER_USE_PRIVATE === '1' ? 'privateIp' : 'publicIp'];
+if (process.env.RH_CLUSTER_TEST_ISOLATED !== '1' || process.env.SMOKE_RESOLVE_IP !== targetIp || (await lookup('redhorizon.lat')).address === process.env.SMOKE_RESOLVE_IP) throw new Error('Isolated candidate required');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function until(fn, timeout = 10000) { const end = Date.now() + timeout; while (Date.now() < end) { const value = fn(); if (value) return value; await delay(25); } throw new Error('Calibration timeout'); }
 await assertNoPublicClusterTraffic();
@@ -56,6 +57,10 @@ try {
   clearInterval(inputTimer); inputTimer = null;
   rtts.sort((a, b) => a - b);
   const report = { at: new Date().toISOString(), durationSeconds: 120, logicalBytes, wireBytes: sockets.reduce((n, s) => n + (s._socket?.bytesRead || 0), 0), compression: sockets.map(s => s.extensions), rooms: rooms.map(r => ({ worker: r.serverId, players: r.members.length, maxEnemies: Math.max(...r.members.map(w => w.maxEnemies)), snapshots: r.members[0].snapshots, finalStatus: r.members[0].last.get('snapshot')?.status })), rttP95Ms: rtts[Math.floor(rtts.length * .95)], rttP99Ms: rtts[Math.floor(rtts.length * .99)], samples: rtts.length, connectedAtEnd: sockets.filter(s => s.readyState === WebSocket.OPEN).length, failures };
+  report.gatewayIp = process.env.SMOKE_RESOLVE_IP;
+  report.path = process.env.RH_CLUSTER_USE_PRIVATE === '1' ? 'private-vpc' : 'public-ip';
+  report.remoteAddresses = [...new Set(sockets.map(s => s._socket?.remoteAddress))];
+  report.result = !failures.length && report.connectedAtEnd === expectedWorkers.length * 4 && report.rttP95Ms <= 400 && report.rttP99Ms <= 800 && rooms.every(r => r.members.every(s => s.snapshots >= 100)) && report.remoteAddresses.length === 1 && report.remoteAddresses[0] === report.gatewayIp ? 'passed' : 'failed';
   writeFileSync('.cluster-local/live-calibration.json', JSON.stringify(report, null, 2)); console.log(JSON.stringify(report));
-  if (failures.length || report.connectedAtEnd !== expectedWorkers.length * 4 || report.rttP95Ms > 400 || report.rttP99Ms > 800 || rooms.some(r => r.members.some(s => s.snapshots < 100))) throw new Error('Calibration acceptance failed');
+  if (report.result !== 'passed') throw new Error('Calibration acceptance failed');
 } finally { clearInterval(inputTimer); for (const ws of sockets) { send(ws, { type: 'leave' }); ws.close(); } }

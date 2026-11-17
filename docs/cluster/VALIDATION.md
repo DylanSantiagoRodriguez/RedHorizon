@@ -80,3 +80,7 @@ Limitaciones: un gateway, un coordinador y una AZ; no HA completa, autoscaling, 
 La prueba por la IP antigua a través de un puente falló al cargar los modelos 3D dentro del plazo, tanto con proxy completo como con frontend local; otra ejecución alcanzó el lobby pero no terminó de preparar modelos. No se contabilizaron como aprobadas. Se retiró el puente y se restauró Caddy/backend legado, conservando las cinco EC2 candidatas. El paso final de DNS y retiro de la entrada antigua sigue pendiente del propietario. No se declara completada la migración pública.
 
 La repetición final de dos navegadores contra el gateway directo también pasó sin errores (informe `candidate-browser-final.log`, build e1fb054). El fallo de la entrada antigua no se reprodujo al acceder directamente al gateway.
+
+## Actualización del 17 de noviembre de 2026
+
+Se repitió la verificación en las cinco EC2 y se corrigió/desplegó la PKI para clientes X.509 estrictos. Ver [pruebas privadas, salas y carga actuales](PRUEBAS-EC2-2026-11-17.md). Los resultados incluyen 18 sondas privadas aprobadas, 20 puertos públicos bloqueados y combate con 12 jugadores tanto dentro de la VPC como desde el Mac, sin cambiar DNS.

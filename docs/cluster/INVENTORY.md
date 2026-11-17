@@ -19,7 +19,7 @@ Grupos exclusivos:
 
 Las cuatro PEM se guardaron en `/Users/dylanrodriguez/Documents/redhorizon/llaveredhorizon`, con nombres que comienzan por el rol y terminan en `20261116T234246Z.pem`, modo 600. La llave existente de la principal se conserva.
 
-La PKI interna está en `llaveredhorizon/cluster-20261116`; se distribuye solo el certificado y clave de cada servicio. La CA privada no sale del Mac.
+La PKI interna está en `llaveredhorizon/cluster-20261117-strict`; se distribuye solo el certificado y clave de cada servicio. La CA privada no sale del Mac.
 
 Perfil operativo: `rh-cluster-operator`. Su usuario dedicado solo puede asumir el rol acotado a los cinco IDs. Credenciales de origen en el archivo estándar local de AWS, sin imprimirlas ni copiarlas a EC2. Root se usó para bootstrap de IAM y CloudFormation; no puede asumir roles directamente. MFA del operador humano sigue requiriendo enrolamiento del propietario.
 
