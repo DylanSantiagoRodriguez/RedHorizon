@@ -38,7 +38,7 @@ El gateway conserva el túnel por conexión; no consulta el coordinador por cada
 
 La caída del coordinador rechaza nuevas asignaciones y búsquedas. Una caída de Redis conserva los túneles; AOF permite recuperar directorio, no simulación. La pérdida del disco de Redis o una reserva parcialmente confirmada puede exigir recrear sala: no se garantiza continuidad bajo todos los fallos. Una caída de worker pierde sus partidas. Un gateway caído rompe las conexiones; reconectar depende del plazo y del proceso propietario.
 
-Capacidad por worker: **0 por defecto**, hasta calibrar en las máquinas reales. No se extrapola el benchmark del Mac. La asignación normaliza salas/capacidad y observa CPU/event-loop; los diferentes tamaños admiten capacidades distintas después de medir.
+Capacidad inicial ensayada: **1 sala de hasta 4 jugadores por worker**, tres salas/12 jugadores en total. El renderizador sigue usando cero si no se entrega evidencia de capacidad. La asignación combina salas/capacidad con CPU y event loop medidos: la principal mostró menor CPU/tiempo de paso. No se extrapola su mayor RAM a un número arbitrario de salas; subir su capacidad requiere otra prueba. La prueba de 120 s no certifica campañas prolongadas ni capacidad máxima.
 
 ## Seguridad y rendimiento
 

@@ -28,3 +28,5 @@ Los cinco nodos tienen SSM Online, IMDSv2 obligatorio/hop 1 y discos activos gp3
 Volumen principal activo: `vol-0ad96b0c2a48bea88`. Original conservado, separado y sin cifrar: `vol-0cb0eae776043b3fd`. Snapshot previo consistente: `snap-06ec86622619fd83b`; tarea `replacevol-00235f7ae161bf7aa` completada. El reinicio mantuvo IP y datos, comprobados con hashes y salud.
 
 HTTPS público en Nginx: certificado propio de Let’s Encrypt para apex y www, vence 14 de febrero de 2027; `certbot.timer` activo y renovación simulada aprobada. PKI interna de 90 días: requiere rotación operativa antes del vencimiento; la CA permanece en el Mac.
+
+Release del clúster en los cinco: `e1fb054af8a3a06f379a3d931ce18630f8e43583`. Capacidad inicial: una sala de cuatro jugadores por worker. El candidato se valida directamente en `3.23.131.44`. Se retiró el puente experimental porque la carga de modelos por la IP antigua no superó el plazo; Caddy/backend originales están restaurados y el timer legado permanece deshabilitado. DNS aún apunta a la IP antigua. Ejecutar `finalize-dns.py` después del cambio externo y de terminar las salas legadas.

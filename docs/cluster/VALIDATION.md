@@ -1,36 +1,82 @@
-# Evidencia local — 16 de noviembre de 2026
+# Resultados reales — 16 de noviembre de 2026, Bogotá
 
-## Resultados ejecutados
+## Código y navegadores
 
-- `npm run check`: **191 pruebas en 38 archivos**, ESLint y build aprobados en la ejecución final (18:24 Bogotá).
-- Integración de clúster: Redis real y WebSockets con mTLS. Cobertura de distribución, dos jugadores en la misma sala, reconexión sin coordinador, certificados no autorizados, rutas arbitrarias, reservas concurrentes/expiradas, replay, encarnaciones, drenaje, fallo de worker y abuso con tráfico legítimo.
-- `npm run test:cluster:browser`: **1 escenario aprobado**, tres contextos Chromium, 33,5 s. Creación/unión, distribución, inicio compartido y recarga/reconexión durante caída del coordinador.
-- `npm run test:online`: **2 escenarios aprobados**, 39,1 s. Expedición cooperativa completa y reintento de conexión. Conserva regresiones del modo previo.
-- `nginx -t`: plantilla renderizada con certificados de prueba, sintaxis válida. No se inició un Nginx permanente ni se probó aún TLS público de AWS.
-- CloudFormation `validate-template`: infraestructura y rol aceptados. Esto verifica estructura básica, **no** ejecución ni permisos suficientes para aprovisionar.
-- Sintaxis Python/Bash y `git diff --check`: correctos.
-- Artefacto inspeccionado: sin archivos PEM/KEY ni tests; dependencias de producción instaladas fuera de las EC2.
+- `npm run check`: 191 pruebas en 38 archivos, lint y build aprobados. Se repitieron después de compresión y precisión de snapshots.
+- Redis real + mTLS: reservas atómicas, expiración, replay, reincarnación, certificados incorrectos, destinos arbitrarios, reconexión, drenaje y aislamiento de abuso.
+- Playwright clúster: 1 escenario aprobado con tres contextos; incluye reconexión durante caída del coordinador. Suite anterior online: 2 escenarios aprobados.
+- Navegadores contra AWS candidato con certificado válido y resolución local: creación/unión, movimiento y enemigos compartidos, disparos autoritativos, Escape, identidad tras recarga y salida; sin errores. Build `e1fb054af8a3a06f379a3d931ce18630f8e43583`.
+- Linux: configuración Nginx y Caddy validada; servicios sin privilegios, release versionada y salud por mTLS.
 
-## Artefacto de revisión
+## Calibración real y correcciones
 
-Ruta local: `.cluster-local/artifacts/redhorizon-cluster-20261116T232422Z.tar.gz`.
+Todos los ensayos de carga/fallos se ejecutaron contra el candidato aislado, antes de pasar tráfico público. Los scripts rechazan el destino de DNS productivo y también detectan si la IP antigua ya está actuando como puente al clúster.
 
-SHA-256: `6b6e8c5863e00968c539ccb4affebda30fc159d98f6dd49fa6ad20d26eb76732`.
+El primer ensayo con 12 clientes falló: cinco errores LIMIT, solo dos conexiones vivas al final y RTT p99 de 7.175 ms. Se conservaron esos resultados. La compresión sola mantuvo las conexiones pero dejó p95 de 2.627 ms, también insuficiente. Los créditos de CPU no estaban agotados.
 
-Manifiesto: `{"commit": "fe29dd62d420bd961e05b0ae8df37fd5d41743bf-worktree", "builtAt": "2026-11-16T23:24:22.002Z"}`.
+Se aplicó compresión sin historial compartido, precisión de red de 1 mm, reutilización del JSON por broadcast y snapshots a 10 Hz. La simulación sigue siendo autoritativa a 60 Hz. No se eliminaron los límites de mensajes/colas para ocultar el fallo.
 
-Es un artefacto de checkout modificado (`-worktree`), no una publicación aprobada. Las versiones anteriores en .cluster-local son borradores y no deben desplegarse.
+Ensayo final: **120 s, tres salas en tres workers, cuatro jugadores por sala, 20 inputs/s por jugador, movimiento, disparos y mejoras**.
 
-## Medición local limitada
+| Medida | Resultado |
+|---|---:|
+| Conexiones al final | 12/12 |
+| Errores | 0 |
+| RTT p95 desde el Mac en Colombia | 126,18 ms |
+| RTT p99 | 140,61 ms |
+| Muestras de RTT | 1.404 |
+| Bytes WebSocket recibidos | 76.170.396 |
+| Enemigos máximos observados por sala | 49 / 42 / 39 |
 
-Tres workers y seis clientes en un mismo proceso de prueba en el Mac, aproximadamente 10.45 s. RTT p95 observado 22.53 ms con polling de 20 ms. CPU/RSS son compartidos por el proceso y **no se interpretan como capacidad de tres EC2 independientes**. La prueba no representa combate sostenido a máxima carga ni agotamiento de créditos T3.
+El criterio de aceptación exige p95 <= 400 ms y p99 <= 800 ms además de mantener las conexiones. Una prueba previa de ocho clientes con la corrección también pasó (p95 127,58 ms).
 
-El build advierte sobre un bundle mayor de 650 kB. Se observó un EPIPE en Vite al cerrar el escenario de clúster; el escenario pasó y la conexión ya se estaba cerrando. La suite previa también muestra el aviso existente de Three.js sobre PCFSoftShadowMap.
+Picos de las muestras de worker de ese intervalo:
 
-## Producción y pendientes
+| Worker | CPU (fracción de un núcleo) | RSS | Máximo paso muestreado | Máximo p99 del event loop |
+|---|---:|---:|---:|---:|
+| Principal m7i-flex.large | 0,098 | 118,4 MB | 2,33 ms | 21,94 ms |
+| game-02 t3.small | 0,257 | 109,6 MB | 14,65 ms | 37,88 ms |
+| game-03 t3.small | 0,186 | 120,5 MB | 17,85 ms | 33,95 ms |
 
-Última consulta pública: `/health` devuelve ok y buildId `fe29dd62d420bd961e05b0ae8df37fd5d41743bf`. AWS sigue mostrando solo las tres instancias originales, encendidas. No se cambiaron DNS, reglas SG, perfil IAM, servicios productivos o instancias.
+El monitor del event loop tiene resolución de 20 ms, que forma parte de su lectura base. Son muestras, no garantía para toda la campaña. Capacidad inicial habilitada: **una sala de hasta cuatro jugadores por worker**. La principal conserva margen mayor; no se habilitaron salas adicionales por intuición. Quedan pendientes campañas prolongadas, cargas mayores y medición sostenida hasta el agotamiento de créditos antes de aumentar capacidad o afirmar un SLO.
 
-Pendientes tras presupuesto: crear cuatro nodos, configurar IAM con MFA y SSM, instalar certificados de servicio y HTTPS público, validar Linux/systemd, medir capacidad real, probar aislamiento de red y rollback en EC2, completar el cifrado del disco principal durante mantenimiento y aprobar el cambio de DNS. No se declara terminada la migración ni verificada la operación extremo a extremo en AWS.
+## Fallos, límites y despliegues
 
-Para las pruebas se instalaron Redis y Nginx mediante Homebrew, sin habilitar servicios permanentes. Las claves temporales de prueba se eliminaron. `llaveredhorizon` tiene modo 700 y la llave existente `redhorizon.pem` conserva su modo 400. Las cuatro nuevas PEM de AWS aún no se generaron; el script preparado las guarda con modo 600 en esa carpeta.
+Prueba final en AWS aprobada a las 20:27 Bogotá:
+
+- Tres salas asignadas a tres workers y dos clientes de cada código en el mismo owner.
+- Coordinador detenido: túneles existentes y reconexión con hint siguen; nuevas creaciones fallan controladamente.
+- Reinicio de game-02: su sala se pierde y la encarnación anterior queda invalidada; no se promete recuperar RAM.
+- Drenaje de game-03: conserva su conexión y la sala nueva elige otro worker.
+- Sesión que envía 160 mensajes en una ráfaga: limitada; otra sesión legítima sigue respondiendo.
+- Mensaje comprimible de 5.000 bytes: rechazado por límite de tamaño descomprimido, código 1009.
+- Actualización y rollback funcionales en game-02 y game-03, con cero salas y marcador de drenaje; vuelta a la release nueva tras verificar salud.
+- Delta: tres archivos cambiados, unos 371 KB en vez de 219 MB; se comprobaron los hashes de los 18.649 archivos/enlaces de la release reconstruida. Se detectó y corrigió el manejo de metadatos AppleDouble antes de activar la principal. Un cierre de transporte SSM en el coordinador obligó a comprobar su estado y manifiesto mediante Run Command; estaba activo con la release correcta.
+
+## Infraestructura y TLS
+
+- Cinco EC2 del clúster registradas Online en SSM; las otras dos permanecen fuera de alcance.
+- Cinco raíces activas gp3 de 20 GiB, cifradas; IMDSv2 obligatorio y hop limit 1.
+- Principal conservada, mismo ID/IP. Snapshot consistente con filesystem congelado y watchdog; sustitución de raíz completada y hashes de configuración/manifiesto iguales tras reinicio. Raíz al 33 % inmediatamente después del cambio. Original separado conservado sin cifrar, pendiente de política de retención.
+- Tres grupos nuevos; ninguna regla TCP22. Veinte sondas públicas a 22/8787/8443/6379 bloqueadas. Principal conserva entrada web temporal para la transición, que debe retirarse al completar DNS.
+- Redis en loopback. Worker/coordinador requieren TLS y certificado de identidad permitido.
+- Certificado público propio emitido para apex/www, vencimiento 14/02/2027. Renovación simulada aprobada; timer y hook de recarga activos. Certificados internos requieren rotación manual antes de sus 90 días.
+- Cuatro PEM nuevas 600 en el directorio indicado 700; llave original 400 conservada. No se imprimieron ni incluyeron claves privadas en Git, artefactos o estado.
+
+## Artefacto y evidencia
+
+Release completa: `.cluster-local/artifacts/redhorizon-cluster-20261117T001501Z.tar.gz`.
+
+Commit: `e1fb054af8a3a06f379a3d931ce18630f8e43583`.
+
+SHA-256: `24e59134e9dc6a915452931f715f422de8a87604c8b67e8d451f1cd96c18cdaa`.
+
+Informes locales ignorados por Git: `live-calibration*.json`, `live-metrics*.json`, `live-fault-checks.json`, `live-limits.json`, `rollouts.json`, `root-migration.json`, `observations.json`, `final-infrastructure-checks.json`. Las versiones borrador `-worktree` no se usaron como release final.
+
+Limitaciones: un gateway, un coordinador y una AZ; no HA completa, autoscaling, alertas externas ni recuperación de partidas en RAM. Cost Explorer no está habilitado. MFA del operador, rotación de PKI, capacidad prolongada y cierre del puente tras DNS quedan explícitos. La compilación conserva el aviso de bundle grande del frontend.
+
+## Límite de la validación pública
+
+La prueba por la IP antigua a través de un puente falló al cargar los modelos 3D dentro del plazo, tanto con proxy completo como con frontend local; otra ejecución alcanzó el lobby pero no terminó de preparar modelos. No se contabilizaron como aprobadas. Se retiró el puente y se restauró Caddy/backend legado, conservando las cinco EC2 candidatas. El paso final de DNS y retiro de la entrada antigua sigue pendiente del propietario. No se declara completada la migración pública.
+
+La repetición final de dos navegadores contra el gateway directo también pasó sin errores (informe `candidate-browser-final.log`, build e1fb054). El fallo de la entrada antigua no se reprodujo al acceder directamente al gateway.

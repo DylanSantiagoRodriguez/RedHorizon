@@ -1,99 +1,84 @@
-# Procedimiento de despliegue, migración y recuperación
+# Operación de las cinco EC2
 
-No ejecutar creación hasta aprobar COSTS.md. Los comandos con nombres de llaves/stack/dominio requieren valores reales del inventario; no son un despliegue ya realizado.
+Inventario e IDs en [INVENTORY.md](INVENTORY.md); costos en [COSTS.md](COSTS.md). Ejecutar desde la raíz del repositorio. El perfil cotidiano es `rh-cluster-operator`; no usar root para operación. Las otras dos EC2 quedan excluidas.
 
-## 1. Identidad y plan
+## Acceso y estado
 
-1. Confirmar cuenta `670036769494`, región Ohio, saldo, horario y presupuesto.
-2. Crear/configurar identidad administrativa dedicada con MFA; no publicar credenciales. El operador diario usa el rol de `operator-role.json`, que exige MFA y limita start/stop/SSM a tags del clúster. No tiene permisos IAM, de creación de flota ni de cambios de red. El bootstrap de infraestructura requiere una identidad de aprovisionamiento revisada; no reutilizar root en instancias ni CI.
-3. Validar plantillas con `aws cloudformation validate-template`. La plantilla principal **solo crea cuatro nodos**. La EC2 existente no entra en su ciclo de borrado/reemplazo. Los cuatro nuevos tienen protección contra terminación y Retain.
-4. Crear las cuatro llaves con `python3 scripts/cluster/create-keys.py`. Son RSA 3072 PEM sin sobrescritura, 600 dentro de llaveredhorizon 700. Solo se importa la parte pública en AWS. Guardar nombres devueltos para parámetros GatewayKeyName, Game02KeyName, Game03KeyName y CoordinatorKeyName.
-5. Crear y revisar un change set de CloudFormation para `deploy/cluster/infrastructure.json`, parámetros de llaves reales y UbuntuAmi `ami-096d6538c463eb1db`, CAPABILITY_IAM. Revalidar AMI Canonical antes. Ejecutarlo solo dentro del presupuesto acordado.
-
-## 2. Inventario, configuración y certificados
+AWS CLI y Session Manager Plugin 1.2.896.0 están instalados en el Mac. El plugin se verificó por SHA-256 y firma/notarización de Amazon. `remote.py` usa SSH dentro de Session Manager, con clave de host verificada y PEM local; no necesita abrir TCP 22. Para comandos habituales usar SSM Run Command o una sesión de consola. Las llaves y la CA nunca entran en payloads SSM, Git ni artefactos.
 
 ```sh
-python3 scripts/cluster/inventory.py NOMBRE_STACK > .cluster-local/inventory.json
-python3 scripts/cluster/render-config.py .cluster-local/inventory.json .cluster-local/config
-python3 scripts/cluster/pki.py /Users/dylanrodriguez/Documents/redhorizon/llaveredhorizon/cluster-FECHA --hosts .cluster-local/config/hosts.json
+aws sts get-caller-identity --profile rh-cluster-operator
+aws ssm describe-instance-information --region us-east-2 --profile rh-cluster-operator
+python3 scripts/cluster/observe.py
 ```
 
-La ruta de PKI debe ser nueva. Cada servidor recibe solo `ca.crt`, su certificado y su clave privada; nunca `ca.key` ni la identidad de otro servidor. Instalar en `/etc/redhorizon-cluster/tls`, clave con propietario del servicio y modo 600. Config `/etc/redhorizon-cluster/cluster.json`, root:servicio 640. Las claves de prueba se generan en subdirectorios temporales dentro de llaveredhorizon y se eliminan al terminar las pruebas.
+`observe.py` guarda métricas estándar de CloudWatch y estado del worker en `.cluster-local/observations.json`. No habilita métricas personalizadas ni alarmas de pago. Métricas de juego cada 5 s en `/run/redhorizon-cluster/status.json` y journald; retención 7 días/100 MiB. Nginx rota hasta siete archivos, umbral 10 MiB evaluado cada hora. Los parches no reinician automáticamente el juego: needrestart informa servicios pendientes y los reinicios requieren drenaje; no hay reboot automático. Revisar CPUCreditBalance en T3 Standard: agotar créditos reduce CPU. No hay alertas externas automáticas ni respuesta operativa 24/7.
 
-La capacidad por defecto es cero. Para el laboratorio aislado se habilita una sala por nodo, se prueba y después se calibra. No abrir producción con una capacidad inventada. Para cambios de capacidad, actualizar config durante drenaje/reinicio.
+El usuario IAM dedicado solo asume el rol acotado a las cinco instancias. La política permite cerrar únicamente las sesiones de su propia identidad, usando la condición recomendada por [AWS](https://docs.aws.amazon.com/systems-manager/latest/userguide/getting-started-restrict-access-examples.html). El MFA humano no está enrolado: es un pendiente del propietario, no una protección ya activa.
 
-Registrar nuevas EC2 en SSM. Para la principal, instalar/habilitar agente y asociar el perfil aprobado sin tocar su servicio actual. Comprobar inicio de sesión SSM antes de retirar SSH. La plantilla no cambia automáticamente el perfil, los tags ni SG de la principal.
-
-## 3. Preparar hosts y artefactos
-
-`install-host.sh` es un script para ejecutar como root dentro de cada host. Usa `gateway`, `game` o `coordinator`. Instala unidades pero no arranca el runtime. **No usar el rol gateway en la principal**, porque instalar Nginx puede ocupar el puerto 80.
+## Construcción y publicación
 
 ```sh
-bash scripts/cluster/package.sh /RUTA/ABSOLUTA/artefactos
+bash scripts/cluster/package.sh "$PWD/.cluster-local/artifacts"
 ```
 
-Ejecuta check local y empaqueta frontend, runtime, dependencias de producción y Node Linux 22.23.5 verificado contra SHA-256 fijado. Una compilación de checkout modificado se etiqueta `-worktree`; tratarla como artefacto de revisión, no como release final. Antes de producción, fijar revisión y registrar SHA-256 exacto aprobado.
+Construye y prueba en el Mac; empaqueta frontend, runtime, dependencias de producción y Node Linux 22.23.5 con checksum fijado. No publica un checkout `-worktree` como release final. Guardar commit y SHA-256 del artefacto. `stage-fleet.py` sirve para la instalación inicial con servicios detenidos, no para actualizar partidas activas.
 
-Transferir el artefacto mediante una sesión SSM con túnel o canal SSH autorizado, sin abrir SSH global. Verificar digest recibido por canal confiable. Ejecutar `activate.sh ARCHIVO SHA256 RELEASE` en un servicio detenido; conserva el enlace anterior. No extraer código en el árbol de producción legado.
-
-Para game-01, el proceso legado ocupa `127.0.0.1:8787`; el nuevo puede usar `172.31.16.183:8787` con mTLS durante preparación. Medir memoria y CPU de la convivencia. El código nuevo usa `/srv/redhorizon-cluster`, no `/srv/redhorizon/current`.
-
-## 4. Entrada HTTPS y prueba previa al DNS
-
-Renderizar `nginx.conf` con el dominio real. Instalar un certificado público válido antes de habilitar 443. Obtenerlo mediante desafío DNS controlado o trasladar de forma segura el certificado vigente y su clave desde Caddy para la transición; cualquier copia privada temporal se guarda solo en llaveredhorizon. Configurar renovación ACME en el gateway antes de retirar el origen antiguo.
-
-Las rutas de la plantilla son `/etc/letsencrypt/live/DOMINIO/fullchain.pem` y `privkey.pem`. Si se usa un certificado trasladado, ajustar las rutas a su ubicación privada real: copiar archivos no crea automáticamente una configuración de renovación de Certbot.
-
-Validar `nginx -t` en Linux y probar sin cambiar DNS:
+Para reducir transferencia por SSM, construir un delta local entre artefactos completos conocidos:
 
 ```sh
-curl --fail --resolve redhorizon.lat:443:IP_GATEWAY https://redhorizon.lat/health
+python3 scripts/cluster/make-delta.py NUEVO.tar.gz DELTA.tar.gz --base ANTERIOR.tar.gz
+python3 scripts/cluster/rollout.py DELTA.tar.gz --delta --release REVISION --hosts rh-game-02 rh-game-03 rh-game-01
 ```
 
-No usar `-k` ni desactivar verificación TLS. Probar frontend y WebSocket con resolución local del dominio a la IP candidata. Verificar puertos desde Internet y desde cada SG. Ejecutar dos navegadores reales, reconexión, tres salas distribuidas y el smoke de producción contra la candidata. No ejecutar estrés sobre el dominio productivo.
+El delta copia mediante enlaces duros la versión anterior, desliga cada archivo modificado antes de escribirlo y verifica todos los hashes del resultado contra el artefacto completo. La versión de rollback permanece intacta. No recompila en las EC2. La activación se detiene ante cualquier discrepancia. Una interrupción puede dejar un directorio incompleto: revisar el log privado antes de reintentar; `activate-delta.py --resume-verification` solo verifica y activa una reconstrucción completa.
 
-## 5. Calibración y cambio
+El rollout drena cada worker, espera cero salas, activa la release, comprueba salud mTLS desde gateway y reabre admisión. Espera que el coordinador acepte la nueva encarnación. El plazo de drenaje es 7.500 s; al vencer, no mata partidas. `--rollback-check` prueba retorno a la versión previa con el worker vacío y vuelve a la nueva. Gateway/coordinador requieren `--allow-entry-interruption`, cero túneles y una ventana de mantenimiento: son instancias únicas.
 
-Hacer carga controlada por nodo: una sala con cuatro jugadores, combate/guardianes, luego incrementar salas. Medir p95/p99 de RTT, tiempo de paso, retraso del event loop, memoria y CPU durante un período que incluya consumo sostenido de créditos T3. Reservar margen y volver a probar mezclando abuso con usuarios legítimos, incluidos varios jugadores tras una IP.
+La configuración no secreta está en `/etc/redhorizon-cluster/cluster.json`. `render-config.py` usa capacidad cero si el inventario no incluye una medición aprobada. No confundir capacidad cero de una plantilla nueva con la configuración de los hosts ya calibrados. Respaldar inventario local antes de regenerarlo: `inventory.py` descubre recursos pero no certifica capacidad.
 
-Los benchmarks locales de 10 s no certifican esa capacidad. Consultar CPUCreditBalance, CPUUtilization, NetworkIn/Out en CloudWatch sin habilitar métricas personalizadas automáticamente. Definir alertas y retención según el presupuesto; actualmente solo hay métricas estructuradas y logs locales.
+## Certificados
 
-Antes de cambiar DNS, impedir nuevas salas en el legado y esperar las existentes, con mantenimiento anunciado si se necesita reinicio. El backend legado no tiene el nuevo drenaje: no suponer que SIGUSR1 lo implementa. Puede restringirse creación mediante un cambio específico y validado o realizar una ventana de corte cuando no haya jugadores.
+HTTPS público: `/etc/letsencrypt/live/redhorizon.lat/`, Certbot webroot `/var/lib/letsencrypt`, timer habilitado y hook de recarga Nginx. La emisión real y `certbot renew --dry-run` pasaron. Durante la transición el origen anterior deja llegar los desafíos al gateway; después del DNS llegan directamente. No copiar claves privadas a logs o Git.
 
-En la transición, los clientes del servidor legado no conocen el directorio nuevo: una sala antigua no migra. Evitar que códigos se compartan entre destinos durante propagación; conservar origen legado para rollback. Solo después de comprobar el gateway, retirar exposición directa y detener el timer de despliegue legado para que no publique versiones incompatibles. Ningún paso está automatizado sobre la principal sin esa transición.
+Certificados internos: 90 días, CA de 365 días guardada solo en `llaveredhorizon/cluster-20261116`. Antes de febrero de 2027, emitir nuevos certificados de servicio firmados por esa CA en un directorio nuevo dentro de llaveredhorizon; mantener CN fijo y SAN con IP privada del inventario. Distribuir únicamente el certificado/clave del host y el certificado público de CA. Rotar cada worker drenado; gateway/coordinador necesitan mantenimiento. Una rotación de CA exige primero confiar en ambas CA, luego cambiar identidades y finalmente retirar la anterior. No hay renovación ni revocación automática de esta PKI interna.
 
-## 6. Actualización gradual
+## DNS y transición
 
-Para cada worker, uno por vez:
+El propietario cambia `A @` a **3.23.131.44**, y `www` a CNAME `redhorizon.lat` o A a la misma IP. Retirar registros A/AAAA antiguos que compitan. Un TTL de 300 s facilita la transición. No se modificó DNS mediante herramientas.
 
-1. Ejecutar `drain-host.sh` mediante SSM. Mantiene un marcador que sobrevive reinicios y espera cero salas; plazo predeterminado 7.500 s. Al vencer, **no mata** las partidas.
-2. El script detiene el servicio después de comprobar un status reciente, draining=true y rooms=0.
-3. Instalar artefacto nuevo con `activate.sh`; el marcador conserva el estado drenado.
-4. Comprobar health por mTLS desde gateway y estado/registro local. El identificador de revisión debe coincidir con el artefacto aprobado.
-5. Ejecutar `reopen-host.sh` solo después de validar; exige cero salas y reinicia con nuevas asignaciones habilitadas. El coordinador puede esperar hasta 15 s para aceptar una nueva encarnación.
+Se conserva Caddy/backend legado en la principal hasta que el propietario cambie DNS. Se ensayó y retiró un puente temporal: la ruta por la IP antigua no superó la carga de modelos dentro del plazo. El acceso directo al gateway sí pasó. No reactivar ese puente como procedimiento de producción. El timer de despliegue legado queda deshabilitado para evitar publicar otra versión durante la transición.
 
-Gateway y coordinador únicos requieren mantenimiento o tolerancia de reconexión: no prometer actualización sin interrupción. No activar autoscaling con sesiones activas.
+Antes del cambio, realizar una ventana sin salas legadas o esperar que terminen. Las conexiones antiguas ya abiertas pueden continuar mientras viva el proceso, pero sus códigos/tokens no migran al directorio nuevo: durante propagación no se garantiza unión ni reconexión a salas antiguas. El cierre posterior se niega si quedan salas legadas.
 
-## 7. Rollback
+Después de propagación, comprobar y retirar la entrada legada:
 
-Si el nuevo worker no pasa salud, mantenerlo drenado, detenerlo y restaurar el symlink anterior en `/srv/redhorizon-cluster/current`; reiniciar, verificar salud y luego reabrir. `activate.sh` revierte automáticamente solo si systemd falla al iniciar; fallos funcionales requieren esta comprobación explícita. No se recuperan partidas si se fuerza una parada con salas activas.
+```sh
+python3 scripts/cluster/finalize-dns.py
+python3 scripts/cluster/finalize-dns.py --execute
+```
 
-Un cambio de protocolo incompatible requiere versión nueva y recarga de clientes. Esta implementación conserva el protocolo existente y añade un campo opcional de ruta en welcome.
+Consulta dos resolutores públicos para apex/www y exige que solo devuelvan gateway, sin IPv6 antiguo. Comprueba salud pública del gateway y cero salas legadas, detiene Caddy/backend antiguos y deja en la principal únicamente GameSecurityGroup. No reinicia los workers ni mueve partidas. Hacerlo dentro de una ventana vigilada tras la propagación.
 
-Rollback de migración: restaurar DNS hacia la principal y su servicio/Caddy original, que deben conservarse hasta aprobar el cambio. Las salas del clúster no se transfieren al legado. Conservar copia del registro DNS anterior y TTL real antes de modificarlo.
+Los códigos/sesiones antiguos no migran; el cambio final de DNS todavía no se realizó. Los códigos nuevos siempre pertenecen a un único proceso. Las partidas en RAM se pierden si ese proceso cae; Redis no las reconstruye.
 
-## 8. Cifrado del disco principal
+## Recuperación y rollback
 
-El volumen actual no puede cifrarse in situ. Planificar snapshot consistente, copia cifrada y volumen gp3 de destino en la misma AZ, conservando el volumen viejo para rollback. Requiere parada/control de montajes, verificación del arranque, filesystem y aplicación. Estimar snapshot y volumen coexistente antes de ejecutar. No declarar toda la flota cifrada mientras este paso siga pendiente.
+Worker defectuoso: mantenerlo drenado, parar servicio, restaurar el symlink de `/srv/redhorizon-cluster/current` a la release previa, iniciar, verificar mTLS y reabrir. No forzar parada de una sala activa. `activate.sh`/`activate-delta.py` revierten automáticamente solo fallos de inicio; salud funcional debe verificarse aparte.
 
-## 9. Apagado y costos residuales
+Coordinador caído: los túneles existentes siguen funcionando; reiniciar `redhorizon-cluster` y comprobar Redis loopback/AOF. Rechaza nuevas asignaciones mientras falla. Un gateway caído corta túneles: recuperación/reconexión depende del plazo de 30 s y de que el owner siga vivo. No hay alta disponibilidad completa.
+
+Rollback público: drenar primero el clúster, restaurar `/etc/caddy/Caddyfile.pre-cluster-routing` en la principal, habilitar `redhorizon-backend` y Caddy; conservar temporalmente GatewaySecurityGroup y DNS antiguo según inventario. No activar automáticamente el viejo timer de despliegue. Las salas nuevas no se transfieren al legado.
+
+La raíz principal se sustituyó mediante la [API de reemplazo de EBS](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/replace-root.html), conservando instancia/IP. El script `encrypt-main-root.py` es una migración única, con ID de volumen original fijado, snapshot consistente, watchdog de descongelación y verificación de hashes tras reiniciar. No volver a ejecutarlo como rutina. Se conserva el volumen original separado y el snapshot previo; ambos son anteriores al cifrado. Para volver a esos datos, crear una copia **cifrada** en la misma AZ y usar root replacement: AWS no permite reemplazar una raíz cifrada por una sin cifrar.
+
+## Apagado del laboratorio
+
+Primero mantener o restaurar el servicio legado si se necesita conservar el sitio y resolver DNS. En cada uno de los tres workers marcar drenaje y enviar SIGUSR1 mediante SSM; esperar estado fresco con draining=true, rooms=0. Mantener los procesos vivos durante la comprobación del apagado. Entonces:
 
 ```sh
 python3 scripts/cluster/stop-lab.py
-# Solo tras drenaje y dentro del horario aprobado:
 python3 scripts/cluster/stop-lab.py --execute
 ```
 
-Solo selecciona los cuatro nodos nuevos etiquetados y excluye los tres IDs existentes. Detener gateway/coordinador interrumpe el servicio nuevo: volver al legado primero si ya se migró DNS. Los discos siguen facturando y las IP públicas automáticas cambian al arrancar. Regenerar inventario, certificados si cambian IP privadas y config cuando corresponda.
-
-Retain y protección contra terminación impiden tratar `delete-stack` como limpieza completa. Para retirada definitiva, revisar inventario, respaldos, volúmenes, llaves públicas y roles; eliminar únicamente recursos nuevos autorizados. No automatizar borrado de recursos existentes.
+El script exige cero salas drenadas y cero túneles, y solo detiene las cuatro EC2 nuevas; excluye la principal y las otras dos instancias. EBS sigue facturando. Al arrancar cambian las IP públicas automáticas: regenerar inventario, fijar nuevamente claves de host mediante SSM y corregir DNS. Las IP privadas suelen conservarse, pero deben verificarse. CloudFormation tiene Retain/protección: borrar el stack no equivale a limpiar todos los recursos. No borrar volúmenes originales como parte de una limpieza automática.

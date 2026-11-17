@@ -35,3 +35,7 @@ T3 Standard evita el cargo de créditos excedentes de Unlimited, pero al agotar 
 Reproducir cálculo: `python3 scripts/cluster/estimate.py`.
 
 La ejecución continuó por instrucción del propietario después de presentar la estimación. Las cuatro nuevas permanecen encendidas; no se cambió el plan AWS ni se detuvieron las otras dos. Saldo consultado de nuevo a las 19:19 Bogotá: **USD 74,06**, sin asumir facturación en tiempo real. No se pudo obtener consumo monetario histórico de Cost Explorer. `observe.py` guarda CPU, créditos y tráfico realmente observados en CloudWatch; esas métricas no equivalen a una factura.
+
+## Transferencia medida del ensayo
+
+Con 12 jugadores simultáneos durante 120 s, la prueba final recibió 76.170.396 bytes de WebSocket (unos 5,1 Mbit/s agregados), sin contar descarga inicial de recursos. Mantener exactamente ese tráfico 24/7 durante 730 h proyectaría unos 1.668 GB/mes: aproximadamente **USD 141 adicionales** después de un cupo agregado de 100 GB, si sigue disponible íntegro. Es un escenario de ocupación continua, no consumo mensual observado. Los estados comprimidos y de precisión acotada redujeron el tráfico frente al primer ensayo; los recursos estáticos también consumen transferencia.

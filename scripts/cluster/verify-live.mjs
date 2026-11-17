@@ -4,11 +4,12 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { lookup } from 'node:dns/promises';
 import { WebSocket } from 'ws';
-import { resolver } from '../lib/smoke-network.mjs';
+import { resolver, assertNoPublicClusterTraffic } from '../lib/smoke-network.mjs';
 import { PROTOCOL_VERSION, GAME_VERSION } from '../../src/network/protocol.js';
 const exec = promisify(execFile), inventory = JSON.parse(readFileSync('.cluster-local/inventory.json', 'utf8'));
 if (process.env.RH_CLUSTER_TEST_ISOLATED !== '1' || process.env.SMOKE_RESOLVE_IP !== inventory.nodes['rh-gateway'].publicIp) throw new Error('Explicit isolated candidate required');
 if ((await lookup('redhorizon.lat')).address === process.env.SMOKE_RESOLVE_IP) throw new Error('Refusing fault injection against the DNS production destination');
+await assertNoPublicClusterTraffic();
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const assert = (value, message) => { if (!value) throw new Error(message); };
 async function until(fn, timeout = 10000) { const end = Date.now() + timeout; while (Date.now() < end) { const value = fn(); if (value) return value; await delay(50); } throw new Error('Live check timeout'); }

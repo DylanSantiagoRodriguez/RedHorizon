@@ -15,6 +15,7 @@ trust={'Version':'2012-10-17','Statement':[{'Effect':'Allow','Principal':{'AWS':
 policy={'Version':'2012-10-17','Statement':[
  {'Effect':'Allow','Action':['ec2:Describe*','ssm:DescribeInstanceInformation','ssm:GetCommandInvocation','ssm:ListCommandInvocations','cloudwatch:GetMetricData','cloudwatch:GetMetricStatistics','cloudformation:DescribeStacks','cloudformation:DescribeStackEvents','cloudformation:DescribeStackResources'],'Resource':'*'},
  {'Effect':'Allow','Action':['ssm:SendCommand','ssm:StartSession'],'Resource':instances+[f'arn:aws:ssm:us-east-2:{account}:document/SSM-SessionManagerRunShell','arn:aws:ssm:us-east-2::document/AWS-RunShellScript','arn:aws:ssm:us-east-2::document/AWS-StartSSHSession']},
+ {'Effect':'Allow','Action':['ssm:TerminateSession','ssm:ResumeSession','ssmmessages:OpenDataChannel'],'Resource':f'arn:aws:ssm:us-east-2:{account}:session/*','Condition':{'StringEquals':{'ssm:resourceTag/aws:ssmmessages:session-id':'${aws:userid}'}}},
  {'Effect':'Allow','Action':['ec2:StartInstances','ec2:StopInstances','ec2:RebootInstances','ec2:ModifyInstanceAttribute','ec2:ModifyInstanceMetadataOptions','ec2:CreateTags'],'Resource':instances},
  {'Effect':'Allow','Action':['ec2:AuthorizeSecurityGroupIngress','ec2:RevokeSecurityGroupIngress','ec2:ModifyInstanceAttribute'],'Resource':groups}
 ]}

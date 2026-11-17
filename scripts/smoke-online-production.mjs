@@ -34,6 +34,9 @@ try {
   const code = await a.page.locator('#lobby-code').textContent();
   await b.page.locator('#room-code').fill(code); await b.page.locator('#join-room').click();
   await expect(a.page.locator('#lobby-players li')).toHaveCount(2);
+  // Creating a seeded expedition prepares its models again; use the same
+  // bounded asset-loading allowance as the initial scene, not click's 30 s.
+  for (const peer of peers) await expect(peer.page.locator('#ready-room')).toBeEnabled({ timeout: 180000 });
   await a.page.locator('#ready-room').click(); await b.page.locator('#ready-room').click();
   await expect(a.page.locator('#start-room')).toBeEnabled(); await a.page.locator('#start-room').click();
   await expect.poll(() => b.snapshot?.players.length, { timeout: 15000 }).toBe(2);
@@ -66,4 +69,7 @@ try {
     await peer.page.locator('#menu').click();
   }
   console.log(JSON.stringify({ result: 'passed', url, buildId: health.buildId, checks: ['two browser contexts', 'lobby and ready', 'shared movement', 'shared enemies and authoritative shots', 'local Escape', 'identity after reload', 'leave'], errors }));
+} catch (error) {
+  console.error(JSON.stringify({ result: 'failed', buildId: health.buildId, errors, loading: await Promise.all(peers.map(p => p.page.locator('.model-loading').textContent().catch(() => null))) }));
+  throw error;
 } finally { await browser.close(); }

@@ -8,9 +8,17 @@ case "$role" in gateway|game|coordinator) ;; *) exit 2;; esac
 base="$(cd "$(dirname "$0")/../.." && pwd)"
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl xz-utils unattended-upgrades
+install -d -m 0755 /etc/needrestart/conf.d
+printf '\044nrconf{restart} = "l";\n' >/etc/needrestart/conf.d/99-redhorizon.conf
+printf 'Unattended-Upgrade::Automatic-Reboot "false";\n' >/etc/apt/apt.conf.d/99-redhorizon-no-reboot
 if [ "$role" = gateway ]; then
   # Use on NEW gateway only; installing nginx can start it on port 80.
   DEBIAN_FRONTEND=noninteractive apt-get install -y nginx certbot
+  install -m 0644 "$base/deploy/cluster/nginx.logrotate" /etc/logrotate.d/nginx
+  install -d /etc/systemd/system/logrotate.timer.d
+  printf '[Timer]\nOnCalendar=\nOnCalendar=hourly\n' >/etc/systemd/system/logrotate.timer.d/redhorizon.conf
+  systemctl daemon-reload
+  systemctl restart logrotate.timer
 fi
 if [ "$role" = coordinator ]; then
   DEBIAN_FRONTEND=noninteractive apt-get install -y redis-server
@@ -37,6 +45,7 @@ install -d -m 0750 -o root -g redhorizon-cluster /var/lib/redhorizon-cluster
 install -m 0644 "$base/deploy/cluster/redhorizon-cluster.service" /etc/systemd/system/
 install -d /etc/systemd/journald.conf.d
 printf '[Journal]\nSystemMaxUse=100M\nMaxRetentionSec=7day\n' >/etc/systemd/journald.conf.d/redhorizon-cluster.conf
+systemctl restart systemd-journald
 if [ "$role" = game ]; then
   install -d /etc/systemd/system/redhorizon-cluster.service.d
   printf '[Service]\nMemoryMax=1200M\n' >/etc/systemd/system/redhorizon-cluster.service.d/memory.conf

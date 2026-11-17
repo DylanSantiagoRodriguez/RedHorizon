@@ -3,7 +3,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { lookup } from 'node:dns/promises';
 import { WebSocket } from 'ws';
-import { resolver } from '../lib/smoke-network.mjs';
+import { resolver, assertNoPublicClusterTraffic } from '../lib/smoke-network.mjs';
 import { PROTOCOL_VERSION, GAME_VERSION } from '../../src/network/protocol.js';
 const inventory = JSON.parse(readFileSync('.cluster-local/inventory.json', 'utf8'));
 const expectedWorkers = (process.env.RH_CALIBRATION_WORKERS || 'rh-game-01,rh-game-02,rh-game-03').split(',');
@@ -11,6 +11,7 @@ if (!expectedWorkers.length || expectedWorkers.length > 3 || expectedWorkers.som
 if (process.env.RH_CLUSTER_TEST_ISOLATED !== '1' || process.env.SMOKE_RESOLVE_IP !== inventory.nodes['rh-gateway'].publicIp || (await lookup('redhorizon.lat')).address === process.env.SMOKE_RESOLVE_IP) throw new Error('Isolated candidate required');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function until(fn, timeout = 10000) { const end = Date.now() + timeout; while (Date.now() < end) { const value = fn(); if (value) return value; await delay(25); } throw new Error('Calibration timeout'); }
+await assertNoPublicClusterTraffic();
 const sockets = [], rooms = [], rtts = [], failures = []; let inputTimer;
 let logicalBytes = 0;
 function send(ws, m) { if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(m)); }

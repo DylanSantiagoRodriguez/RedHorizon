@@ -11,7 +11,7 @@ assert args.release.replace('-','').replace('.','').isalnum()
 sha=hashlib.file_digest(artifact.open('rb'),'sha256').hexdigest()
 inventory=json.loads(Path('.cluster-local/inventory.json').read_text())
 setup=Path('.cluster-local/host-setup.tar.gz')
-subprocess.run(['tar','-czf',str(setup),'scripts/cluster/install-host.sh','scripts/cluster/activate.sh','deploy/cluster/redhorizon-cluster.service'],check=True)
+subprocess.run(['tar','-czf',str(setup),'scripts/cluster/install-host.sh','scripts/cluster/activate.sh','deploy/cluster/redhorizon-cluster.service','deploy/cluster/nginx.logrotate'],check=True)
 def stage(item):
  name,node=item
  role='gateway' if name=='rh-gateway' else 'coordinator' if name=='rh-coordinator' else 'game'

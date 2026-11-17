@@ -1,6 +1,12 @@
 import http from 'node:http';
 import https from 'node:https';
 import { isIP } from 'node:net';
+export async function assertNoPublicClusterTraffic() {
+  // Deliberately use normal DNS, never resolver(). The legacy address may already
+  // proxy this cluster even before the owner changes DNS.
+  const response = await fetch('https://redhorizon.lat/health', { signal: AbortSignal.timeout(10000) });
+  if (!response.ok || typeof (await response.json()).connections === 'number') throw new Error('Refusing fault/load tests: public entry is unavailable or already uses the cluster');
+}
 export function resolver() {
   const ip = process.env.SMOKE_RESOLVE_IP;
   if (!ip) return undefined;
