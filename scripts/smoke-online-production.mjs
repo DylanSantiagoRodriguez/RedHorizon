@@ -14,6 +14,8 @@ try {
     const page = await context.newPage(), peer = { page, context };
     peers.push(peer);
     page.on('pageerror', e => errors.push(e.message));
+    page.on('console', m => { if (/Couldn't load texture|No se pudo cargar|violates.*Content Security Policy/.test(m.text())) errors.push(m.text()); });
+    page.on('response', r => { if (r.status() >= 400 && /\/(models|textures)\//.test(new URL(r.url()).pathname)) errors.push(`Asset HTTP ${r.status()}: ${new URL(r.url()).pathname}`); });
     page.on('websocket', socket => socket.on('framereceived', ({ payload }) => {
       try {
         const m = JSON.parse(payload);

@@ -53,8 +53,8 @@ export class MissionView {
     this.caption.innerHTML = '<div class="cinema-top">ASTER / ÚLTIMA TRANSMISIÓN</div><div class="cinema-copy"><small></small><p></p></div>';
     game.ui.root.appendChild(this.caption);
   }
-  update() {
-    const { run, view, entities, state } = this.game, mission = run.mission;
+  update(run = this.game.run) {
+    const { view, entities, state } = this.game, mission = run.mission;
     const cinema = mission.phase === 'cinematic', visible = state.value === 'playing' && cinema;
     view.backdrop.setMode(cinema && mission.cinematic >= 15 ? 'space' : 'planet');
     const helmetShot = cinema && mission.cinematic >= 5 && mission.cinematic < 15;

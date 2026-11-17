@@ -25,7 +25,7 @@ export class OnlineGame {
   }
   updateLobbyStatus() { const node = this.game.ui.overlay.querySelector('#online-status'); if (node) node.textContent = this.error || this.connectionState; }
   receive(m) {
-    if (m.type === 'welcome') { this.step = 1 / m.tickHz; this.accumulator = 0; this.playerId = m.playerId; this.code = m.code; this.seq = m.seq; this.pending = []; this.history = []; this.fresh = true; this.error = ''; if (!this.started) this.prepare(m.seed || m.code); }
+    if (m.type === 'welcome') { this.step = 1 / m.tickHz; this.accumulator = 0; this.playerId = m.playerId; this.code = m.code; this.seq = m.seq; this.pending = []; this.history = []; this.renderTime = undefined; this.fresh = true; this.error = ''; if (!this.started) this.prepare(m.seed || m.code); }
     if (m.type === 'lobby') { this.lobby = m; if (!m.started) this.showLobby(); }
     if (m.type === 'error') {
       this.error = m.message; this.updateLobbyStatus(); this.game.ui.hud.toast(m.message);
@@ -119,14 +119,29 @@ export class OnlineGame {
     while (this.accumulator >= this.step) { this.sendInput(this.step, g.state.value === 'playing' && !g.loading?.pending && !g.input.rebinding && !g.run.player.dead); this.accumulator -= this.step; }
   }
   interpolate() {
-    if (!this.latest || !this.history.length) return;
+    const run = this.game.run;
+    if (!this.latest || !this.history.length) return run;
     const target = performance.now() - 100;
     const a = [...this.history].reverse().find(h => h.at <= target) || this.history[0];
     const b = this.history.find(h => h.at >= target) || this.history.at(-1);
     const t = a === b ? 1 : Math.max(0, Math.min(1, (target - a.at) / (b.at - a.at)));
-    const blend = (entity, prev, next) => { if (!prev || !next) return; for (const key of ['x', 'y', 'z']) entity[key] = prev[key] + (next[key] - prev[key]) * t; const diff = Math.atan2(Math.sin(next.yaw - prev.yaw), Math.cos(next.yaw - prev.yaw)); entity.yaw = prev.yaw + diff * t; };
+    const blend = (entity, prev, next) => { if (!prev || !next) return; for (const key of ['x', 'y', 'z']) entity[key] = prev[key] + (next[key] - prev[key]) * t; if (Number.isFinite(prev.yaw) && Number.isFinite(next.yaw)) { const diff = Math.atan2(Math.sin(next.yaw - prev.yaw), Math.cos(next.yaw - prev.yaw)); entity.yaw = prev.yaw + diff * t; } };
     for (const [id, m] of this.players) if (id !== this.playerId) blend(m.player, a.snapshot.players.find(p => p.id === id), b.snapshot.players.find(p => p.id === id));
     for (const e of this.game.run.enemies) blend(e, a.snapshot.enemies.find(n => n.id === e.id), b.snapshot.enemies.find(n => n.id === e.id));
+    // Animation mixers and world effects need the same continuous timeline as
+    // interpolated positions, rather than the 10 Hz authoritative snapshot clock.
+    // Keep presentation separate: never advance gameplay or mutate wire history.
+    const playing = this.latest.status === 'playing';
+    const time = playing ? a.snapshot.time + (b.snapshot.time - a.snapshot.time) * t : this.latest.time;
+    this.renderTime = Math.max(this.renderTime ?? time, time);
+    const mission = { ...run.mission };
+    if (playing && a.snapshot.mission.phase === mission.phase && b.snapshot.mission.phase === mission.phase) {
+      for (const key of ['cinematic', 'countdown']) mission[key] = a.snapshot.mission[key] + (b.snapshot.mission[key] - a.snapshot.mission[key]) * t;
+    }
+    const previous = new Map(a.snapshot.projectiles.map(p => [p.id, p]));
+    const next = new Map(b.snapshot.projectiles.map(p => [p.id, p]));
+    const projectiles = run.combat.pool.items.map(p => { const visual = { ...p }; if (playing) blend(visual, previous.get(p.id), next.get(p.id)); return visual; });
+    return { ...run, time: this.renderTime, mission, combat: { ...run.combat, pool: { ...run.combat.pool, items: projectiles } } };
   }
   cameraPlayer() { return this.game.run.player.dead ? [...this.players.values()].find(m => !m.player.dead && !m.player.abandoned)?.player || this.game.run.player : this.game.run.player; }
   updateTeam() {

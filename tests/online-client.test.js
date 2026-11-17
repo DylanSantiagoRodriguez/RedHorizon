@@ -52,3 +52,36 @@ it('no reproduce eventos históricos, duplicados o de daño dirigidos a otro jug
   room.events.push({ id: 2, name: 'hurt', data: { playerId: 'b' } }, { id: 3, name: 'hurt', data: { playerId: 'a' } }); room.tick++; client.snapshot(dto()); client.snapshot(dto()); expect(events).toHaveLength(1);
   client.fresh = true; room.events.push({ id: 4, name: 'shot', data: {} }); client.snapshot(dto()); expect(events).toHaveLength(1);
 });
+it('mantiene animaciones, cinemática y proyectiles fluidos entre snapshots de 10 Hz sin cambiar el estado autoritativo', () => {
+  const { client, authoritative, room, game, dto } = fixture(); const now = vi.spyOn(performance, 'now');
+  try {
+    const projectile = { id: 42, x: 0, y: 1, z: 0, vx: 10, vy: 0, vz: 0, active: true };
+    authoritative.combat.pool.items = [projectile];
+    authoritative.time = 1; authoritative.mission = { phase: 'cinematic', cinematic: 2, countdown: 0 };
+    now.mockReturnValue(100); client.snapshot(dto());
+    authoritative.time = 1.1; authoritative.mission.cinematic = 2.1; projectile.x = 1; room.tick++;
+    now.mockReturnValue(200); client.snapshot(dto());
+    const history = JSON.stringify(client.history), times = [], positions = [];
+    for (const at of [210, 230, 250, 270, 290]) {
+      now.mockReturnValue(at); const visual = client.interpolate();
+      times.push(visual.time); positions.push(visual.combat.pool.items[0].x);
+      expect(visual.mission.cinematic).toBeCloseTo(visual.time + 1);
+    }
+    expect(times.map(t => Number(t.toFixed(2)))).toEqual([1.01, 1.03, 1.05, 1.07, 1.09]);
+    expect(positions.map(x => Number(x.toFixed(1)))).toEqual([.1, .3, .5, .7, .9]);
+    expect(game.run.time).toBe(1.1); expect(game.run.combat.pool.items[0].x).toBe(1);
+    expect(JSON.stringify(client.history)).toBe(history);
+    now.mockReturnValue(10000); expect(client.interpolate().time).toBe(1.1);
+  } finally { now.mockRestore(); }
+});
+it('congela la presentación durante una mejora sin inventar tiempo ni retroceder al reanudar', () => {
+  const { client, authoritative, room, dto } = fixture(); const now = vi.spyOn(performance, 'now');
+  client.show = () => {}; client.game.ui = { overlay: { querySelector: () => null } };
+  try {
+    authoritative.time = 1; now.mockReturnValue(100); client.snapshot(dto());
+    authoritative.time = 1.1; authoritative.status = 'upgrade'; room.tick++; now.mockReturnValue(200); client.snapshot(dto());
+    for (const at of [210, 250, 1000]) { now.mockReturnValue(at); expect(client.interpolate().time).toBe(1.1); }
+    authoritative.status = 'playing'; room.tick++; now.mockReturnValue(1100); client.snapshot(dto());
+    now.mockReturnValue(1110); expect(client.interpolate().time).toBe(1.1);
+  } finally { now.mockRestore(); }
+});

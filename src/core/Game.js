@@ -115,11 +115,11 @@ export class Game {
       const elapsed = now - this.fpsWindow;
       if (elapsed >= 500) { this.fps = this.fpsFrames * 1000 / elapsed; this.fpsFrames = 0; this.fpsWindow = now; }
     }
-    this.online?.interpolate();
-    this.world.update(this.run.time); this.entities.sync(this.run, (this.online ? this.run.status === 'upgrade' : ['paused', 'upgrade'].includes(this.state.value)) ? 0 : Math.min(dt, 0.1));
+    const visualRun = this.online?.interpolate() || this.run;
+    this.world.update(visualRun.time); this.entities.sync(visualRun, (this.online ? this.run.status === 'upgrade' : ['paused', 'upgrade'].includes(this.state.value)) ? 0 : Math.min(dt, 0.1));
     if (this.state.value === 'menu') { this.view.camera.position.set(8, 4.6, 10); this.view.camera.lookAt(-4, 1.8, -11); }
     else this.camera.update(dt, this.input, this.online?.cameraPlayer() || this.run.player, this.world);
-    if (this.online?.started) this.entities.syncPlayers(this.online.players, this.online.playerId, this.run, this.run.status === 'upgrade' ? 0 : Math.min(dt, .1));
+    if (this.online?.started) this.entities.syncPlayers(this.online.players, this.online.playerId, visualRun, this.run.status === 'upgrade' ? 0 : Math.min(dt, .1));
     if (!this.online && this.state.value === 'playing' && this.run.mission.phase !== 'cinematic') {
       this.run.player.yaw = Math.PI - this.camera.yaw;
       this.entities.player.rotation.y = this.run.player.yaw;
@@ -127,7 +127,7 @@ export class Game {
     this.particles.update(this.state.value === 'playing' ? dt : 0, this.run);
     this.audio.update(dt, this.state.value === 'playing', this.run.mission, this.run, this.camera.yaw);
     const p = this.run.player; this.view.sun.position.set(p.x - 35, 65, p.z - 25); this.view.sun.target.position.set(p.x, 0, p.z);
-    this.ui.update(this.run, dt); this.missionView.update(); this.view.draw();
+    this.ui.update(this.run, dt); this.missionView.update(visualRun); this.view.draw();
     // Reveal only after the first complete frame, including GPU texture upload.
     this.loading.reveal();
   }
