@@ -6,6 +6,8 @@ import { WebSocket } from 'ws';
 import { resolver } from '../lib/smoke-network.mjs';
 import { PROTOCOL_VERSION, GAME_VERSION } from '../../src/network/protocol.js';
 const inventory = JSON.parse(readFileSync('.cluster-local/inventory.json', 'utf8'));
+const expectedWorkers = (process.env.RH_CALIBRATION_WORKERS || 'rh-game-01,rh-game-02,rh-game-03').split(',');
+if (!expectedWorkers.length || expectedWorkers.length > 3 || expectedWorkers.some(id => !/^rh-game-0[123]$/.test(id))) throw new Error('Invalid calibration workers');
 if (process.env.RH_CLUSTER_TEST_ISOLATED !== '1' || process.env.SMOKE_RESOLVE_IP !== inventory.nodes['rh-gateway'].publicIp || (await lookup('redhorizon.lat')).address === process.env.SMOKE_RESOLVE_IP) throw new Error('Isolated candidate required');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function until(fn, timeout = 10000) { const end = Date.now() + timeout; while (Date.now() < end) { const value = fn(); if (value) return value; await delay(25); } throw new Error('Calibration timeout'); }
@@ -27,7 +29,7 @@ async function connect() {
 }
 const intro = type => ({ type, version: PROTOCOL_VERSION, gameVersion: GAME_VERSION });
 try {
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < expectedWorkers.length; i++) {
     const a = await connect(); send(a, intro('create')); const welcome = await until(() => a.last.get('welcome'));
     const members = [a];
     for (let j = 0; j < 3; j++) { const b = await connect(); send(b, { ...intro('join'), code: welcome.code }); await until(() => b.last.get('welcome')); members.push(b); }
@@ -35,7 +37,7 @@ try {
     await until(() => a.last.get('lobby')?.players.every(p => p.ready)); send(a, { type: 'start' }); await until(() => a.last.get('snapshot'));
     rooms.push({ serverId: welcome.serverId, members });
   }
-  if (new Set(rooms.map(r => r.serverId)).size !== 3) throw new Error('Three workers not exercised');
+  if (rooms.map(r => r.serverId).sort().join(',') !== [...expectedWorkers].sort().join(',')) throw new Error('Expected worker allocations not exercised');
   const start = performance.now();
   inputTimer = setInterval(() => {
     for (const [i, ws] of sockets.entries()) {
@@ -54,5 +56,5 @@ try {
   rtts.sort((a, b) => a - b);
   const report = { at: new Date().toISOString(), durationSeconds: 120, logicalBytes, wireBytes: sockets.reduce((n, s) => n + (s._socket?.bytesRead || 0), 0), compression: sockets.map(s => s.extensions), rooms: rooms.map(r => ({ worker: r.serverId, players: r.members.length, maxEnemies: Math.max(...r.members.map(w => w.maxEnemies)), snapshots: r.members[0].snapshots, finalStatus: r.members[0].last.get('snapshot')?.status })), rttP95Ms: rtts[Math.floor(rtts.length * .95)], rttP99Ms: rtts[Math.floor(rtts.length * .99)], samples: rtts.length, connectedAtEnd: sockets.filter(s => s.readyState === WebSocket.OPEN).length, failures };
   writeFileSync('.cluster-local/live-calibration.json', JSON.stringify(report, null, 2)); console.log(JSON.stringify(report));
-  if (failures.length || report.connectedAtEnd !== 12 || report.rttP95Ms > 400 || report.rttP99Ms > 800 || rooms.some(r => r.members.some(s => s.snapshots < 100))) throw new Error('Calibration acceptance failed');
+  if (failures.length || report.connectedAtEnd !== expectedWorkers.length * 4 || report.rttP95Ms > 400 || report.rttP99Ms > 800 || rooms.some(r => r.members.some(s => s.snapshots < 100))) throw new Error('Calibration acceptance failed');
 } finally { clearInterval(inputTimer); for (const ws of sockets) { send(ws, { type: 'leave' }); ws.close(); } }

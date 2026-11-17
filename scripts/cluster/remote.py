@@ -2,6 +2,7 @@
 """Private local transport helpers. Never put private keys in SSM command payloads."""
 import json
 import os
+import shlex
 from pathlib import Path
 import subprocess
 import time
@@ -46,7 +47,12 @@ def pin_host(name,node):
     return path
 
 def options(name):
-    return ['-i',str(key_for(name)),'-o','BatchMode=yes','-o','StrictHostKeyChecking=yes','-o',f'UserKnownHostsFile={LOCAL/(name+".known_hosts")}','-o','ConnectTimeout=15','-o','ServerAliveInterval=15','-o','ServerAliveCountMax=4']
+    result=['-i',str(key_for(name)),'-o','BatchMode=yes','-o','StrictHostKeyChecking=yes','-o',f'UserKnownHostsFile={LOCAL/(name+".known_hosts")}','-o','ConnectTimeout=30','-o','ServerAliveInterval=15','-o','ServerAliveCountMax=4']
+    if os.environ.get('RH_TRANSPORT','ssm')=='ssm':
+        node=json.loads((LOCAL/'inventory.json').read_text())['nodes'][name]
+        proxy=['aws','ssm','start-session','--target',node['instanceId'],'--document-name','AWS-StartSSHSession','--parameters','portNumber=22','--region',REGION,'--profile',PROFILE]
+        result+=['-o','ProxyCommand='+shlex.join(proxy)]
+    return result
 
 def ssh(name,node,script,check=True):
     return subprocess.run(['ssh',*options(name),'ubuntu@'+node['publicIp'],'sudo bash -s'],input=script,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=check)
